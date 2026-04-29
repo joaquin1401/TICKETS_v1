@@ -1,0 +1,87 @@
+{% extends "reservas/base.html" %}
+{% block title %}{{ titulo }} — FlotaCorp{% endblock %}
+{% block breadcrumb %}Flota / {{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ titulo }}</h1>
+    <p class="sub">{% if vehiculo %}Modificar datos del vehículo{% else %}Registrar nuevo vehículo en la flota{% endif %}</p>
+  </div>
+  <a href="{% url 'listado_flota' %}" class="btn btn-outline">← Volver a la flota</a>
+</div>
+
+<div style="max-width:520px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">◧ {% if vehiculo %}Editar{% else %}Nuevo{% endif %} vehículo</span>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Marca</label>
+            <input type="text" name="marca" class="form-control" placeholder="Ej: Toyota"
+                   value="{{ form.marca.value|default:'' }}">
+            {% if form.marca.errors %}<p class="form-error">{{ form.marca.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Modelo</label>
+            <input type="text" name="modelo" class="form-control" placeholder="Ej: Hilux 2023"
+                   value="{{ form.modelo.value|default:'' }}">
+            {% if form.modelo.errors %}<p class="form-error">{{ form.modelo.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Capacidad de pasajeros</label>
+          <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="Ej: 5"
+                 value="{{ form.cant_pasajeros.value|default:'' }}">
+          {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
+        </div>
+        {% if vehiculo %}
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" name="activo"
+                   {% if form.activo.value %}checked{% endif %}
+                   style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+            <span style="font-size:13px;color:var(--text-dim);">Vehículo activo (disponible para reservas)</span>
+          </label>
+          {% if form.activo.errors %}<p class="form-error">{{ form.activo.errors.0 }}</p>{% endif %}
+        </div>
+        {% if not form.activo.value %}
+        <div class="alert alert-warning" style="margin-bottom:16px;">
+          <span>⚠</span>
+          <span>Un vehículo inactivo no aparecerá en el formulario de reservas.</span>
+        </div>
+        {% endif %}
+        {% else %}
+        <input type="hidden" name="activo" value="true">
+        {% endif %}
+
+        {% if form.non_field_errors %}
+        <p class="form-error" style="margin-bottom:12px;">{{ form.non_field_errors.0 }}</p>
+        {% endif %}
+
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button type="submit" class="btn btn-primary btn-lg">
+            {% if vehiculo %}Guardar cambios{% else %}Agregar a la flota{% endif %}
+          </button>
+          <a href="{% url 'listado_flota' %}" class="btn btn-outline btn-lg">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if vehiculo %}
+  <div class="card" style="margin-top:16px;border-color:rgba(224,82,82,0.2);">
+    <div class="card-body" style="padding:14px 18px;">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:0;">
+        <strong style="color:var(--text-dim);">Para dar de baja permanente:</strong>
+        desmarcá "Activo" y guardá. El vehículo dejará de aparecer en las reservas pero se mantendrá el historial.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

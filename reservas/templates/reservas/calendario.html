@@ -1,0 +1,211 @@
+{% extends "reservas/base.html" %}
+{% block title %}Calendario — FlotaCorp{% endblock %}
+{% block breadcrumb %}Calendario{% endblock %}
+
+{% block extra_css %}
+<style>
+  .cal-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  /* Calendario */
+  .cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .cal-nav {
+    display: flex; gap: 8px;
+  }
+  .cal-month-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    color: var(--text);
+    text-transform: capitalize;
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-dow {
+    text-align: center;
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 6px 0;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 13px;
+    color: var(--text-dim);
+    position: relative;
+    cursor: default;
+    border: 1px solid transparent;
+    transition: all 0.12s;
+  }
+  .cal-day.empty { visibility: hidden; }
+  .cal-day.has-reservas {
+    background: rgba(232,160,32,0.12);
+    color: var(--accent);
+    border-color: rgba(232,160,32,0.3);
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .cal-day.has-reservas:hover {
+    background: rgba(232,160,32,0.22);
+    border-color: var(--accent);
+  }
+  .cal-day.today {
+    border-color: var(--accent);
+    color: var(--accent2);
+  }
+  .cal-day.has-reservas::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  /* Leyenda */
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+  .legend-dot.reservado { background: rgba(232,160,32,0.3); border: 1px solid rgba(232,160,32,0.5); }
+  .legend-dot.libre     { background: var(--surface2);      border: 1px solid var(--border); }
+  .legend-dot.hoy       { background: transparent;          border: 1px solid var(--accent); }
+  @media (max-width: 900px) {
+    .cal-layout { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Calendario de disponibilidad</h1>
+    <p class="sub">Consultá la ocupación de la flota por vehículo</p>
+  </div>
+</div>
+
+<div class="cal-layout">
+  <!-- Selector de vehículo -->
+  <div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">◧ Filtrar</span></div>
+      <div class="card-body">
+        <form method="get">
+          <div class="form-group">
+            <label class="form-label">Vehículo</label>
+            <select name="vehiculo" class="form-control" onchange="this.form.submit()">
+              <option value="">-- Seleccionar --</option>
+              {% for v in form.vehiculo.field.queryset %}
+              <option value="{{ v.pk }}"
+                {% if form.vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
+                {{ v.marca }} {{ v.modelo }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% if vehiculo %}
+          <input type="hidden" name="anio" value="{{ anio }}">
+          <input type="hidden" name="mes" value="{{ mes }}">
+          {% endif %}
+        </form>
+
+        {% if vehiculo %}
+        <hr class="divider">
+        <div style="font-size:12px;color:var(--text-muted);">
+          <div style="margin-bottom:6px;font-family:var(--mono);text-transform:uppercase;font-size:10px;letter-spacing:0.08em;">Vehículo seleccionado</div>
+          <div style="font-size:14px;color:var(--text);font-weight:500;">{{ vehiculo.marca }} {{ vehiculo.modelo }}</div>
+          <div style="margin-top:4px;">Capacidad: {{ vehiculo.cant_pasajeros }} pasajeros</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendario mensual -->
+  <div class="card">
+    <div class="card-header">
+      {% if vehiculo %}
+      <div class="cal-header" style="width:100%;margin:0;">
+        <span class="cal-month-title">{{ nombre_mes }}</span>
+        <div class="cal-nav">
+          <a href="?vehiculo={{ vehiculo.pk }}&anio={{ mes_anterior.0 }}&mes={{ mes_anterior.1 }}"
+             class="btn btn-outline btn-sm">←</a>
+          <a href="?vehiculo={{ vehiculo.pk }}&anio={{ mes_siguiente.0 }}&mes={{ mes_siguiente.1 }}"
+             class="btn btn-outline btn-sm">→</a>
+        </div>
+      </div>
+      {% else %}
+      <span class="card-title">◈ Vista mensual</span>
+      {% endif %}
+    </div>
+    <div class="card-body">
+      {% if vehiculo %}
+      <div class="cal-grid">
+        {% for dow in "LMXJVSD" %}
+        <div class="cal-dow">{{ dow }}</div>
+        {% endfor %}
+
+        {% for week in cal %}
+          {% for day in week %}
+            {% if day == 0 %}
+            <div class="cal-day empty"></div>
+            {% else %}
+              {% with current_date=anio|stringformat:"s"|add:"-"|add:mes|stringformat:"s"|add:"-"|add:day|stringformat:"s" %}
+              {% comment %}Usamos un tag para construir date — comparamos en el contexto{% endcomment %}
+              <div class="cal-day
+                {% for rd in dias_con_reservas %}{% if rd.day == day and rd.month == mes and rd.year == anio %}has-reservas{% endif %}{% endfor %}
+                {% now "Y-m-d" as today_str %}
+                "
+                {% for rd in dias_con_reservas %}{% if rd.day == day and rd.month == mes and rd.year == anio %}
+                onclick="window.location='{% url 'timeline_dia' vehiculo.pk anio mes day %}'"
+                {% endif %}{% endfor %}
+              >{{ day }}</div>
+              {% endwith %}
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot reservado"></div> Con reservas</div>
+        <div class="legend-item"><div class="legend-dot libre"></div> Libre</div>
+        <div class="legend-item"><div class="legend-dot hoy"></div> Hoy</div>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="icon">◈</div>
+        <p>Seleccioná un vehículo para ver su disponibilidad.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

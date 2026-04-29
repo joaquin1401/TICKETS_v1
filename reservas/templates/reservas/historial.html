@@ -1,0 +1,61 @@
+{% extends "reservas/base.html" %}
+{% block title %}Mis Tickets — FlotaCorp{% endblock %}
+{% block breadcrumb %}Mis Tickets{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Mis Tickets</h1>
+    <p class="sub">Historial de reservas solicitadas</p>
+  </div>
+  <a href="{% url 'dashboard' %}" class="btn btn-primary">+ Nueva reserva</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">◫ Reservas</span>
+    <span class="badge badge-neutral">{{ tickets.count }} total</span>
+  </div>
+  <div class="table-wrap">
+    {% if tickets %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Destino</th>
+          <th>Vehículo</th>
+          <th>Salida</th>
+          <th>Regreso</th>
+          <th>Pasajeros</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td><span class="text-mono text-muted">#{{ t.pk }}</span></td>
+          <td><span class="primary">{{ t.destino }}</span></td>
+          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
+          <td class="text-mono">{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
+          <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>{{ t.cant_pasajeros }}</td>
+          <td>
+            <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">
+              {{ t.estado }}
+            </span>
+          </td>
+          <td><a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">◌</div>
+      <p>No tenés tickets registrados.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

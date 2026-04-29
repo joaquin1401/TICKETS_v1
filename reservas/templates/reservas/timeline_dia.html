@@ -1,0 +1,159 @@
+{% extends "reservas/base.html" %}
+{% block title %}Timeline {{ fecha|date:"d/m/Y" }} — FlotaCorp{% endblock %}
+{% block breadcrumb %}Calendario / {{ fecha|date:"d \d\e F" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .timeline-wrap {
+    position: relative;
+    padding-left: 56px;
+  }
+  .hour-row {
+    display: flex;
+    align-items: flex-start;
+    min-height: 48px;
+    position: relative;
+  }
+  .hour-label {
+    position: absolute;
+    left: -56px;
+    top: 0;
+    width: 48px;
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    padding-top: 2px;
+  }
+  .hour-line {
+    position: absolute;
+    left: -4px;
+    right: 0;
+    top: 8px;
+    height: 1px;
+    background: var(--border);
+  }
+  .hour-content {
+    flex: 1;
+    padding: 2px 0 0 8px;
+    min-height: 48px;
+  }
+  .reservation-block {
+    background: rgba(232,160,32,0.1);
+    border: 1px solid rgba(232,160,32,0.35);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .reservation-block .res-times {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .reservation-block .res-dest {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .reservation-block .res-user {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .free-slot {
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--success);
+    opacity: 0.5;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ vehiculo.marca }} {{ vehiculo.modelo }}</h1>
+    <p class="sub">{{ fecha|date:"l d \d\e F \d\e Y"|capfirst }}</p>
+  </div>
+  <a href="{% url 'calendario' %}?vehiculo={{ vehiculo.pk }}&anio={{ fecha.year }}&mes={{ fecha.month }}"
+     class="btn btn-outline">← Volver al mes</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">◈ Línea de tiempo</span>
+    <span class="badge badge-neutral">{{ tickets.count }} reserva{{ tickets.count|pluralize:"s" }}</span>
+  </div>
+  <div class="card-body">
+    {% if tickets %}
+    <div class="timeline-wrap">
+      {% for hora in "06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22"|split:" " %}
+      {% with hora_int=hora|add:"0" %}
+      <div class="hour-row">
+        <span class="hour-label">{{ hora }}:00</span>
+        <div class="hour-line"></div>
+        <div class="hour-content">
+          {% for t in tickets %}
+            {% if t.hora_inicio.hour|stringformat:"02d" == hora %}
+            <div class="reservation-block">
+              <div class="res-times">{{ t.hora_inicio|date:"H:i" }} → {% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}?{% endif %}</div>
+              <div class="res-dest">{{ t.destino }}</div>
+              <div class="res-user">{{ t.id_usuario.nombre_completo }} · {{ t.id_usuario.id_cargo.nombre }}</div>
+            </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endwith %}
+      {% endfor %}
+    </div>
+
+    <hr class="divider">
+    <p style="font-size:12px;color:var(--text-muted);">
+      ⚠ Los bloques muestran la hora de <strong>inicio</strong> de cada reserva. Revisá el detalle para ver la duración exacta.
+    </p>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">✓</div>
+      <p style="color:var(--success);">El vehículo está libre todo el día.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if tickets %}
+<div class="card" style="margin-top:16px;">
+  <div class="card-header"><span class="card-title">◫ Detalle de reservas</span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Solicitante</th>
+          <th>Cargo</th>
+          <th>Destino</th>
+          <th>Salida</th>
+          <th>Regreso</th>
+          <th>Pasajeros</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
+          <td><span class="badge badge-warning">{{ t.id_usuario.id_cargo.nombre }}</span></td>
+          <td>{{ t.destino }}</td>
+          <td class="text-mono">{{ t.hora_inicio|date:"H:i" }}</td>
+          <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>{{ t.cant_pasajeros }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

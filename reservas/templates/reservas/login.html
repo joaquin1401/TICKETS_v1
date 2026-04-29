@@ -1,0 +1,146 @@
+{% extends "reservas/base.html" %}
+{% block title %}Ingresar — FlotaCorp{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block topbar %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-wrapper {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 440px;
+  }
+  .auth-panel {
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 48px 44px;
+  }
+  .auth-brand {
+    font-family: var(--serif);
+    font-size: 32px;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .auth-tagline {
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 36px;
+  }
+  .auth-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  .auth-left {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 60px;
+    background: var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-left::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: -80px;
+    width: 400px; height: 400px;
+    border: 1px solid rgba(232,160,32,0.08);
+    border-radius: 50%;
+  }
+  .auth-left::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 280px; height: 280px;
+    border: 1px solid rgba(232,160,32,0.06);
+    border-radius: 50%;
+  }
+  .hero-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-label::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent); }
+  .hero-headline {
+    font-family: var(--serif);
+    font-size: 48px;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 20px;
+    max-width: 380px;
+  }
+  .hero-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 340px;
+    line-height: 1.7;
+  }
+  .auth-footer { margin-top: 24px; font-size: 12px; color: var(--text-muted); text-align: center; }
+  .auth-footer a { color: var(--accent); text-decoration: none; }
+  .auth-footer a:hover { color: var(--accent2); }
+  @media (max-width: 768px) {
+    .auth-wrapper { grid-template-columns: 1fr; }
+    .auth-left { display: none; }
+    .auth-panel { border-left: none; padding: 40px 24px; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-left">
+    <div class="hero-label">Sistema corporativo</div>
+    <h1 class="hero-headline">Gestión de flota vehicular</h1>
+    <p class="hero-desc">Reservas inteligentes con prioridad por cargo jerárquico. Coordinación centralizada de toda la flota.</p>
+  </div>
+  <div class="auth-panel">
+    <div class="auth-brand">FlotaCorp</div>
+    <div class="auth-tagline">Sistema de Reservas</div>
+    <p class="auth-title">Iniciar sesión</p>
+
+    {% if messages %}
+    <div class="alerts" style="margin-bottom:20px;">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {% if message.tags == 'success' %}✓{% elif message.tags == 'danger' %}✕{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %}
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input type="email" name="correo" class="form-control" placeholder="correo@empresa.com"
+               value="{{ form.correo.value|default:'' }}" autofocus>
+        {% if form.correo.errors %}<p class="form-error">{{ form.correo.errors.0 }}</p>{% endif %}
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contraseña</label>
+        <input type="password" name="contrasena" class="form-control" placeholder="••••••••">
+        {% if form.contrasena.errors %}<p class="form-error">{{ form.contrasena.errors.0 }}</p>{% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:8px;">Ingresar</button>
+    </form>
+    <div class="auth-footer">
+      ¿No tenés cuenta? <a href="{% url 'registro' %}">Solicitar acceso</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

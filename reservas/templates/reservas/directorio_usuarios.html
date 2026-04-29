@@ -1,0 +1,85 @@
+{% extends "reservas/base.html" %}
+{% block title %}Directorio de Usuarios — FlotaCorp{% endblock %}
+{% block breadcrumb %}Directorio{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Directorio de Usuarios</h1>
+    <p class="sub">Empleados con acceso activo</p>
+  </div>
+  <a href="{% url 'panel_validacion' %}" class="btn btn-outline">Pendientes →</a>
+</div>
+
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <label class="form-label">Buscar</label>
+        <input type="text" name="busqueda" class="form-control"
+               placeholder="Nombre, apellido o correo..."
+               value="{{ form.busqueda.value|default:'' }}">
+      </div>
+      <div style="min-width:180px;">
+        <label class="form-label">Cargo</label>
+        <select name="cargo" class="form-control">
+          <option value="">Todos los cargos</option>
+          {% for cargo in form.cargo.field.queryset %}
+          <option value="{{ cargo.pk }}"
+            {% if form.cargo.value|stringformat:"s" == cargo.pk|stringformat:"s" %}selected{% endif %}>
+            {{ cargo.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary">Filtrar</button>
+      {% if request.GET %}
+      <a href="{% url 'directorio_usuarios' %}" class="btn btn-outline">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">◷ Usuarios activos</span>
+    <span class="badge badge-neutral">{{ usuarios.count }}</span>
+  </div>
+  <div class="table-wrap">
+    {% if usuarios %}
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Cargo</th>
+          <th>Prioridad</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in usuarios %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim);flex-shrink:0;">
+                {{ u.nombre.0 }}{{ u.apellido.0 }}
+              </div>
+              <span class="primary">{{ u.nombre }} {{ u.apellido }}</span>
+            </div>
+          </td>
+          <td class="text-mono" style="font-size:12px;">{{ u.correo }}</td>
+          <td><span class="badge badge-warning">{{ u.id_cargo.nombre }}</span></td>
+          <td class="text-mono text-muted">{{ u.id_cargo.prioridad }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">◌</div>
+      <p>No se encontraron usuarios con los filtros aplicados.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

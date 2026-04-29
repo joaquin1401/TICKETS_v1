@@ -1,0 +1,70 @@
+{% extends "reservas/base.html" %}
+{% block title %}Tickets Activos — FlotaCorp{% endblock %}
+{% block breadcrumb %}Monitor de Tickets{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Monitor de Tickets Activos</h1>
+    <p class="sub">Reservas vigentes y futuras de toda la empresa</p>
+  </div>
+  <a href="{% url 'auditoria_tickets' %}" class="btn btn-outline">Ver historial →</a>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Reservas activas</div>
+    <div class="stat-value">{{ tickets.count }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Vehículos en uso</div>
+    <div class="stat-value neutral">{{ tickets|length }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">◉ Tickets vigentes</span>
+    <span class="badge badge-success">En curso / Futuros</span>
+  </div>
+  <div class="table-wrap">
+    {% if tickets %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Solicitante</th>
+          <th>Cargo</th>
+          <th>Vehículo</th>
+          <th>Destino</th>
+          <th>Salida</th>
+          <th>Regreso</th>
+          <th>Pax</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td class="text-mono text-muted">#{{ t.pk }}</td>
+          <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
+          <td><span class="badge badge-warning">{{ t.id_usuario.id_cargo.nombre }}</span></td>
+          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
+          <td>{{ t.destino }}</td>
+          <td class="text-mono">{{ t.hora_inicio|date:"d/m H:i" }}</td>
+          <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>{{ t.cant_pasajeros }}</td>
+          <td><a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">◌</div>
+      <p>No hay tickets activos en este momento.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

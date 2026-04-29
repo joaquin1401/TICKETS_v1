@@ -1,0 +1,135 @@
+{% extends "reservas/base.html" %}
+{% block title %}Solicitar Acceso — FlotaCorp{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block topbar %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-center {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    background: var(--bg);
+  }
+  .register-box {
+    width: 100%;
+    max-width: 500px;
+  }
+  .register-header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .register-header .brand {
+    font-family: var(--serif);
+    font-size: 28px;
+    color: var(--accent);
+  }
+  .register-header h2 {
+    font-size: 16px;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .notice {
+    background: rgba(232,160,32,0.06);
+    border: 1px solid rgba(232,160,32,0.2);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--accent2);
+    margin-bottom: 24px;
+    display: flex;
+    gap: 8px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-center">
+  <div class="register-box">
+    <div class="register-header">
+      <div class="brand">FlotaCorp</div>
+      <h2>Solicitar acceso al sistema</h2>
+    </div>
+
+    {% if messages %}
+    <div class="alerts" style="margin-bottom:20px;">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {% if message.tags == 'success' %}✓{% elif message.tags == 'danger' %}✕{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %}
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="notice">
+      <span>⚠</span>
+      <span>Tu cuenta quedará <strong>pendiente de aprobación</strong> hasta que un administrador la valide.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nombre</label>
+              <input type="text" name="nombre" class="form-control" placeholder="Juan"
+                     value="{{ form.nombre.value|default:'' }}">
+              {% if form.nombre.errors %}<p class="form-error">{{ form.nombre.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Apellido</label>
+              <input type="text" name="apellido" class="form-control" placeholder="Pérez"
+                     value="{{ form.apellido.value|default:'' }}">
+              {% if form.apellido.errors %}<p class="form-error">{{ form.apellido.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Correo electrónico</label>
+            <input type="email" name="correo" class="form-control" placeholder="correo@empresa.com"
+                   value="{{ form.correo.value|default:'' }}">
+            {% if form.correo.errors %}<p class="form-error">{{ form.correo.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Cargo</label>
+            <select name="id_cargo" class="form-control">
+              <option value="">-- Seleccioná tu cargo --</option>
+              {% for cargo in form.id_cargo.field.queryset %}
+              <option value="{{ cargo.pk }}"
+                {% if form.id_cargo.value|stringformat:"s" == cargo.pk|stringformat:"s" %}selected{% endif %}>
+                {{ cargo.nombre }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.id_cargo.errors %}<p class="form-error">{{ form.id_cargo.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Contraseña</label>
+              <input type="password" name="contrasena" class="form-control" placeholder="Mínimo 8 caracteres">
+              {% if form.contrasena.errors %}<p class="form-error">{{ form.contrasena.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirmar contraseña</label>
+              <input type="password" name="confirmar_contrasena" class="form-control" placeholder="Repetir contraseña">
+              {% if form.confirmar_contrasena.errors %}<p class="form-error">{{ form.confirmar_contrasena.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+          {% if form.non_field_errors %}
+          <p class="form-error" style="margin-bottom:12px;">{{ form.non_field_errors.0 }}</p>
+          {% endif %}
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:4px;">Enviar solicitud</button>
+        </form>
+      </div>
+    </div>
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted);">
+      ¿Ya tenés cuenta? <a href="{% url 'login' %}" style="color:var(--accent);text-decoration:none;">Iniciar sesión</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

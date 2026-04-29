@@ -1,0 +1,151 @@
+{% extends "reservas/base.html" %}
+{% block title %}Ticket #{{ ticket.pk }} — FlotaCorp{% endblock %}
+{% block breadcrumb %}Ticket #{{ ticket.pk }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+  }
+  .detail-field { margin-bottom: 20px; }
+  .detail-field-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .detail-field-value {
+    font-size: 15px;
+    color: var(--text);
+  }
+  .detail-field-value.large {
+    font-family: var(--serif);
+    font-size: 20px;
+  }
+  .observacion-box {
+    background: rgba(224,82,82,0.05);
+    border: 1px solid rgba(224,82,82,0.2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #f09090;
+    line-height: 1.6;
+  }
+  @media (max-width: 900px) {
+    .detail-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Ticket #{{ ticket.pk }}</h1>
+    <p class="sub">Detalle de la reserva</p>
+  </div>
+  <div class="flex gap-8">
+    {% if request.session.es_admin %}
+    <a href="{% url 'monitor_tickets_activos' %}" class="btn btn-outline">← Volver</a>
+    {% else %}
+    <a href="{% url 'historial' %}" class="btn btn-outline">← Volver</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="detail-grid">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">◫ Información del ticket</span>
+      <span class="badge badge-{% if ticket.estado == 'aprobado' %}success{% elif ticket.estado == 'cancelado' %}danger{% else %}warning{% endif %} " style="font-size:11px;">
+        {{ ticket.estado|upper }}
+      </span>
+    </div>
+    <div class="card-body">
+      <div class="detail-field">
+        <div class="detail-field-label">Destino</div>
+        <div class="detail-field-value large">{{ ticket.destino }}</div>
+      </div>
+      <div class="form-row">
+        <div class="detail-field">
+          <div class="detail-field-label">Fecha y hora de salida</div>
+          <div class="detail-field-value text-mono">{{ ticket.hora_inicio|date:"d/m/Y" }} — {{ ticket.hora_inicio|date:"H:i" }}hs</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Regreso estimado</div>
+          <div class="detail-field-value text-mono">
+            {% if ticket.hora_fin %}{{ ticket.hora_fin|date:"d/m/Y" }} — {{ ticket.hora_fin|date:"H:i" }}hs{% else %}<span class="text-muted">No especificado</span>{% endif %}
+          </div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="detail-field">
+          <div class="detail-field-label">Pasajeros</div>
+          <div class="detail-field-value">{{ ticket.cant_pasajeros }}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Fecha de solicitud</div>
+          <div class="detail-field-value text-mono">{{ ticket.fecha|date:"d/m/Y" }}</div>
+        </div>
+      </div>
+      {% if ticket.descripcion %}
+      <div class="detail-field">
+        <div class="detail-field-label">Descripción</div>
+        <div class="detail-field-value" style="color:var(--text-dim);">{{ ticket.descripcion }}</div>
+      </div>
+      {% endif %}
+      {% if ticket.observacion %}
+      <hr class="divider">
+      <div class="detail-field">
+        <div class="detail-field-label" style="color:var(--danger);">Observación del sistema</div>
+        <div class="observacion-box">{{ ticket.observacion }}</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Panel lateral -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div class="card">
+      <div class="card-header"><span class="card-title">◧ Vehículo asignado</span></div>
+      <div class="card-body">
+        <div class="detail-field">
+          <div class="detail-field-label">Marca y modelo</div>
+          <div class="detail-field-value" style="font-weight:500;">{{ ticket.id_vehiculo.marca }} {{ ticket.id_vehiculo.modelo }}</div>
+        </div>
+        <div class="detail-field" style="margin-bottom:0;">
+          <div class="detail-field-label">Capacidad</div>
+          <div class="detail-field-value">{{ ticket.id_vehiculo.cant_pasajeros }} pasajeros</div>
+        </div>
+      </div>
+    </div>
+
+    {% if request.session.es_admin %}
+    <div class="card">
+      <div class="card-header"><span class="card-title">◷ Solicitante</span></div>
+      <div class="card-body">
+        <div class="detail-field">
+          <div class="detail-field-label">Nombre</div>
+          <div class="detail-field-value">{{ ticket.id_usuario.nombre_completo }}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Correo</div>
+          <div class="detail-field-value text-mono" style="font-size:12px;">{{ ticket.id_usuario.correo }}</div>
+        </div>
+        <div class="detail-field" style="margin-bottom:0;">
+          <div class="detail-field-label">Cargo</div>
+          <div>
+            <span class="badge badge-warning">{{ ticket.id_usuario.id_cargo.nombre }}</span>
+            <span class="text-muted text-mono" style="font-size:11px;margin-left:6px;">prioridad {{ ticket.id_usuario.id_cargo.prioridad }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

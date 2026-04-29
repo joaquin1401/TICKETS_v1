@@ -1,0 +1,89 @@
+{% extends "reservas/base.html" %}
+{% block title %}Validar Usuarios — FlotaCorp{% endblock %}
+{% block breadcrumb %}Validar Usuarios{% endblock %}
+
+{% block extra_css %}
+<style>
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .user-card:last-child { border-bottom: none; }
+  .user-avatar-lg {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .user-card-info { flex: 1; min-width: 0; }
+  .user-card-name { font-size: 14px; color: var(--text); font-weight: 500; }
+  .user-card-meta { font-size: 11px; color: var(--text-muted); font-family: var(--mono); margin-top: 2px; }
+  .action-btns { display: flex; gap: 8px; flex-shrink: 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Validación de Usuarios</h1>
+    <p class="sub">Aprobá o rechazá solicitudes de acceso</p>
+  </div>
+  <span class="badge badge-warning" style="font-size:13px;padding:6px 12px;">{{ pendientes.count }} pendiente{{ pendientes.count|pluralize:"s" }}</span>
+</div>
+
+<div class="tabs">
+  <a href="{% url 'panel_validacion' %}" class="tab active">Pendientes ({{ pendientes.count }})</a>
+  <a href="{% url 'usuarios_rechazados' %}" class="tab">Rechazados</a>
+</div>
+
+<div class="card">
+  {% if pendientes %}
+    {% for u in pendientes %}
+    <div class="user-card">
+      <div class="user-avatar-lg">{{ u.nombre.0 }}{{ u.apellido.0 }}</div>
+      <div class="user-card-info">
+        <div class="user-card-name">{{ u.nombre }} {{ u.apellido }}</div>
+        <div class="user-card-meta">{{ u.correo }} · {{ u.id_cargo.nombre }}</div>
+      </div>
+      <div class="action-btns">
+        <form method="post" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="usuario_id" value="{{ u.pk }}">
+          <input type="hidden" name="accion" value="aprobar">
+          <button type="submit" class="btn btn-success btn-sm">✓ Aprobar</button>
+        </form>
+        <form method="post" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="usuario_id" value="{{ u.pk }}">
+          <input type="hidden" name="accion" value="rechazar">
+          <button type="submit" class="btn btn-danger btn-sm">✕ Rechazar</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">✓</div>
+    <p>No hay usuarios pendientes de validación.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

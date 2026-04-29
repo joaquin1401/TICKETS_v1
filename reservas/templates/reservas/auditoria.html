@@ -1,0 +1,71 @@
+{% extends "reservas/base.html" %}
+{% block title %}Auditoría — FlotaCorp{% endblock %}
+{% block breadcrumb %}Auditoría de Tickets{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Auditoría de Tickets</h1>
+    <p class="sub">Tickets históricos y cancelados</p>
+  </div>
+  <a href="{% url 'monitor_tickets_activos' %}" class="btn btn-outline">← Tickets activos</a>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">◌ Historial</span>
+    <span class="badge badge-neutral">{{ tickets.count }} registros</span>
+  </div>
+  <div class="table-wrap">
+    {% if tickets %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Solicitante</th>
+          <th>Cargo</th>
+          <th>Vehículo</th>
+          <th>Destino</th>
+          <th>Salida</th>
+          <th>Estado</th>
+          <th>Observación</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td class="text-mono text-muted">#{{ t.pk }}</td>
+          <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
+          <td><span class="badge badge-neutral">{{ t.id_usuario.id_cargo.nombre }}</span></td>
+          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
+          <td>{{ t.destino }}</td>
+          <td class="text-mono">{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
+          <td>
+            <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">
+              {{ t.estado }}
+            </span>
+          </td>
+          <td style="max-width:200px;">
+            {% if t.observacion %}
+            <span style="font-size:11px;color:var(--text-muted);" title="{{ t.observacion }}">
+              {{ t.observacion|truncatechars:50 }}
+            </span>
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td><a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">◌</div>
+      <p>No hay registros históricos.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "reservas/base.html" %}
+{% block title %}Usuarios Rechazados — FlotaCorp{% endblock %}
+{% block breadcrumb %}Usuarios Rechazados{% endblock %}
+
+{% block extra_css %}
+<style>
+  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+  .tab { padding: 10px 18px; font-size: 13px; color: var(--text-muted); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Usuarios Rechazados</h1>
+    <p class="sub">Solicitudes de acceso denegadas</p>
+  </div>
+</div>
+
+<div class="tabs">
+  <a href="{% url 'panel_validacion' %}" class="tab">Pendientes</a>
+  <a href="{% url 'usuarios_rechazados' %}" class="tab active">Rechazados ({{ rechazados.count }})</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    {% if rechazados %}
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Correo</th>
+          <th>Cargo solicitado</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in rechazados %}
+        <tr>
+          <td><span class="primary">{{ u.nombre }} {{ u.apellido }}</span></td>
+          <td class="text-mono" style="font-size:12px;">{{ u.correo }}</td>
+          <td>{{ u.id_cargo.nombre }}</td>
+          <td><span class="badge badge-danger">Rechazado</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">◌</div>
+      <p>No hay usuarios rechazados.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

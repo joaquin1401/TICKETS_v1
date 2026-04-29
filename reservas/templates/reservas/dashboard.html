@@ -1,0 +1,168 @@
+{% extends "reservas/base.html" %}
+{% block title %}Dashboard — FlotaCorp{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 20px;
+    align-items: start;
+  }
+  .quick-form .card-body { padding: 22px; }
+  .recent-label {
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .ticket-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .ticket-mini:last-child { border-bottom: none; }
+  .ticket-mini-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-aprobado  { background: var(--success); }
+  .dot-pendiente { background: var(--warning); }
+  .dot-cancelado { background: var(--danger); }
+  .ticket-mini-info { flex: 1; min-width: 0; }
+  .ticket-mini-dest { font-size: 13px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ticket-mini-sub  { font-size: 11px; color: var(--text-muted); font-family: var(--mono); }
+  .welcome-bar {
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .welcome-text h1 { font-family: var(--serif); font-size: 24px; color: var(--text); font-weight: 400; }
+  .welcome-text p  { font-size: 12px; color: var(--text-muted); font-family: var(--mono); margin-top: 2px; }
+  @media (max-width: 900px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-bar">
+  <div class="welcome-text">
+    <h1>Bienvenido, {{ usuario.nombre }}</h1>
+    <p>{{ usuario.id_cargo.nombre }} · {% now "l d \d\e F" %}</p>
+  </div>
+  <a href="{% url 'historial' %}" class="btn btn-outline">Ver todos mis tickets →</a>
+</div>
+
+<div class="dashboard-grid">
+  <!-- Formulario de reserva rápida -->
+  <div class="card quick-form">
+    <div class="card-header">
+      <span class="card-title">⬡ Nueva reserva</span>
+      <span class="badge badge-warning">Rápida</span>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Vehículo</label>
+          <select name="id_vehiculo" class="form-control">
+            <option value="">-- Seleccionar vehículo --</option>
+            {% for v in form.id_vehiculo.field.queryset %}
+            <option value="{{ v.pk }}"
+              {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
+              {{ v.marca }} {{ v.modelo }} ({{ v.cant_pasajeros }} pas.)
+            </option>
+            {% endfor %}
+          </select>
+          {% if form.id_vehiculo.errors %}<p class="form-error">{{ form.id_vehiculo.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="form-group">
+          <label class="form-label">Destino</label>
+          <input type="text" name="destino" class="form-control" placeholder="Ej: Sede Tucumán"
+                 value="{{ form.destino.value|default:'' }}">
+          {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Salida</label>
+            <input type="datetime-local" name="hora_inicio" class="form-control"
+                   value="{{ form.hora_inicio.value|default:'' }}">
+            {% if form.hora_inicio.errors %}<p class="form-error">{{ form.hora_inicio.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Regreso (estimado)</label>
+            <input type="datetime-local" name="hora_fin" class="form-control"
+                   value="{{ form.hora_fin.value|default:'' }}">
+            {% if form.hora_fin.errors %}<p class="form-error">{{ form.hora_fin.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pasajeros</label>
+            <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="1"
+                   value="{{ form.cant_pasajeros.value|default:'' }}">
+            {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripción / Motivo</label>
+          <textarea name="descripcion" class="form-control" rows="2" placeholder="Motivo del viaje...">{{ form.descripcion.value|default:'' }}</textarea>
+        </div>
+        {% if form.non_field_errors %}
+        <p class="form-error" style="margin-bottom:10px;">{{ form.non_field_errors.0 }}</p>
+        {% endif %}
+        <button type="submit" class="btn btn-primary" style="width:100%;">Solicitar reserva</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Panel lateral -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <!-- Mis últimas reservas -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">◫ Últimas reservas</span>
+        <a href="{% url 'historial' %}" class="btn btn-outline btn-sm">Ver todas</a>
+      </div>
+      <div class="card-body" style="padding:14px 18px;">
+        {% if tickets_recientes %}
+          {% for t in tickets_recientes %}
+          <a href="{% url 'detalle_ticket' t.pk %}" style="text-decoration:none;">
+            <div class="ticket-mini">
+              <div class="ticket-mini-dot dot-{{ t.estado }}"></div>
+              <div class="ticket-mini-info">
+                <div class="ticket-mini-dest">{{ t.destino }}</div>
+                <div class="ticket-mini-sub">{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} · {{ t.hora_inicio|date:"d/m H:i" }}</div>
+              </div>
+              <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">{{ t.estado }}</span>
+            </div>
+          </a>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding:24px;">
+            <div class="icon">◌</div>
+            <p>Sin reservas aún</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Acceso rápido al calendario -->
+    <div class="card" style="background: rgba(232,160,32,0.04); border-color: rgba(232,160,32,0.2);">
+      <div class="card-body" style="padding:16px 18px;">
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;">Disponibilidad</p>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Consultá la disponibilidad de la flota antes de solicitar.</p>
+        <a href="{% url 'calendario' %}" class="btn btn-outline" style="width:100%;">◈ Ver calendario</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
