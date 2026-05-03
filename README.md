@@ -9,29 +9,28 @@ Este es un sistema de reservas desarrollado en Django.
 
 ## Configuración de la Base de Datos (PostgreSQL)
 
-El proyecto está configurado para utilizar PostgreSQL por defecto. Necesitas crear una base de datos y un usuario para la aplicación. 
-Por defecto, las variables de entorno asumen los siguientes valores, pero puedes modificarlos si es necesario:
+El proyecto utiliza variables de entorno para la conexión a la base de datos. Se incluye un archivo `.env.example` (o puedes crear un archivo `.env` directamente) para configurar estos valores de manera segura.
 
-- **Base de datos**: `reservas_db`
-- **Usuario**: `postgres`
-- **Contraseña**: `postgres`
-- **Host**: `localhost`
-- **Puerto**: `5432`
+### Variables requeridas:
+
+- `DB_NAME`: Nombre de la base de datos.
+- `DB_USER`: Usuario de la base de datos.
+- `DB_PASSWORD`: Contraseña del usuario.
+- `DB_HOST`: Host de la base de datos (ej. `localhost`).
+- `DB_PORT`: Puerto de conexión (ej. `5432`).
 
 ### Cómo configurar en PostgreSQL
 
-Abre `psql` (o pgAdmin) e ingresa los siguientes comandos:
+Crea la base de datos y el usuario en tu instancia de PostgreSQL:
 
 ```sql
-CREATE DATABASE reservas_db;
-CREATE USER postgres WITH PASSWORD 'postgres';
-ALTER ROLE postgres SET client_encoding TO 'utf8';
-ALTER ROLE postgres SET default_transaction_isolation TO 'read committed';
-ALTER ROLE postgres SET timezone TO 'America/Argentina/Buenos_Aires';
-GRANT ALL PRIVILEGES ON DATABASE reservas_db TO postgres;
+CREATE DATABASE tu_base_de_datos;
+CREATE USER tu_usuario WITH PASSWORD 'tu_contrasena';
+ALTER ROLE tu_usuario SET client_encoding TO 'utf8';
+ALTER ROLE tu_usuario SET default_transaction_isolation TO 'read committed';
+ALTER ROLE tu_usuario SET timezone TO 'America/Argentina/Buenos_Aires';
+GRANT ALL PRIVILEGES ON DATABASE tu_base_de_datos TO tu_usuario;
 ```
-
-*(Si utilizas otros credenciales, asegúrate de configurar las variables de entorno correspondientes antes de ejecutar el servidor).*
 
 ## Configuración del Proyecto
 
