@@ -1,0 +1,127 @@
+[
+  {
+    "model": "reservas.cargo",
+    "pk": 1,
+    "fields": {
+      "nombre": "Decano",
+      "prioridad": 1
+    }
+  },
+  {
+    "model": "reservas.cargo",
+    "pk": 2,
+    "fields": {
+      "nombre": "Secretario",
+      "prioridad": 2
+    }
+  },
+  {
+    "model": "reservas.cargo",
+    "pk": 3,
+    "fields": {
+      "nombre": "Usuario",
+      "prioridad": 3
+    }
+  },
+  {
+    "model": "reservas.usuario",
+    "pk": 1,
+    "fields": {
+      "id_cargo": 1,
+      "nombre": "Admin",
+      "apellido": "Superior",
+      "contrasena": "pbkdf2_sha256$1200000$iJ4ze9qrbpsczJTTmsXQz4$I9ItNapWuP9f0DPv62je4y2O2TAUTC3FySPtYt420yw=",
+      "correo": "admin@empresa.com",
+      "valido": true,
+      "rechazado": false
+    }
+  },
+  {
+    "model": "reservas.usuario",
+    "pk": 2,
+    "fields": {
+      "id_cargo": 2,
+      "nombre": "Juan",
+      "apellido": "Gerente",
+      "contrasena": "pbkdf2_sha256$1200000$iJ4ze9qrbpsczJTTmsXQz4$I9ItNapWuP9f0DPv62je4y2O2TAUTC3FySPtYt420yw=",
+      "correo": "juan@empresa.com",
+      "valido": true,
+      "rechazado": false
+    }
+  },
+  {
+    "model": "reservas.usuario",
+    "pk": 3,
+    "fields": {
+      "id_cargo": 3,
+      "nombre": "Pedro",
+      "apellido": "Empleado",
+      "contrasena": "pbkdf2_sha256$1200000$iJ4ze9qrbpsczJTTmsXQz4$I9ItNapWuP9f0DPv62je4y2O2TAUTC3FySPtYt420yw=",
+      "correo": "pedro@empresa.com",
+      "valido": true,
+      "rechazado": false
+    }
+  },
+  {
+    "model": "reservas.vehiculo",
+    "pk": 1,
+    "fields": {
+      "marca": "Toyota",
+      "modelo": "Hilux",
+      "cant_pasajeros": 5,
+      "activo": true
+    }
+  },
+  {
+    "model": "reservas.vehiculo",
+    "pk": 2,
+    "fields": {
+      "marca": "Ford",
+      "modelo": "Ranger",
+      "cant_pasajeros": 5,
+      "activo": true
+    }
+  },
+  {
+    "model": "reservas.vehiculo",
+    "pk": 3,
+    "fields": {
+      "marca": "Volkswagen",
+      "modelo": "Amarok",
+      "cant_pasajeros": 5,
+      "activo": true
+    }
+  },
+  {
+    "model": "reservas.ticket",
+    "pk": 1,
+    "fields": {
+      "id_usuario": 2,
+      "id_vehiculo": 1,
+      "destino": "Planta Industrial",
+      "cant_pasajeros": 3,
+      "descripcion": "Inspección trimestral",
+      "hora_inicio": "2026-05-04T08:00:00Z",
+      "hora_fin": "2026-05-04T14:00:00Z",
+      "estado": "aprobado",
+      "fecha": "2026-05-03",
+      "observacion": ""
+    }
+  },
+  {
+    "model": "reservas.ticket",
+    "pk": 2,
+    "fields": {
+      "id_usuario": 3,
+      "id_vehiculo": 2,
+      "destino": "Sede Central",
+      "cant_pasajeros": 1,
+      "descripcion": "Entrega de documentos",
+      "hora_inicio": "2026-05-04T10:00:00Z",
+      "hora_fin": "2026-05-04T12:00:00Z",
+      "estado": "pendiente",
+      "fecha": "2026-05-03",
+      "observacion": ""
+    }
+  }
+]

@@ -3,7 +3,17 @@ from django.contrib.auth.hashers import make_password
 
 
 class Cargo(models.Model):
-    nombre = models.CharField(max_length=100)
+    DECANO = "Decano"
+    SECRETARIO = "Secretario"
+    USUARIO = "Usuario"
+
+    CARGOS_CHOICES = [
+        (DECANO, "Decano"),
+        (SECRETARIO, "Secretario"),
+        (USUARIO, "Usuario"),
+    ]
+
+    nombre = models.CharField(max_length=100, choices=CARGOS_CHOICES, unique=True)
     prioridad = models.PositiveIntegerField(
         help_text="Número menor = mayor jerarquía (1 = máxima prioridad)"
     )
