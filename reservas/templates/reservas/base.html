@@ -1,9 +1,10 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>{% block title %}FlotaCorp{% endblock %}</title>
+  <title>{% block title %}Sistema de Reserva de Vehículos{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <style>
@@ -376,13 +377,13 @@
 {% if usuario %}
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <div class="wordmark">FlotaCorp</div>
-    <div class="subtitle">Sistema de Reservas</div>
+    <img src="{% static 'img/LOGO.png' %}" alt="Logo Universitario" style="max-width: 100%; height: auto; margin-bottom: 8px;">
+    <div class="wordmark">Sistema de Reserva de Vehículos</div>
   </div>
 
   {% if not usuario.id_cargo.nombre|lower == "administrador" or not request.session.es_admin %}
   <div class="sidebar-section">
-    <div class="sidebar-section-label">Principal</div>
+    <div class="sidebar-section-label">Menú</div>
     <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
       <span class="icon">⬡</span> Dashboard
     </a>
@@ -440,7 +441,7 @@
   {% block topbar %}
   {% if usuario %}
   <div class="topbar">
-    <span class="topbar-title">FlotaCorp / <span>{% block breadcrumb %}Inicio{% endblock %}</span></span>
+    <span class="topbar-title">Sistema de Reserva de Vehículos / <span>{% block breadcrumb %}Inicio{% endblock %}</span></span>
   </div>
   {% endif %}
   {% endblock %}

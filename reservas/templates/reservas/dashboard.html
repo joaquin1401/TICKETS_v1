@@ -1,5 +1,5 @@
 {% extends "reservas/base.html" %}
-{% block title %}Dashboard — FlotaCorp{% endblock %}
+{% block title %}Dashboard — Sistema de Reserva de Vehículos{% endblock %}
 {% block breadcrumb %}Dashboard{% endblock %}
 
 {% block extra_css %}
@@ -93,14 +93,12 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Salida</label>
-            <input type="datetime-local" name="hora_inicio" class="form-control"
-                   value="{{ form.hora_inicio.value|default:'' }}">
+            {{ form.hora_inicio }}
             {% if form.hora_inicio.errors %}<p class="form-error">{{ form.hora_inicio.errors.0 }}</p>{% endif %}
           </div>
           <div class="form-group">
             <label class="form-label">Regreso (estimado)</label>
-            <input type="datetime-local" name="hora_fin" class="form-control"
-                   value="{{ form.hora_fin.value|default:'' }}">
+            {{ form.hora_fin }}
             {% if form.hora_fin.errors %}<p class="form-error">{{ form.hora_fin.errors.0 }}</p>{% endif %}
           </div>
         </div>

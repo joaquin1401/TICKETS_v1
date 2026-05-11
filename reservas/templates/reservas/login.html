@@ -1,5 +1,6 @@
 {% extends "reservas/base.html" %}
-{% block title %}Ingresar — FlotaCorp{% endblock %}
+{% load static %}
+{% block title %}Ingresar — Sistema de Reserva de Vehículos{% endblock %}
 {% block body_class %}no-sidebar{% endblock %}
 {% block topbar %}{% endblock %}
 {% block sidebar %}{% endblock %}
@@ -103,13 +104,13 @@
 {% block content %}
 <div class="auth-wrapper">
   <div class="auth-left">
-    <div class="hero-label">Sistema corporativo</div>
+    <div class="hero-label">Sistema de extensión universitaria</div>
     <h1 class="hero-headline">Gestión de flota vehicular</h1>
     <p class="hero-desc">Reservas inteligentes con prioridad por cargo jerárquico. Coordinación centralizada de toda la flota.</p>
   </div>
   <div class="auth-panel">
-    <div class="auth-brand">FlotaCorp</div>
-    <div class="auth-tagline">Sistema de Reservas</div>
+    <img src="{% static 'img/LOGO.png' %}" alt="Logo Universitario" style="max-width: 150px; display: block; margin: 0 auto 16px;">
+    <div class="auth-brand">Sistema de Reserva de Vehículos</div>
     <p class="auth-title">Iniciar sesión</p>
 
     {% if messages %}

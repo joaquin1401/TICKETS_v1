@@ -1,5 +1,6 @@
 {% extends "reservas/base.html" %}
-{% block title %}Solicitar Acceso — FlotaCorp{% endblock %}
+{% load static %}
+{% block title %}Solicitar Acceso — Sistema de Reserva de Vehículos{% endblock %}
 {% block body_class %}no-sidebar{% endblock %}
 {% block topbar %}{% endblock %}
 {% block sidebar %}{% endblock %}
@@ -51,7 +52,8 @@
 <div class="auth-center">
   <div class="register-box">
     <div class="register-header">
-      <div class="brand">FlotaCorp</div>
+      <img src="{% static 'img/LOGO.png' %}" alt="Logo Universitario" style="max-width: 150px; display: block; margin: 0 auto 16px;">
+      <div class="brand">Sistema de Reserva de Vehículos</div>
       <h2>Solicitar acceso al sistema</h2>
     </div>
 
