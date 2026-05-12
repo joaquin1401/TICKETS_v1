@@ -6,11 +6,11 @@ from .models import Usuario, Cargo, Vehiculo, Ticket
 
 
 # ──────────────────────────────────────────────
-# Épica 1 — Autenticación
+# Autenticación
 # ──────────────────────────────────────────────
 
 class RegistroForm(forms.ModelForm):
-    """HU 1.1 — Registro de cuenta."""
+    """Registro de cuenta."""
     contrasena = forms.CharField(
         widget=forms.PasswordInput(attrs={"placeholder": "Contraseña"}),
         label="Contraseña",
@@ -66,11 +66,11 @@ class LoginForm(forms.Form):
 
 
 # ──────────────────────────────────────────────
-# Épica 2 — Tickets (usuario normal)
+# Tickets (usuario normal)
 # ──────────────────────────────────────────────
 
 class TicketForm(forms.ModelForm):
-    """HU 2.1 — Creación rápida de ticket."""
+    """Creación rápida de ticket."""
 
     class Meta:
         model = Ticket
@@ -87,10 +87,10 @@ class TicketForm(forms.ModelForm):
             "destino":     forms.TextInput(attrs={"placeholder": "Ej: Sede central Tucumán"}),
             "descripcion": forms.Textarea(attrs={"rows": 3, "placeholder": "Motivo del viaje"}),
             "hora_inicio": forms.DateTimeInput(
-                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+                attrs={"type": "datetime-local", "class": "form-control"}, format="%Y-%m-%dT%H:%M"
             ),
             "hora_fin": forms.DateTimeInput(
-                attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"
+                attrs={"type": "datetime-local", "class": "form-control"}, format="%Y-%m-%dT%H:%M"
             ),
         }
 
@@ -119,11 +119,11 @@ class TicketForm(forms.ModelForm):
 
 
 # ──────────────────────────────────────────────
-# Épica 3 — Consulta de calendario
+# Consulta de calendario
 # ──────────────────────────────────────────────
 
 class VehiculoSelectorForm(forms.Form):
-    """HU 3.1 — Selección de vehículo para ver calendario."""
+    """Selección de vehículo para ver calendario."""
     vehiculo = forms.ModelChoiceField(
         queryset=Vehiculo.objects.filter(activo=True),
         label="Seleccionar vehículo",
@@ -132,11 +132,11 @@ class VehiculoSelectorForm(forms.Form):
 
 
 # ──────────────────────────────────────────────
-# Épica 5 — Administración
+# Administración
 # ──────────────────────────────────────────────
 
 class FiltroUsuariosForm(forms.Form):
-    """HU 5.1 — Filtro del directorio de usuarios."""
+    """Filtro del directorio de usuarios."""
     busqueda = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={"placeholder": "Buscar por nombre o correo..."}),
@@ -151,11 +151,11 @@ class FiltroUsuariosForm(forms.Form):
 
 
 # ──────────────────────────────────────────────
-# Épica 6 — ABM de flota
+# ABM de flota
 # ──────────────────────────────────────────────
 
 class VehiculoForm(forms.ModelForm):
-    """HU 6.2 / 6.3 — Alta y edición de vehículo."""
+    """Alta y edición de vehículo."""
 
     class Meta:
         model = Vehiculo
