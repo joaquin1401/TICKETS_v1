@@ -1,10 +1,6 @@
-{% extends "reservas/base.html" %}
-{% block title %}Ingresar — FlotaCorp{% endblock %}
-{% block body_class %}no-sidebar{% endblock %}
-{% block topbar %}{% endblock %}
-{% block sidebar %}{% endblock %}
-
-{% block extra_css %}
+{% extends "reservas/base.html" %} {% block title %}Ingresar —
+FlotaCor{%endblock %} {% block body_class %}no-sidebar{% endblock %} {% block
+topbar %} {% block sidebar %}{% endblock %} {% block extra_css %}
 <style>
   .auth-wrapper {
     min-height: 100vh;
@@ -50,19 +46,23 @@
     overflow: hidden;
   }
   .auth-left::before {
-    content: '';
+    content: "";
     position: absolute;
-    top: -80px; left: -80px;
-    width: 400px; height: 400px;
-    border: 1px solid rgba(85,139,186,0.08);
+    top: -80px;
+    left: -80px;
+    width: 400px;
+    height: 400px;
+    border: 1px solid rgba(85, 139, 186, 0.08);
     border-radius: 50%;
   }
   .auth-left::after {
-    content: '';
+    content: "";
     position: absolute;
-    bottom: -60px; right: -60px;
-    width: 280px; height: 280px;
-    border: 1px solid rgba(85,139,186,0.06);
+    bottom: -60px;
+    right: -60px;
+    width: 280px;
+    height: 280px;
+    border: 1px solid rgba(85, 139, 186, 0.06);
     border-radius: 50%;
   }
   .hero-label {
@@ -72,9 +72,17 @@
     letter-spacing: 0.15em;
     color: var(--accent);
     margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .hero-label::before { content: ''; display: block; width: 24px; height: 1px; background: var(--accent); }
+  .hero-label::before {
+    content: "";
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--accent);
+  }
   .hero-headline {
     font-family: var(--serif);
     font-size: 48px;
@@ -89,23 +97,41 @@
     max-width: 340px;
     line-height: 1.7;
   }
-  .auth-footer { margin-top: 24px; font-size: 12px; color: var(--text-muted); text-align: center; }
-  .auth-footer a { color: var(--accent); text-decoration: none; }
-  .auth-footer a:hover { color: var(--accent2); }
+  .auth-footer {
+    margin-top: 24px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .auth-footer a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .auth-footer a:hover {
+    color: var(--accent2);
+  }
   @media (max-width: 768px) {
-    .auth-wrapper { grid-template-columns: 1fr; }
-    .auth-left { display: none; }
-    .auth-panel { border-left: none; padding: 40px 24px; }
+    .auth-wrapper {
+      grid-template-columns: 1fr;
+    }
+    .auth-left {
+      display: none;
+    }
+    .auth-panel {
+      border-left: none;
+      padding: 40px 24px;
+    }
   }
 </style>
-{% endblock %}
-
-{% block content %}
+{% endblock %} {% block content %}
 <div class="auth-wrapper">
   <div class="auth-left">
-    <div class="hero-label">Sistema corporativo</div>
+    <div class="hero-label">ⵥ UTN FRRe - SEU</div>
     <h1 class="hero-headline">Gestión de flota vehicular</h1>
-    <p class="hero-desc">Reservas inteligentes con prioridad por cargo jerárquico. Coordinación centralizada de toda la flota.</p>
+    <p class="hero-desc">
+      Reserva tu vehiculo o consultá disponibilidad. Un proyecto desarrollado
+      por estudiantes de Ingeniería en Sistemas de Información.
+    </p>
   </div>
   <div class="auth-panel">
     <div class="auth-brand">FlotaCorp</div>
@@ -113,11 +139,12 @@
     <p class="auth-title">Iniciar sesión</p>
 
     {% if messages %}
-    <div class="alerts" style="margin-bottom:20px;">
+    <div class="alerts" style="margin-bottom: 20px">
       {% for message in messages %}
       <div class="alert alert-{{ message.tags }}">
-        {% if message.tags == 'success' %}✓{% elif message.tags == 'danger' %}✕{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %}
-        {{ message }}
+        {% if message.tags == 'success' %}✓{% elif message.tags == 'danger'
+        %}✕{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %} {{
+        message }}
       </div>
       {% endfor %}
     </div>
@@ -127,16 +154,37 @@
       {% csrf_token %}
       <div class="form-group">
         <label class="form-label">Correo electrónico</label>
-        <input type="email" name="correo" class="form-control" placeholder="correo@empresa.com"
-               value="{{ form.correo.value|default:'' }}" autofocus>
-        {% if form.correo.errors %}<p class="form-error">{{ form.correo.errors.0 }}</p>{% endif %}
+        <input
+          type="email"
+          name="correo"
+          class="form-control"
+          placeholder="correo@empresa.com"
+          value="{{ form.correo.value|default:'' }}"
+          autofocus
+        />
+        {% if form.correo.errors %}
+        <p class="form-error">{{ form.correo.errors.0 }}</p>
+        {% endif %}
       </div>
       <div class="form-group">
         <label class="form-label">Contraseña</label>
-        <input type="password" name="contrasena" class="form-control" placeholder="••••••••">
-        {% if form.contrasena.errors %}<p class="form-error">{{ form.contrasena.errors.0 }}</p>{% endif %}
+        <input
+          type="password"
+          name="contrasena"
+          class="form-control"
+          placeholder="••••••••"
+        />
+        {% if form.contrasena.errors %}
+        <p class="form-error">{{ form.contrasena.errors.0 }}</p>
+        {% endif %}
       </div>
-      <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:8px;">Ingresar</button>
+      <button
+        type="submit"
+        class="btn btn-primary btn-lg"
+        style="width: 100%; margin-top: 8px"
+      >
+        Ingresar
+      </button>
     </form>
     <div class="auth-footer">
       ¿No tenés cuenta? <a href="{% url 'registro' %}">Solicitar acceso</a>

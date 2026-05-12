@@ -1,0 +1,14 @@
+{
+  "builds": [
+    {
+      "src": "sistema_reservas/wsgi.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "sistema_reservas/wsgi.py"
+    }
+  ]
+}
