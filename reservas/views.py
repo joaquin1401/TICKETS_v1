@@ -109,7 +109,7 @@ def login_view(request):
 
             # Sesión — se distingue admin por cargo con prioridad 0 o flag
             request.session["usuario_id"] = usuario.pk
-            request.session["es_admin"] = (usuario.id_cargo.nombre.lower() == "administrador")
+            request.session["es_admin"] = (usuario.id_cargo.prioridad == 0)
             return redirect("dashboard")
     else:
         form = LoginForm()
