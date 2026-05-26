@@ -111,9 +111,8 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             return ResultadoCreacion(
                 estado=ResultadoCreacion.BLOQUEADO,
                 mensaje=(
-                    f"El vehículo ya está reservado por {propietario} "
-                    f"({t_existente.id_usuario.id_cargo.nombre}), "
-                    f"quien tiene igual o mayor jerarquía que usted."
+                    f"Lamentamos comunicarte que el vehículo ya está reservado por {propietario} "
+                    f"({t_existente.id_usuario.id_cargo.nombre})."
                 ),
             )
 
