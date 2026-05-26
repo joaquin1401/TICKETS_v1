@@ -72,11 +72,11 @@
       <form method="post">
         {% csrf_token %}
         <div class="form-group">
-          <label class="form-label">Vehículo</label>
+          <label class="form-label">Vehículo <span style="color:var(--danger);">*</span></label>
           <select name="id_vehiculo" class="form-control">
             <option value="">-- Seleccionar vehículo --</option>
             {% for v in form.id_vehiculo.field.queryset %}
-            <option value="{{ v.pk }}"
+            <option value="{{ v.pk }}" data-capacity="{{ v.cant_pasajeros }}"
               {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
               {{ v.marca }} {{ v.modelo }} ({{ v.cant_pasajeros }} pas.)
             </option>
@@ -85,14 +85,14 @@
           {% if form.id_vehiculo.errors %}<p class="form-error">{{ form.id_vehiculo.errors.0 }}</p>{% endif %}
         </div>
         <div class="form-group">
-          <label class="form-label">Destino</label>
+          <label class="form-label">Destino <span style="color:var(--danger);">*</span></label>
           <input type="text" name="destino" class="form-control" placeholder="Ej: Sede Tucumán"
                  value="{{ form.destino.value|default:'' }}">
           {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Salida</label>
+            <label class="form-label">Salida <span style="color:var(--danger);">*</span></label>
             {{ form.hora_inicio }}
             {% if form.hora_inicio.errors %}<p class="form-error">{{ form.hora_inicio.errors.0 }}</p>{% endif %}
           </div>
@@ -104,9 +104,9 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Pasajeros</label>
+            <label class="form-label">Pasajeros <span style="color:var(--danger);">*</span></label>
             <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="1"
-                   value="{{ form.cant_pasajeros.value|default:'' }}">
+                   id="pasajerosInput" value="{{ form.cant_pasajeros.value|default:'' }}">
             {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
           </div>
         </div>
@@ -117,8 +117,32 @@
         {% if form.non_field_errors %}
         <p class="form-error" style="margin-bottom:10px;">{{ form.non_field_errors.0 }}</p>
         {% endif %}
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span style="color:var(--danger);">*</span> Campos requeridos</p>
         <button type="submit" class="btn btn-primary" style="width:100%;">Solicitar reserva</button>
       </form>
+          <script>
+            const vehiculoSelect = document.querySelector('select[name="id_vehiculo"]');
+            const pasajerosInput = document.getElementById('pasajerosInput');
+        
+            function updateMaxPassengers() {
+              const selectedOption = vehiculoSelect.options[vehiculoSelect.selectedIndex];
+              const capacity = selectedOption.getAttribute('data-capacity');
+          
+              if (capacity) {
+                pasajerosInput.max = capacity;
+                pasajerosInput.placeholder = '1 - ' + capacity;
+              } else {
+                pasajerosInput.removeAttribute('max');
+                pasajerosInput.placeholder = '1';
+              }
+            }
+        
+            // Set max on page load if vehicle is already selected
+            updateMaxPassengers();
+        
+            // Update max when vehicle selection changes
+            vehiculoSelect.addEventListener('change', updateMaxPassengers);
+          </script>
     </div>
   </div>
 

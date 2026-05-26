@@ -57,17 +57,6 @@
       <h2>Solicitar acceso al sistema</h2>
     </div>
 
-    {% if messages %}
-    <div class="alerts" style="margin-bottom:20px;">
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {% if message.tags == 'success' %}✓{% elif message.tags == 'danger' %}✕{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %}
-        {{ message }}
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
     <div class="notice">
       <span>⚠</span>
       <span>Tu cuenta quedará <strong>pendiente de aprobación</strong> hasta que un administrador la valide.</span>
@@ -79,26 +68,26 @@
           {% csrf_token %}
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Nombre</label>
+              <label class="form-label">Nombre <span style="color:var(--danger);">*</span></label>
               <input type="text" name="nombre" class="form-control" placeholder="Juan"
                      value="{{ form.nombre.value|default:'' }}">
               {% if form.nombre.errors %}<p class="form-error">{{ form.nombre.errors.0 }}</p>{% endif %}
             </div>
             <div class="form-group">
-              <label class="form-label">Apellido</label>
+              <label class="form-label">Apellido <span style="color:var(--danger);">*</span></label>
               <input type="text" name="apellido" class="form-control" placeholder="Pérez"
                      value="{{ form.apellido.value|default:'' }}">
               {% if form.apellido.errors %}<p class="form-error">{{ form.apellido.errors.0 }}</p>{% endif %}
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Correo electrónico</label>
+            <label class="form-label">Correo electrónico <span style="color:var(--danger);">*</span></label>
             <input type="email" name="correo" class="form-control" placeholder="correo@empresa.com"
                    value="{{ form.correo.value|default:'' }}">
             {% if form.correo.errors %}<p class="form-error">{{ form.correo.errors.0 }}</p>{% endif %}
           </div>
           <div class="form-group">
-            <label class="form-label">Cargo</label>
+            <label class="form-label">Cargo <span style="color:var(--danger);">*</span></label>
             <select name="id_cargo" class="form-control">
               <option value="">-- Seleccioná tu cargo --</option>
               {% for cargo in form.id_cargo.field.queryset %}
@@ -112,12 +101,12 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label class="form-label">Contraseña</label>
+              <label class="form-label">Contraseña <span style="color:var(--danger);">*</span></label>
               <input type="password" name="contrasena" class="form-control" placeholder="Mínimo 8 caracteres">
               {% if form.contrasena.errors %}<p class="form-error">{{ form.contrasena.errors.0 }}</p>{% endif %}
             </div>
             <div class="form-group">
-              <label class="form-label">Confirmar contraseña</label>
+              <label class="form-label">Confirmar contraseña <span style="color:var(--danger);">*</span></label>
               <input type="password" name="confirmar_contrasena" class="form-control" placeholder="Repetir contraseña">
               {% if form.confirmar_contrasena.errors %}<p class="form-error">{{ form.confirmar_contrasena.errors.0 }}</p>{% endif %}
             </div>
@@ -125,6 +114,7 @@
           {% if form.non_field_errors %}
           <p class="form-error" style="margin-bottom:12px;">{{ form.non_field_errors.0 }}</p>
           {% endif %}
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span style="color:var(--danger);">*</span> Campos requeridos</p>
           <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:4px;">Enviar solicitud</button>
         </form>
       </div>

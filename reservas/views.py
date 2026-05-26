@@ -250,11 +250,13 @@ def timeline_dia(request, vehiculo_id, anio, mes, dia):
     vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id, activo=True)
     fecha = date(anio, mes, dia)
     tickets = get_tickets_del_dia(vehiculo, fecha)
+    horas = ["06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"]
     return render(request, "reservas/timeline_dia.html", {
         "vehiculo": vehiculo,
         "fecha": fecha,
         "tickets": tickets,
         "usuario": usuario,
+        "horas": horas,
     })
 
 
