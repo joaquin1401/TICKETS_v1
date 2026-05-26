@@ -91,7 +91,7 @@
   <div class="card-body">
     {% if tickets %}
     <div class="timeline-wrap">
-      {% for hora in "06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22"|split:" " %}
+      {% for hora in horas %}
       {% with hora_int=hora|add:"0" %}
       <div class="hour-row">
         <span class="hour-label">{{ hora }}:00</span>
