@@ -146,18 +146,6 @@
     <div class="auth-brand">Sistema de Reserva de Vehículos</div>
     <p class="auth-title">Iniciar sesión</p>
 
-    {% if messages %}
-    <div class="alerts" style="margin-bottom: 20px">
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {% if message.tags == 'success' %}✓{% elif message.tags == 'danger'
-        %}✕{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %} {{
-        message }}
-      </div>
-      {% endfor %}
-    </div>
-    {% endif %}
-
     <form method="post">
       {% csrf_token %}
       <div class="form-group">
