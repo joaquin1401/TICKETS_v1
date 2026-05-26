@@ -72,7 +72,7 @@
       <form method="post">
         {% csrf_token %}
         <div class="form-group">
-          <label class="form-label">Vehículo</label>
+          <label class="form-label">Vehículo <span style="color:var(--danger);">*</span></label>
           <select name="id_vehiculo" class="form-control">
             <option value="">-- Seleccionar vehículo --</option>
             {% for v in form.id_vehiculo.field.queryset %}
@@ -85,14 +85,14 @@
           {% if form.id_vehiculo.errors %}<p class="form-error">{{ form.id_vehiculo.errors.0 }}</p>{% endif %}
         </div>
         <div class="form-group">
-          <label class="form-label">Destino</label>
+          <label class="form-label">Destino <span style="color:var(--danger);">*</span></label>
           <input type="text" name="destino" class="form-control" placeholder="Ej: Sede Tucumán"
                  value="{{ form.destino.value|default:'' }}">
           {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Salida</label>
+            <label class="form-label">Salida <span style="color:var(--danger);">*</span></label>
             {{ form.hora_inicio }}
             {% if form.hora_inicio.errors %}<p class="form-error">{{ form.hora_inicio.errors.0 }}</p>{% endif %}
           </div>
@@ -104,7 +104,7 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Pasajeros</label>
+            <label class="form-label">Pasajeros <span style="color:var(--danger);">*</span></label>
             <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="1"
                    value="{{ form.cant_pasajeros.value|default:'' }}">
             {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
@@ -117,6 +117,7 @@
         {% if form.non_field_errors %}
         <p class="form-error" style="margin-bottom:10px;">{{ form.non_field_errors.0 }}</p>
         {% endif %}
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span style="color:var(--danger);">*</span> Campos requeridos</p>
         <button type="submit" class="btn btn-primary" style="width:100%;">Solicitar reserva</button>
       </form>
     </div>
