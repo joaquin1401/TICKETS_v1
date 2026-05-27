@@ -1,9 +1,17 @@
 """
-views.py — Vistas tradicionales (templates) para todas las épicas.
+Vistas tradicionales (templates) para todas las épicas del sistema.
+
+Implementa el flujo HTTP request → template rendering usando Django CBV patterns
+con decoradores personalizados. Gestiona autenticación, autorización y lógica
+de presentación.
 
 Convención de sesión:
     request.session["usuario_id"]   → PK del usuario logueado
-    request.session["es_admin"]     → bool
+    request.session["es_admin"]     → bool (True si cargo.prioridad == 0)
+
+Decoradores de autorización:
+    @login_requerido: Redirige a login si no hay sesión activa.
+    @admin_requerido: Redirige a dashboard si no es administrador.
 """
 
 import calendar
@@ -24,11 +32,28 @@ from .services import (
 )
 
 
-# ══════════════════════════════════════════════
-# Helpers / decoradores simples
-# ══════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# HELPERS Y DECORADORES
+# ══════════════════════════════════════════════════════════════════════════════
 
 def get_usuario_sesion(request):
+    """
+    Obtiene la instancia del usuario logueado desde la sesión.
+
+    Busca el usuario por su PK almacenado en request.session["usuario_id"].
+    Pre-carga la relación con Cargo usando select_related para optimización BD.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud HTTP.
+
+    Returns:
+        Usuario | None: Instancia del usuario si existe sesión activa,
+            None si no hay usuario logueado o fue eliminado.
+
+    Notes:
+        Se utiliza select_related("id_cargo") para evitar N+1 queries
+        cuando se accede a usuario.id_cargo.nombre o usuario.prioridad.
+    """
     uid = request.session.get("usuario_id")
     if not uid:
         return None
@@ -39,7 +64,23 @@ def get_usuario_sesion(request):
 
 
 def login_requerido(view_func):
-    """Redirige al login si no hay sesión activa."""
+    """
+    Decorador que redirige a login si no hay sesión activa.
+
+    Valida que request.session["usuario_id"] exista. Si no existe,
+    redirige a la ruta 'login'. Mantiene el nombre de la vista original
+    para introspección.
+
+    Args:
+        view_func: Función de vista a proteger.
+
+    Returns:
+        wrapper: Función decorada que aplica la validación.
+
+    Notas:
+        Patrón simple sin argumentos. Para vistas con parámetros,
+        usa *args y **kwargs en wrapper.
+    """
     def wrapper(request, *args, **kwargs):
         if not request.session.get("usuario_id"):
             return redirect("login")
@@ -49,7 +90,22 @@ def login_requerido(view_func):
 
 
 def admin_requerido(view_func):
-    """Redirige si el usuario no es administrador."""
+    """
+    Decorador que redirige si el usuario no es administrador.
+
+    Valida que request.session["es_admin"] sea True. Si es False,
+    registra un mensaje de error y redirige al dashboard.
+
+    Args:
+        view_func: Función de vista a proteger.
+
+    Returns:
+        wrapper: Función decorada que aplica la validación.
+
+    Notas:
+        Usa messages.error() de Django para notificar al usuario.
+        Debe aplicarse DESPUÉS de @login_requerido en pilas de decoradores.
+    """
     def wrapper(request, *args, **kwargs):
         if not request.session.get("es_admin"):
             messages.error(request, "No tenés permisos para acceder a esa sección.")
@@ -59,12 +115,40 @@ def admin_requerido(view_func):
     return wrapper
 
 
-# ══════════════════════════════════════════════
-# Épica 1 — Autenticación
-# ══════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# ÉPICA 1: AUTENTICACIÓN
+# ══════════════════════════════════════════════════════════════════════════════
+# HU 1.1: Registro de cuenta
+# HU 1.2: Inicio de sesión
+# HU 1.3 / 1.4: Panel de validación de usuarios (ver más abajo)
+
 
 def registro(request):
-    """HU 1.1 — Registro de cuenta."""
+    """
+    Vista para registro de cuenta de usuario (HU 1.1).
+
+    Captura datos de registro y crea un usuario con estado pendiente
+    de aprobación por administrador. El formulario valida campos y
+    asegura que las contraseñas coincidan.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+            - GET: Muestra formulario vacío.
+            - POST: Procesa envío de datos.
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/registro.html' con formulario
+            (GET) o redirige a login tras éxito (POST).
+
+    Proceso:
+        1. GET: Renderiza RegistroForm vacío.
+        2. POST (válido): Crea Usuario con valido=False, rechazado=False.
+            Muestra mensaje de éxito y redirige a login.
+        3. POST (inválido): Re-renderiza formulario con errores.
+
+    Messages:
+        - success: "Tu cuenta fue creada. Un administrador deberá aprobar..."
+    """
     if request.method == "POST":
         form = RegistroForm(request.POST)
         if form.is_valid():
@@ -80,7 +164,36 @@ def registro(request):
 
 
 def login_view(request):
-    """HU 1.2 — Inicio de sesión."""
+    """
+    Vista para inicio de sesión (HU 1.2).
+
+    Valida credenciales contra la BD y establece sesión. Los usuarios
+    pendientes de aprobación o rechazados ven mensajes específicos.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+            - GET: Muestra formulario de login.
+            - POST: Procesa credenciales.
+
+    Returns:
+        HttpResponse: Redirige a dashboard tras login exitoso,
+            o re-renderiza formulario con errores.
+
+    Validaciones:
+        1. Si usuario logueado: redirige a dashboard.
+        2. Si credenciales inválidas: "Correo o contraseña incorrectos."
+        3. Si usuario rechazado: "Tu solicitud fue rechazada..."
+        4. Si usuario pendiente: "Tu cuenta está pendiente de aprobación..."
+        5. Si credenciales correctas y usuario válido: Sesión establecida.
+
+    Sesión (set en request.session):
+        - "usuario_id": PK del usuario.
+        - "es_admin": bool (cargo.prioridad == 0).
+
+    Messages:
+        - error: Credenciales inválidas, rechazado.
+        - warning: Pendiente de aprobación.
+    """
     if request.session.get("usuario_id"):
         return redirect("dashboard")
 
@@ -107,7 +220,7 @@ def login_view(request):
                 messages.warning(request, "Tu cuenta está pendiente de aprobación por un administrador.")
                 return render(request, "reservas/login.html", {"form": form})
 
-            # Sesión — se distingue admin por cargo con prioridad 0 o flag
+            # Establecer sesión
             request.session["usuario_id"] = usuario.pk
             request.session["es_admin"] = (usuario.id_cargo.prioridad == 0)
             return redirect("dashboard")
@@ -117,17 +230,71 @@ def login_view(request):
 
 
 def logout_view(request):
+    """
+    Vista para cierre de sesión.
+
+    Elimina todos los datos de sesión y redirige a login.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+
+    Returns:
+        HttpResponseRedirect: Redirige a 'login'.
+
+    Notes:
+        Utiliza request.session.flush() para limpiar completamente la sesión
+        (no solo request.session.clear() que mantiene la sesión vacía).
+    """
     request.session.flush()
     return redirect("login")
 
 
-# ══════════════════════════════════════════════
-# Épica 2 — Dashboard y tickets (usuario normal)
-# ══════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# ÉPICA 2: DASHBOARD Y TICKETS (USUARIO NORMAL)
+# ══════════════════════════════════════════════════════════════════════════════
+# HU 2.1: Dashboard con formulario rápido de reserva
+# HU 2.2: Historial de tickets
+# HU 2.3: Detalle de ticket
+
 
 @login_requerido
 def dashboard(request):
-    """HU 2.1 — Dashboard con formulario de reserva rápida."""
+    """
+    Vista de dashboard principal del usuario (HU 2.1).
+
+    Muestra un formulario rápido para crear reservas y listado de
+    los 5 tickets más recientes del usuario. Aplica lógica de conflictos
+    y jerarquía mediante services.crear_ticket_con_reglas().
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+            - GET: Muestra dashboard con formulario vacío.
+            - POST: Procesa creación de ticket.
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/dashboard.html' con:
+            - form: TicketForm (vacío o con errores).
+            - usuario: Instancia del usuario logueado.
+            - tickets_recientes: Últimos 5 tickets del usuario.
+
+    POST (crear ticket):
+        1. Valida TicketForm.clean() (horas, coincidencia contraseñas, etc).
+        2. Si hora_fin no especificada, asigna hora_inicio + 2 horas (default).
+        3. Llama crear_ticket_con_reglas() que aplica lógica de conflictos.
+        4. Según ResultadoCreacion.estado:
+            - OK: success message, redirige a historial.
+            - SOBRESCRITO: warning message, redirige a historial.
+            - BLOQUEADO: error message, re-renderiza dashboard.
+
+    Messages:
+        - success: "Reserva creada exitosamente."
+        - warning: "Reserva creada. Se cancelaron reservas de... por jerarquía."
+        - error: Mensaje específico de bloqueo por conflicto.
+
+    Optimizaciones BD:
+        - .select_related("id_vehiculo") para tickets recientes.
+        - get_usuario_sesion() pre-carga id_cargo.
+    """
     usuario = get_usuario_sesion(request)
     form = TicketForm()
 
@@ -169,7 +336,20 @@ def dashboard(request):
 
 @login_requerido
 def historial(request):
-    """HU 2.2 — Historial de tickets del usuario."""
+    """
+    Vista del historial de tickets del usuario (HU 2.2).
+
+    Muestra todos los tickets del usuario logueado ordenados
+    por hora_inicio descendente (más recientes primero).
+
+    Args:
+        request (HttpRequest): Objeto de solicitud (GET).
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/historial.html' con:
+            - tickets: QuerySet de tickets del usuario.
+            - usuario: Instancia del usuario logueado.
+    """
     usuario = get_usuario_sesion(request)
     tickets = Ticket.objects.filter(
         id_usuario=usuario
@@ -182,9 +362,28 @@ def historial(request):
 
 @login_requerido
 def detalle_ticket(request, ticket_id):
-    """HU 2.3 — Detalle de un ticket específico."""
+    """
+    Vista de detalle de un ticket específico (HU 2.3).
+
+    Muestra información completa de un ticket. Los administradores
+    pueden ver cualquier ticket; usuarios normales solo sus propios.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+        ticket_id (int): PK del ticket.
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/detalle_ticket.html' con ticket.
+
+    Raises:
+        Http404: Si el ticket no existe o el usuario normal intenta
+            acceder a un ticket que no es suyo.
+
+    Autorización:
+        - es_admin=True: Acceso a cualquier ticket.
+        - es_admin=False: Acceso solo si id_usuario == usuario_sesion.
+    """
     usuario = get_usuario_sesion(request)
-    # Admin puede ver cualquier ticket; usuario solo los suyos
     if request.session.get("es_admin"):
         ticket = get_object_or_404(Ticket, pk=ticket_id)
     else:
@@ -196,13 +395,48 @@ def detalle_ticket(request, ticket_id):
     })
 
 
-# ══════════════════════════════════════════════
-# Épica 3 — Calendario interactivo
-# ══════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# ÉPICA 3: CALENDARIO INTERACTIVO
+# ══════════════════════════════════════════════════════════════════════════════
+# HU 3.1: Selector de vehículo
+# HU 3.2: Vista mensual del calendario
+# HU 3.3: Línea de tiempo horaria
+
 
 @login_requerido
 def calendario(request):
-    """HU 3.1 / 3.2 — Selector de vehículo + vista mensual."""
+    """
+    Vista del calendario interactivo (HU 3.1, 3.2).
+
+    Permite seleccionar un vehículo y ver su disponibilidad mensual.
+    Marca días con reservas aprobadas. Proporciona navegación entre meses.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+            - GET: Recibe parámetros ?vehiculo=X&anio=Y&mes=Z
+            - POST: No utilizado (GET form).
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/calendario.html' con:
+            - form: VehiculoSelectorForm.
+            - vehiculo: Vehículo seleccionado (None si no válido).
+            - cal: Matriz de semanas (calendar.monthcalendar).
+            - nombre_mes: Nombre legible del mes (ej: "Diciembre 2024").
+            - anio, mes: Valores de navegación.
+            - dias_con_reservas: Set de date con tickets aprobados.
+            - mes_anterior, mes_siguiente: Tuplas (anio, mes) para links.
+            - usuario: Instancia del usuario logueado.
+
+    Lógica:
+        1. GET ?vehiculo=X: Valida formulario y carga tickets del mes.
+        2. Si formulario válido: dias_con_reservas = {ticket.hora_inicio.date()}.
+        3. Genera matriz de calendario y tuplas de navegación.
+
+    Notas:
+        - Navega a mes anterior/siguiente considerando bordes de año.
+        - Utiliza calendar.monthcalendar() del módulo estándar.
+        - Los días sin reservas no tienen restricción visual (diseño en template).
+    """
     usuario = get_usuario_sesion(request)
     form = VehiculoSelectorForm(request.GET or None)
 
@@ -245,7 +479,34 @@ def calendario(request):
 
 @login_requerido
 def timeline_dia(request, vehiculo_id, anio, mes, dia):
-    """HU 3.3 — Línea de tiempo horaria de un día específico."""
+    """
+    Vista de línea de tiempo horaria de un día específico (HU 3.3).
+
+    Muestra ocupación horaria de un vehículo en un día determinado.
+    Útil para visualizar conflictos y rangos disponibles.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud (GET).
+        vehiculo_id (int): PK del vehículo.
+        anio (int): Año (YYYY).
+        mes (int): Mes (1-12).
+        dia (int): Día (1-31).
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/timeline_dia.html' con:
+            - vehiculo: Instancia de vehículo.
+            - fecha: date(anio, mes, dia).
+            - tickets: QuerySet de tickets aprobados ese día.
+            - usuario: Instancia del usuario logueado.
+            - horas: Lista de strings ["06", "07", ..., "22"] para template.
+
+    Raises:
+        Http404: Si el vehículo no existe o está inactivo.
+
+    Notas:
+        - Rango de horas: 6:00 a 22:59 (16 horas de trabajo).
+        - Template itera sobre horas y tickets para mostrar ocupación.
+    """
     usuario = get_usuario_sesion(request)
     vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id, activo=True)
     fecha = date(anio, mes, dia)
@@ -260,14 +521,51 @@ def timeline_dia(request, vehiculo_id, anio, mes, dia):
     })
 
 
-# ══════════════════════════════════════════════
-# Épica 5 — Gestión y supervisión administrativa
-# ══════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# ÉPICA 5: GESTIÓN Y SUPERVISIÓN ADMINISTRATIVA
+# ══════════════════════════════════════════════════════════════════════════════
+# HU 1.3 / 1.4: Panel de validación de usuarios pendientes
+# HU 5.1: Directorio de usuarios
+# HU 5.2: Vista de usuarios rechazados
+# HU 5.3: Monitor de tickets activos
+# HU 5.4: Auditoría de tickets históricos
+
 
 @login_requerido
 @admin_requerido
 def panel_validacion(request):
-    """HU 1.3 / 1.4 — Panel de usuarios pendientes + aprobación/rechazo."""
+    """
+    Vista del panel de validación de usuarios pendientes (HU 1.3, 1.4).
+
+    Muestra lista de usuarios con valido=False y rechazado=False.
+    El admin puede aprobar (valido=True) o rechazar (rechazado=True).
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+            - GET: Muestra lista de pendientes.
+            - POST: Procesa acción (aprobar/rechazar).
+
+    POST:
+        Parámetros:
+            - usuario_id (int): PK del usuario.
+            - accion (str): "aprobar" o "rechazar".
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/panel_validacion.html'
+            - pendientes: QuerySet de usuarios pendientes.
+            - usuario: Instancia del usuario logueado (admin).
+
+    Redirección (POST):
+        - Redirect a panel_validacion tras procesar.
+
+    Messages (POST):
+        - success: "{nombre} fue aprobado."
+        - warning: "{nombre} fue rechazado."
+
+    Notes:
+        - Utiliza update_fields=["valido", "rechazado"] para optimización.
+        - Ambas acciones redirigen a la misma vista (GET).
+    """
     pendientes = Usuario.objects.filter(valido=False, rechazado=False).select_related("id_cargo")
 
     if request.method == "POST":
@@ -297,7 +595,29 @@ def panel_validacion(request):
 @login_requerido
 @admin_requerido
 def directorio_usuarios(request):
-    """HU 5.1 — Directorio con búsqueda y filtros."""
+    """
+    Vista del directorio de usuarios con búsqueda y filtros (HU 5.1).
+
+    Muestra lista de usuarios aprobados (valido=True). Permite buscar
+    por nombre/apellido/correo y filtrar por cargo.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud (GET).
+            Parámetros:
+            - busqueda (str): Busca en nombre, apellido, correo (icontains).
+            - cargo (int): PK de cargo para filtrar.
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/directorio_usuarios.html' con:
+            - form: FiltroUsuariosForm.
+            - usuarios: QuerySet filtrado de usuarios válidos.
+            - usuario: Instancia del usuario logueado (admin).
+
+    Notas:
+        - Solo usuarios con valido=True se muestran.
+        - Ambos filtros son opcionales (required=False).
+        - Q() permite búsqueda OR en múltiples campos.
+    """
     form = FiltroUsuariosForm(request.GET or None)
     usuarios = Usuario.objects.filter(valido=True).select_related("id_cargo")
 
@@ -323,7 +643,20 @@ def directorio_usuarios(request):
 @login_requerido
 @admin_requerido
 def usuarios_rechazados(request):
-    """HU 5.2 — Vista de usuarios rechazados."""
+    """
+    Vista de usuarios rechazados (HU 5.2).
+
+    Muestra lista de todos los usuarios con rechazado=True.
+    Útil para auditoría y revisión de solicitudes denegadas.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud (GET).
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/usuarios_rechazados.html' con:
+            - rechazados: QuerySet de usuarios rechazados.
+            - usuario: Instancia del usuario logueado (admin).
+    """
     rechazados = Usuario.objects.filter(rechazado=True).select_related("id_cargo")
     return render(request, "reservas/usuarios_rechazados.html", {
         "rechazados": rechazados,
@@ -334,7 +667,28 @@ def usuarios_rechazados(request):
 @login_requerido
 @admin_requerido
 def monitor_tickets_activos(request):
-    """HU 5.3 — Monitor de tickets activos de toda la empresa."""
+    """
+    Vista del monitor de tickets activos de la empresa (HU 5.3).
+
+    Muestra todos los tickets aprobados con hora_inicio >= hoy,
+    ordenados cronológicamente. Incluye info del usuario y vehículo.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud (GET).
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/monitor_activos.html' con:
+            - tickets: QuerySet de tickets aprobados futuros.
+            - usuario: Instancia del usuario logueado (admin).
+
+    Optimizaciones BD:
+        - .select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo")
+          para evitar N+1 queries.
+
+    Notas:
+        - "Activos" = aprobados y con hora_inicio desde hoy en adelante.
+        - Útil para supervisión de operaciones y conflictos en tiempo real.
+    """
     tickets = Ticket.objects.filter(
         estado=Ticket.ESTADO_APROBADO,
         hora_inicio__gte=date.today(),
@@ -349,7 +703,28 @@ def monitor_tickets_activos(request):
 @login_requerido
 @admin_requerido
 def auditoria_tickets(request):
-    """HU 5.4 — Auditoría de tickets históricos y cancelados."""
+    """
+    Vista de auditoría de tickets históricos y cancelados (HU 5.4).
+
+    Muestra todos los tickets con estado CANCELADO o con hora_inicio < hoy.
+    Útil para análisis de patrones, conflictos resueltos y cancelaciones.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud (GET).
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/auditoria.html' con:
+            - tickets: QuerySet de tickets históricos/cancelados.
+            - usuario: Instancia del usuario logueado (admin).
+
+    Criterios:
+        - estado == CANCELADO (por sobrescritura o admin), O
+        - hora_inicio < hoy (pasados).
+
+    Notas:
+        - Campo observacion permite revisar razones de cancelación.
+        - Ordenados por hora_inicio descendente (más recientes primero).
+    """
     tickets = Ticket.objects.filter(
         Q(estado=Ticket.ESTADO_CANCELADO) | Q(hora_inicio__lt=date.today())
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-hora_inicio")
@@ -360,14 +735,31 @@ def auditoria_tickets(request):
     })
 
 
-# ══════════════════════════════════════════════
-# Épica 6 — ABM de Flota
-# ══════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# ÉPICA 6: ABM (ALTA, BAJA, MODIFICACIÓN) DE FLOTA
+# ══════════════════════════════════════════════════════════════════════════════
+# HU 6.1: Listado de vehículos
+# HU 6.2: Alta de vehículo
+# HU 6.3: Edición / baja de vehículo
+
 
 @login_requerido
 @admin_requerido
 def listado_flota(request):
-    """HU 6.1 — Listado de todos los vehículos."""
+    """
+    Vista del listado de vehículos de la flota (HU 6.1).
+
+    Muestra todos los vehículos (activos e inactivos) ordenados
+    por marca y modelo. Desde aquí se puede navegar a crear o editar.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud (GET).
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/listado_flota.html' con:
+            - vehiculos: QuerySet de todos los vehículos.
+            - usuario: Instancia del usuario logueado (admin).
+    """
     vehiculos = Vehiculo.objects.all().order_by("marca", "modelo")
     return render(request, "reservas/listado_flota.html", {
         "vehiculos": vehiculos,
@@ -378,7 +770,29 @@ def listado_flota(request):
 @login_requerido
 @admin_requerido
 def alta_vehiculo(request):
-    """HU 6.2 — Alta de vehículo."""
+    """
+    Vista para dar de alta un nuevo vehículo (HU 6.2).
+
+    Captura datos de marca, modelo, capacidad y estado activo.
+    La creación es inmediata sin validaciones adicionales.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+            - GET: Muestra VehiculoForm vacío.
+            - POST: Procesa creación de vehículo.
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/form_vehiculo.html' con:
+            - form: VehiculoForm.
+            - titulo: "Agregar vehículo".
+            - usuario: Instancia del usuario logueado (admin).
+
+    Redirección (POST exitoso):
+        - Redirect a listado_flota.
+
+    Messages (POST):
+        - success: "Vehículo agregado a la flota."
+    """
     if request.method == "POST":
         form = VehiculoForm(request.POST)
         if form.is_valid():
@@ -397,7 +811,38 @@ def alta_vehiculo(request):
 @login_requerido
 @admin_requerido
 def edicion_vehiculo(request, vehiculo_id):
-    """HU 6.3 — Edición / baja de vehículo."""
+    """
+    Vista para editar o dar de baja un vehículo (HU 6.3).
+
+    Permite modificar marca, modelo, capacidad y estado (activo/inactivo).
+    Cambiar a inactivo impide que aparezca en formularios de reserva.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+            - GET: Muestra VehiculoForm pre-poblado.
+            - POST: Procesa actualización.
+        vehiculo_id (int): PK del vehículo.
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/form_vehiculo.html' con:
+            - form: VehiculoForm pre-poblado.
+            - titulo: "Editar vehículo: {marca} {modelo}".
+            - vehiculo: Instancia del vehículo.
+            - usuario: Instancia del usuario logueado (admin).
+
+    Redirección (POST exitoso):
+        - Redirect a listado_flota.
+
+    Messages (POST):
+        - success: "Vehículo actualizado."
+
+    Raises:
+        Http404: Si el vehículo no existe.
+
+    Notas:
+        - No hay "eliminación" física, solo cambiar activo=False.
+        - Los tickets existentes permanecen (PROTECT en ForeignKey).
+    """
     vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id)
     if request.method == "POST":
         form = VehiculoForm(request.POST, instance=vehiculo)

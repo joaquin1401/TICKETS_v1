@@ -1,3 +1,15 @@
+"""
+Forms para validación y captura de datos del sistema de reservas.
+
+Incluye formularios para autenticación, creación de tickets,
+búsqueda y administración de flota. Todos heredan de Django forms
+y aplican validaciones tanto a nivel de campo como de formulario.
+
+Convención de sesión utilizada en vistas:
+    request.session["usuario_id"]   → PK del usuario logueado
+    request.session["es_admin"]     → bool (True si prioridad == 0)
+"""
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -5,12 +17,34 @@ from django.utils import timezone
 from .models import Usuario, Cargo, Vehiculo, Ticket
 
 
-# ──────────────────────────────────────────────
-# Autenticación
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# Épica 1 — Autenticación
+# ══════════════════════════════════════════════
 
 class RegistroForm(forms.ModelForm):
-    """Registro de cuenta."""
+    """
+    Formulario para registro de cuenta de usuario (HU 1.1).
+
+    Valida que las contraseñas coincidan y asegura que los nuevos
+    usuarios se crean con estado pendiente (valido=False, rechazado=False).
+
+    Fields:
+        nombre (CharField): Nombre de pila.
+        apellido (CharField): Apellido.
+        correo (EmailField): Email único (validado por modelo).
+        id_cargo (ModelChoiceField): Cargo a solicitar.
+        contrasena (CharField): Contraseña en texto plano (se hashea en save()).
+        confirmar_contrasena (CharField): Validación de coincidencia.
+
+    Validaciones:
+        - Las dos contraseñas deben coincidir (método clean).
+        - Email debe ser único (validación del modelo).
+
+    Save behavior:
+        - Hashea la contraseña usando Usuario.set_password().
+        - Establece valido=False y rechazado=False por defecto.
+    """
+
     contrasena = forms.CharField(
         widget=forms.PasswordInput(attrs={"placeholder": "Contraseña"}),
         label="Contraseña",
@@ -36,6 +70,15 @@ class RegistroForm(forms.ModelForm):
         }
 
     def clean(self):
+        """
+        Valida que ambas contraseñas coincidan.
+
+        Raises:
+            ValidationError: Si contrasena y confirmar_contrasena no coinciden.
+
+        Returns:
+            dict: Datos limpios del formulario.
+        """
         cleaned = super().clean()
         p1 = cleaned.get("contrasena")
         p2 = cleaned.get("confirmar_contrasena")
@@ -44,6 +87,20 @@ class RegistroForm(forms.ModelForm):
         return cleaned
 
     def save(self, commit=True):
+        """
+        Guarda el usuario con contraseña hasheada y estado inicial.
+
+        Args:
+            commit (bool): Si False, retorna instancia sin guardar en BD.
+
+        Returns:
+            Usuario: Instancia guardada o no según commit.
+
+        Notes:
+            Se aseguran los valores iniciales:
+            - valido=False (requiere aprobación del admin).
+            - rechazado=False (no está explícitamente rechazado).
+        """
         usuario = super().save(commit=False)
         usuario.set_password(self.cleaned_data["contrasena"])
         usuario.valido = False
@@ -54,7 +111,17 @@ class RegistroForm(forms.ModelForm):
 
 
 class LoginForm(forms.Form):
-    """HU 1.2 — Inicio de sesión."""
+    """
+    Formulario para inicio de sesión (HU 1.2).
+
+    Captura credenciales sin crear registros en BD. La autenticación
+    se realiza manualmente en vistas.login_view() contra Usuario.check_password().
+
+    Fields:
+        correo (EmailField): Identificador único del usuario.
+        contrasena (CharField): Contraseña en texto plano.
+    """
+
     correo = forms.EmailField(
         widget=forms.EmailInput(attrs={"placeholder": "correo@empresa.com"}),
         label="Correo electrónico",
@@ -65,12 +132,36 @@ class LoginForm(forms.Form):
     )
 
 
-# ──────────────────────────────────────────────
-# Tickets (usuario normal)
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# Épica 2 — Creación de Tickets
+# ══════════════════════════════════════════════
 
 class TicketForm(forms.ModelForm):
-    """Creación rápida de ticket."""
+    """
+    Formulario para creación rápida de ticket (HU 2.1).
+
+    Captura datos de una reserva de vehículo. Solo muestra vehículos
+    activos. La validación temporal y la lógica de conflictos se aplican
+    en services.crear_ticket_con_reglas() (HU 4.2, 4.3).
+
+    Fields:
+        id_vehiculo (ModelChoiceField): Vehículo a reservar (solo activos).
+        destino (CharField): Ubicación de viaje.
+        cant_pasajeros (PositiveIntegerField): Ocupantes.
+        descripcion (TextField): Motivo, notas.
+        hora_inicio (DateTimeField): Fecha y hora de salida.
+        hora_fin (DateTimeField, optional): Estimado de regreso.
+
+    Validaciones:
+        - hora_inicio debe ser en el futuro.
+        - hora_fin, si se proporciona, debe ser > hora_inicio.
+        - hora_fin es opcional en el formulario pero requerido en servicios
+          (vistas asignan default si está vacío).
+
+    Notes:
+        No valida la capacidad del vehículo vs. pasajeros solicitados.
+        Esa lógica puede añadirse a nivel de servicios en futuras iteraciones.
+    """
 
     class Meta:
         model = Ticket
@@ -95,6 +186,13 @@ class TicketForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        """
+        Inicializa el formulario con configuración de campos.
+
+        - Filtra vehículos para mostrar solo los activos.
+        - Establece formatos de entrada para datetime.
+        - hora_fin es opcional (required=False).
+        """
         super().__init__(*args, **kwargs)
         # Solo mostrar vehículos activos
         self.fields["id_vehiculo"].queryset = Vehiculo.objects.filter(activo=True)
@@ -103,6 +201,15 @@ class TicketForm(forms.ModelForm):
         self.fields["hora_fin"].required = False
 
     def clean(self):
+        """
+        Valida la lógica temporal del ticket.
+
+        Raises:
+            ValidationError: Si hora_inicio <= ahora o hora_fin <= hora_inicio.
+
+        Returns:
+            dict: Datos limpios del formulario.
+        """
         cleaned = super().clean()
         hora_inicio = cleaned.get("hora_inicio")
         hora_fin = cleaned.get("hora_fin")
@@ -118,12 +225,19 @@ class TicketForm(forms.ModelForm):
         return cleaned
 
 
-# ──────────────────────────────────────────────
-# Consulta de calendario
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# Épica 3 — Consulta de Calendario
+# ══════════════════════════════════════════════
 
 class VehiculoSelectorForm(forms.Form):
-    """Selección de vehículo para ver calendario."""
+    """
+    Formulario para seleccionar vehículo en vista de calendario (HU 3.1, 3.2).
+
+    Fields:
+        vehiculo (ModelChoiceField): Vehículo cuyo calendario se quiere ver.
+            Solo muestra vehículos activos.
+    """
+
     vehiculo = forms.ModelChoiceField(
         queryset=Vehiculo.objects.filter(activo=True),
         label="Seleccionar vehículo",
@@ -131,12 +245,21 @@ class VehiculoSelectorForm(forms.Form):
     )
 
 
-# ──────────────────────────────────────────────
-# Administración
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# Épica 5 — Administración
+# ══════════════════════════════════════════════
 
 class FiltroUsuariosForm(forms.Form):
-    """Filtro del directorio de usuarios."""
+    """
+    Formulario de filtrado para directorio de usuarios (HU 5.1).
+
+    Permite buscar usuarios por nombre/apellido/correo y filtrar por cargo.
+
+    Fields:
+        busqueda (CharField): Búsqueda libre (icontains en BD).
+        cargo (ModelChoiceField): Filtro por cargo (opcional).
+    """
+
     busqueda = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={"placeholder": "Buscar por nombre o correo..."}),
@@ -150,12 +273,23 @@ class FiltroUsuariosForm(forms.Form):
     )
 
 
-# ──────────────────────────────────────────────
-# ABM de flota
-# ──────────────────────────────────────────────
+# ══════════════════════════════════════════════
+# Épica 6 — ABM de Flota
+# ══════════════════════════════════════════════
 
 class VehiculoForm(forms.ModelForm):
-    """Alta y edición de vehículo."""
+    """
+    Formulario para alta y edición de vehículos (HU 6.2, 6.3).
+
+    Permite crear y modificar registros de vehículos en la flota.
+    El flag 'activo' controla si el vehículo aparece en formularios de reserva.
+
+    Fields:
+        marca (CharField): Fabricante del vehículo.
+        modelo (CharField): Modelo específico.
+        cant_pasajeros (PositiveIntegerField): Capacidad.
+        activo (BooleanField): Disponibilidad operativa.
+    """
 
     class Meta:
         model = Vehiculo

@@ -1,36 +1,62 @@
 """
-URL configuration for config project.
+Configuración de enrutamiento URL para la aplicación de reservas.
 
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+Define todas las rutas HTTP del sistema, organizadas por épica funcional:
+- Épica 1: Autenticación (registro, login, logout)
+- Épica 2: Dashboard y gestión de tickets de usuario
+- Épica 3: Calendario interactivo y línea de tiempo
+- Épica 5: Panel administrativo (validación, directorio, auditoría)
+- Épica 6: Administración de flota
+
+Convención de nombramiento: Los nombres de rutas (name=...) utilizan
+snake_case y sirven como identificadores únicos en templates y redirects.
+
+Autenticación de sesión:
+    Utiliza sistema de sesión Django estándar. La sesión se almacena en:
+    - request.session["usuario_id"] (PK del usuario logueado)
+    - request.session["es_admin"] (bool, True si prioridad == 0)
+
+Decoradores de vista:
+    - @login_requerido: Redirige a login si no hay sesión activa.
+    - @admin_requerido: Redirige a dashboard si es_admin == False.
 """
+
 from django.contrib import admin
 from django.urls import path
 from . import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # ── Épica 1: Autenticación ──────────────────────────────────────────────
+
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # Épica 1: Autenticación
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # HU 1.1: Registro de cuenta
+    # HU 1.2: Inicio de sesión
+    # HU 1.3 / 1.4: Panel de validación (dentro de admin-panel)
+    
     path("", views.login_view, name="login"),
     path("registro/", views.registro, name="registro"),
     path("logout/", views.logout_view, name="logout"),
 
-    # ── Épica 2: Dashboard y tickets ───────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # Épica 2: Dashboard y Tickets (Usuario normal)
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # HU 2.1: Dashboard con formulario rápido de reserva
+    # HU 2.2: Historial de tickets
+    # HU 2.3: Detalle de ticket específico
+    
     path("dashboard/", views.dashboard, name="dashboard"),
     path("historial/", views.historial, name="historial"),
     path("tickets/<int:ticket_id>/", views.detalle_ticket, name="detalle_ticket"),
 
-    # ── Épica 3: Calendario ─────────────────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # Épica 3: Calendario e Interactividad
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # HU 3.1: Selector de vehículo
+    # HU 3.2: Vista mensual del calendario
+    # HU 3.3: Línea de tiempo horaria de un día
+    
     path("calendario/", views.calendario, name="calendario"),
     path(
         "calendario/<int:vehiculo_id>/<int:anio>/<int:mes>/<int:dia>/",
@@ -38,14 +64,28 @@ urlpatterns = [
         name="timeline_dia",
     ),
 
-    # ── Épica 5: Administración ─────────────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # Épica 5: Supervisión y Administración
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # HU 1.3 / 1.4: Panel de validación de usuarios pendientes
+    # HU 5.1: Directorio de usuarios (búsqueda y filtros)
+    # HU 5.2: Vista de usuarios rechazados
+    # HU 5.3: Monitor de tickets activos de la empresa
+    # HU 5.4: Auditoría de tickets históricos y cancelados
+    
     path("admin-panel/validacion/", views.panel_validacion, name="panel_validacion"),
     path("admin-panel/usuarios/", views.directorio_usuarios, name="directorio_usuarios"),
     path("admin-panel/usuarios/rechazados/", views.usuarios_rechazados, name="usuarios_rechazados"),
     path("admin-panel/tickets/activos/", views.monitor_tickets_activos, name="monitor_tickets_activos"),
     path("admin-panel/tickets/auditoria/", views.auditoria_tickets, name="auditoria_tickets"),
 
-    # ── Épica 6: ABM de flota ──────────────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # Épica 6: ABM (Alta, Baja, Modificación) de Flota
+    # ═══════════════════════════════════════════════════════════════════════════════
+    # HU 6.1: Listado de vehículos
+    # HU 6.2: Alta de vehículo
+    # HU 6.3: Edición / baja de vehículo
+    
     path("admin-panel/flota/", views.listado_flota, name="listado_flota"),
     path("admin-panel/flota/nueva/", views.alta_vehiculo, name="alta_vehiculo"),
     path("admin-panel/flota/<int:vehiculo_id>/editar/", views.edicion_vehiculo, name="edicion_vehiculo"),
