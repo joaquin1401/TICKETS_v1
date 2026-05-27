@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}Sistema de Reserva de Vehículos{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% static 'img/Logotipocompacto.png' %}" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
   <style>
@@ -399,9 +400,6 @@
   {% if request.session.es_admin %}
   <div class="sidebar-section">
     <div class="sidebar-section-label">Administración</div>
-    <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-      <span class="icon">⬡</span> Dashboard
-    </a>
     <a href="{% url 'panel_validacion' %}" class="nav-item {% if request.resolver_match.url_name == 'panel_validacion' %}active{% endif %}">
       <span class="icon">◎</span> Validar Usuarios
     </a>
@@ -416,9 +414,6 @@
     </a>
     <a href="{% url 'listado_flota' %}" class="nav-item {% if 'flota' in request.resolver_match.url_name or 'vehiculo' in request.resolver_match.url_name %}active{% endif %}">
       <span class="icon">◧</span> Flota
-    </a>
-    <a href="{% url 'calendario' %}" class="nav-item {% if request.resolver_match.url_name == 'calendario' %}active{% endif %}">
-      <span class="icon">◈</span> Calendario
     </a>
   </div>
   {% endif %}
