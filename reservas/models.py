@@ -21,8 +21,8 @@ class Cargo(models.Model):
 
     Un cargo define la posición de un usuario en la jerarquía,
     determinando su capacidad de sobrescribir reservas conflictivas.
-    Los números de prioridad menores indican mayor jerarquía
-    (ej: Decano = 0, Secretario = 1, Usuario = 2).
+    Los números de prioridad menores indican mayor jerarquía.
+    El Administrador SEU posee prioridad 0 para control total.
 
     Attributes:
         nombre (CharField): Nombre único del cargo (Decano, Secretario, Usuario).
@@ -34,16 +34,18 @@ class Cargo(models.Model):
     DECANO = "Decano"
     SECRETARIO = "Secretario"
     USUARIO = "Usuario"
+    ADMIN_SEU = "Administrador SEU"
 
     CARGOS_CHOICES = [
         (DECANO, "Decano"),
         (SECRETARIO, "Secretario"),
         (USUARIO, "Usuario"),
+        (ADMIN_SEU, "Administrador SEU"),
     ]
 
     nombre = models.CharField(max_length=100, choices=CARGOS_CHOICES, unique=True)
     prioridad = models.PositiveIntegerField(
-        help_text="Número menor = mayor jerarquía (1 = máxima prioridad)"
+        help_text="Número menor = mayor jerarquía (0 = Administrador SEU / Máxima prioridad)"
     )
 
     class Meta:

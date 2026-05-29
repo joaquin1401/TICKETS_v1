@@ -144,6 +144,7 @@ class Command(BaseCommand):
         self.stdout.write("\n📋 Creando cargos...")
         
         cargos_config = [
+            ("SEU", 0),
             (Cargo.DECANO, 1),
             (Cargo.SECRETARIO, 2),
             (Cargo.USUARIO, 3),
@@ -188,6 +189,20 @@ class Command(BaseCommand):
         contadores = {'aprobados': 0, 'pendientes': 0, 'rechazados': 0}
         
         for nombre_cargo, cargo in cargos.items():
+            # Caso especial: Administrador SEU (Prioridad 0)
+            if cargo.prioridad == 0:
+                admin_seu = self._crear_usuario_unico(
+                    cargo=cargo,
+                    valido=True,
+                    rechazado=False,
+                    sufijo="_admin_seu"
+                )
+                if admin_seu:
+                    usuarios_aprobados.append(admin_seu)
+                    contadores['aprobados'] += 1
+                    self.stdout.write(f"  ⭐ {admin_seu.nombre_completo} (SEU) - ADMINISTRADOR")
+                continue
+
             # Usuario 1: Aprobado
             usuario_aprobado = self._crear_usuario_unico(
                 cargo=cargo,
