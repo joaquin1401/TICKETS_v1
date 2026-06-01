@@ -16,9 +16,6 @@ Uso:
     python manage.py poblar_bd              # Poblar sin limpiar previos
     python manage.py poblar_bd --clear      # Limpiar BD antes de poblar
     python manage.py poblar_bd --clean      # Alias para --clear
-
-Requisitos:
-    pip install faker
 """
 
 from django.core.management.base import BaseCommand, CommandError

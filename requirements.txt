@@ -4,3 +4,4 @@ tzdata==2026.2
 python-dotenv==1.0.1
 sqlparse==0.5.5
 asgiref==3.11.1
+Faker==40.19.1
