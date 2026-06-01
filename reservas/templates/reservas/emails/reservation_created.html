@@ -1,43 +1,19 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Reserva creada</title>
-  <style>
-    :root{--bg:#0f1014;--surface:#181b22;--border:#2a2f3d;--accent:#558bba;--text:#dde1ea;--muted:#6b7280;--radius:8px}
-    body{background:var(--bg);color:var(--text);font-family:DM Sans, Arial, sans-serif;padding:24px}
-    .container{max-width:680px;margin:0 auto}
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
-    h1{font-family:DM Serif Display, serif;color:var(--accent);margin-bottom:8px}
-    p{color:var(--text)}
-    .muted{color:var(--muted);font-size:13px}
-    .meta{background:rgba(255,255,255,0.02);padding:12px;border-radius:6px;margin:12px 0}
-    .footer{margin-top:18px;font-size:13px;color:var(--muted)}
-    a.button{display:inline-block;padding:8px 12px;background:var(--accent);color:#0f1014;border-radius:6px;text-decoration:none;font-weight:600}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="card">
-      <h1>Tu reserva #{{ ticket.pk }} fue creada</h1>
-      <p>Hola {{ usuario.nombre }} {{ usuario.apellido }},</p>
-      <p>Tu reserva ha sido registrada correctamente. A continuación los detalles:</p>
-      <div class="meta">
-        <div class="muted">Vehículo:</div>
-        <div>{{ ticket.id_vehiculo }}</div>
-        <div class="muted" style="margin-top:8px">Destino:</div>
-        <div>{{ ticket.destino }}</div>
-        <div class="muted" style="margin-top:8px">Inicio:</div>
-        <div>{{ ticket.hora_inicio }}</div>
-        <div class="muted" style="margin-top:8px">Fin estimado:</div>
-        <div>{{ ticket.hora_fin }}</div>
-      </div>
+{% extends "reservas/emails/base_email.html" %}
 
-      <p class="muted">Si necesitas cambiar o cancelar la reserva, ingresa al sistema.</p>
+{% block title %}Reserva Creada{% endblock %}
 
-      <div class="footer">Saludos,<br>Equipo de Reservas</div>
-    </div>
-  </div>
-</body>
-</html>
+{% block content %}
+    <h1>¡Tu reserva ha sido creada!</h1>
+    <p>Hola {{ usuario.nombre }},</p>
+    <p>Te confirmamos que tu reserva para el vehículo <strong>{{ ticket.id_vehiculo }}</strong> ha sido creada con éxito.</p>
+    <p><strong>Detalles de la reserva:</strong></p>
+    <ul>
+        <li><strong>ID de Reserva:</strong> #{{ ticket.pk }}</li>
+        <li><strong>Destino:</strong> {{ ticket.destino }}</li>
+        <li><strong>Salida:</strong> {{ ticket.hora_inicio|date:"d/m/Y H:i" }} hs</li>
+        <li><strong>Regreso:</strong> {{ ticket.hora_fin|date:"d/m/Y H:i" }} hs</li>
+    </ul>
+    <p>Puedes ver los detalles completos de tu reserva en el panel de la aplicación.</p>
+    <br>
+    <p>Gracias por usar nuestro sistema.</p>
+{% endblock %}

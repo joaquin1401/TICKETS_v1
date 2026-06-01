@@ -5,3 +5,16 @@ python-dotenv==1.0.1
 sqlparse==0.5.5
 asgiref==3.11.1
 Faker==40.19.1
+cachetools==7.1.4
+certifi==2026.5.20
+chardet==7.4.3
+charset-normalizer==3.4.7
+cssselect==1.4.0
+cssutils==2.15.0
+encutils==1.0.0
+idna==3.17
+lxml==6.1.1
+more-itertools==11.1.0
+premailer==3.10.0
+requests==2.34.2
+urllib3==2.7.0
