@@ -14,11 +14,11 @@
 <div class="stats-grid">
   <div class="stat-card">
     <div class="stat-label">Reservas activas</div>
-    <div class="stat-value">{{ tickets.count }}</div>
+    <div class="stat-value">{{ total_tickets }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Vehículos en uso</div>
-    <div class="stat-value neutral">{{ tickets|length }}</div>
+    <div class="stat-value neutral">{{ vehiculos_en_uso }}</div>
   </div>
 </div>
 
@@ -39,7 +39,7 @@
           <th>Destino</th>
           <th>Salida</th>
           <th>Regreso</th>
-          <th>Pax</th>
+          <th>Pasajeros</th>
           <th></th>
         </tr>
       </thead>
@@ -66,5 +66,6 @@
     </div>
     {% endif %}
   </div>
+  {% include "reservas/_pagination.html" %}
 </div>
 {% endblock %}

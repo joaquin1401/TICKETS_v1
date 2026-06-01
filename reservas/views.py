@@ -17,6 +17,7 @@ Decoradores de autorización:
 import calendar
 from datetime import date, timedelta
 
+from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Q
@@ -30,6 +31,9 @@ from .services import (
     crear_ticket_con_reglas, ResultadoCreacion,
     get_tickets_del_mes, get_tickets_del_dia,
 )
+
+
+ITEMS_PER_PAGE = 20
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -61,6 +65,22 @@ def get_usuario_sesion(request):
         return Usuario.objects.select_related("id_cargo").get(pk=uid)
     except Usuario.DoesNotExist:
         return None
+
+
+def paginate_queryset(request, queryset, per_page=ITEMS_PER_PAGE):
+    """
+    Pagina un queryset y preserva query params distintos de `page`.
+
+    Returns:
+        tuple[Page, str]: página actual y querystring sin `page`.
+    """
+    paginator = Paginator(queryset, per_page)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+
+    return page_obj, query_params.urlencode()
 
 
 def login_requerido(view_func):
@@ -351,11 +371,16 @@ def historial(request):
             - usuario: Instancia del usuario logueado.
     """
     usuario = get_usuario_sesion(request)
-    tickets = Ticket.objects.filter(
+    tickets_qs = Ticket.objects.filter(
         id_usuario=usuario
     ).select_related("id_vehiculo").order_by("-hora_inicio")
+    page_obj, pagination_query = paginate_queryset(request, tickets_qs)
+
     return render(request, "reservas/historial.html", {
-        "tickets": tickets,
+        "tickets": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_tickets": page_obj.paginator.count,
         "usuario": usuario,
     })
 
@@ -510,12 +535,17 @@ def timeline_dia(request, vehiculo_id, anio, mes, dia):
     usuario = get_usuario_sesion(request)
     vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id, activo=True)
     fecha = date(anio, mes, dia)
-    tickets = get_tickets_del_dia(vehiculo, fecha)
+    tickets_qs = get_tickets_del_dia(vehiculo, fecha)
+    page_obj, pagination_query = paginate_queryset(request, tickets_qs)
     horas = ["06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"]
+
     return render(request, "reservas/timeline_dia.html", {
         "vehiculo": vehiculo,
         "fecha": fecha,
-        "tickets": tickets,
+        "tickets": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_tickets": page_obj.paginator.count,
         "usuario": usuario,
         "horas": horas,
     })
@@ -633,9 +663,14 @@ def directorio_usuarios(request):
         if cargo:
             usuarios = usuarios.filter(id_cargo=cargo)
 
+    page_obj, pagination_query = paginate_queryset(request, usuarios)
+
     return render(request, "reservas/directorio_usuarios.html", {
         "form": form,
-        "usuarios": usuarios,
+        "usuarios": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_usuarios": page_obj.paginator.count,
         "usuario": get_usuario_sesion(request),
     })
 
@@ -657,9 +692,14 @@ def usuarios_rechazados(request):
             - rechazados: QuerySet de usuarios rechazados.
             - usuario: Instancia del usuario logueado (admin).
     """
-    rechazados = Usuario.objects.filter(rechazado=True).select_related("id_cargo")
+    rechazados_qs = Usuario.objects.filter(rechazado=True).select_related("id_cargo")
+    page_obj, pagination_query = paginate_queryset(request, rechazados_qs)
+
     return render(request, "reservas/usuarios_rechazados.html", {
-        "rechazados": rechazados,
+        "rechazados": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_rechazados": page_obj.paginator.count,
         "usuario": get_usuario_sesion(request),
     })
 
@@ -689,13 +729,20 @@ def monitor_tickets_activos(request):
         - "Activos" = aprobados y con hora_inicio desde hoy en adelante.
         - Útil para supervisión de operaciones y conflictos en tiempo real.
     """
-    tickets = Ticket.objects.filter(
+    tickets_qs = Ticket.objects.filter(
         estado=Ticket.ESTADO_APROBADO,
         hora_inicio__gte=date.today(),
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("hora_inicio")
 
+    page_obj, pagination_query = paginate_queryset(request, tickets_qs)
+    vehiculos_en_uso = tickets_qs.values("id_vehiculo").distinct().count()
+
     return render(request, "reservas/monitor_activos.html", {
-        "tickets": tickets,
+        "tickets": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_tickets": page_obj.paginator.count,
+        "vehiculos_en_uso": vehiculos_en_uso,
         "usuario": get_usuario_sesion(request),
     })
 
@@ -725,12 +772,17 @@ def auditoria_tickets(request):
         - Campo observacion permite revisar razones de cancelación.
         - Ordenados por hora_inicio descendente (más recientes primero).
     """
-    tickets = Ticket.objects.filter(
+    tickets_qs = Ticket.objects.filter(
         Q(estado=Ticket.ESTADO_CANCELADO) | Q(hora_inicio__lt=date.today())
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-hora_inicio")
 
+    page_obj, pagination_query = paginate_queryset(request, tickets_qs)
+
     return render(request, "reservas/auditoria.html", {
-        "tickets": tickets,
+        "tickets": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_tickets": page_obj.paginator.count,
         "usuario": get_usuario_sesion(request),
     })
 
@@ -760,9 +812,15 @@ def listado_flota(request):
             - vehiculos: QuerySet de todos los vehículos.
             - usuario: Instancia del usuario logueado (admin).
     """
-    vehiculos = Vehiculo.objects.all().order_by("marca", "modelo")
+    vehiculos_qs = Vehiculo.objects.all().order_by("marca", "modelo")
+    page_obj, pagination_query = paginate_queryset(request, vehiculos_qs)
+
     return render(request, "reservas/listado_flota.html", {
-        "vehiculos": vehiculos,
+        "vehiculos": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_vehiculos": page_obj.paginator.count,
+        "total_vehiculos_activos": vehiculos_qs.filter(activo=True).count(),
         "usuario": get_usuario_sesion(request),
     })
 

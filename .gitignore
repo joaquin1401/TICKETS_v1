@@ -35,3 +35,6 @@ Icon?
 # Project specific
 *.bak
 *.tmp
+
+# my tests
+scripts/

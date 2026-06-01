@@ -43,7 +43,7 @@
 <div class="card">
   <div class="card-header">
     <span class="card-title">◷ Usuarios activos</span>
-    <span class="badge badge-neutral">{{ usuarios.count }}</span>
+    <span class="badge badge-neutral">{{ total_usuarios }}</span>
   </div>
   <div class="table-wrap">
     {% if usuarios %}
@@ -81,5 +81,6 @@
     </div>
     {% endif %}
   </div>
+  {% include "reservas/_pagination.html" %}
 </div>
 {% endblock %}

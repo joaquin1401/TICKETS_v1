@@ -234,6 +234,56 @@
     tbody td { padding: 11px 14px; font-size: 13px; color: var(--text-dim); }
     tbody td .primary { color: var(--text); font-weight: 500; }
 
+    .table-pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px 16px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .pagination-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      letter-spacing: 0.02em;
+    }
+    .pagination-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .pager-link,
+    .pager-current {
+      min-width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 0 8px;
+    }
+    .pager-link {
+      color: var(--text-dim);
+      background: transparent;
+    }
+    .pager-link:hover {
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+    .pager-current {
+      color: var(--bg);
+      background: var(--accent);
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
     /* ── Badges ── */
     .badge {
       display: inline-block;

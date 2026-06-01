@@ -86,7 +86,7 @@
 <div class="card">
   <div class="card-header">
     <span class="card-title">◈ Línea de tiempo</span>
-    <span class="badge badge-neutral">{{ tickets.count }} reserva{{ tickets.count|pluralize:"s" }}</span>
+    <span class="badge badge-neutral">{{ total_tickets }} reserva{{ total_tickets|pluralize:"s" }}</span>
   </div>
   <div class="card-body">
     {% if tickets %}
@@ -154,6 +154,7 @@
       </tbody>
     </table>
   </div>
+  {% include "reservas/_pagination.html" %}
 </div>
 {% endif %}
 {% endblock %}

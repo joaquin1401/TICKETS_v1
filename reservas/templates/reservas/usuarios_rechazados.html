@@ -21,7 +21,7 @@
 
 <div class="tabs">
   <a href="{% url 'panel_validacion' %}" class="tab">Pendientes</a>
-  <a href="{% url 'usuarios_rechazados' %}" class="tab active">Rechazados ({{ rechazados.count }})</a>
+  <a href="{% url 'usuarios_rechazados' %}" class="tab active">Rechazados ({{ total_rechazados }})</a>
 </div>
 
 <div class="card">
@@ -54,5 +54,6 @@
     </div>
     {% endif %}
   </div>
+  {% include "reservas/_pagination.html" %}
 </div>
 {% endblock %}
