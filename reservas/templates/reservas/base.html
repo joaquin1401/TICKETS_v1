@@ -8,7 +8,7 @@
   <link rel="icon" type="image/png" href="{% static 'img/Logotipocompacto.png' %}" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
   {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -72,13 +72,12 @@
 {% endblock %}
 
 <div class="main">
-  {% block topbar %}
   {% if usuario %}
   <div class="topbar">
-    <span class="topbar-title">Sistema de Reserva de Vehículos / <span>{% block breadcrumb %}Inicio{% endblock %}</span></span>
+    <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Menú">☰</button>
+    <span class="topbar-title">Sistema de Reserva de Vehículos / <span>{% block breadcrumb %}Dashboard{% endblock %}</span></span>
   </div>
   {% endif %}
-  {% endblock %}
 
   <div class="page-content">
     {% if messages %}
@@ -97,5 +96,22 @@
 </div>
 
 {% block extra_js %}{% endblock %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    if (mobileBtn && sidebar) {
+      mobileBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        sidebar.classList.toggle('open');
+      });
+      document.addEventListener('click', function(e) {
+        if (window.innerWidth <= 768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== mobileBtn) {
+          sidebar.classList.remove('open');
+        }
+      });
+    }
+  });
+</script>
 </body>
 </html>
