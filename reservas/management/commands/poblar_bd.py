@@ -18,6 +18,21 @@ Uso:
     python manage.py poblar_bd --clean      # Alias para --clear
 """
 
+import os
+import random
+import sys
+from pathlib import Path
+
+if __package__ in (None, ""):
+    project_root = Path(__file__).resolve().parents[3]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+
+    import django
+
+    django.setup()
+
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
@@ -607,3 +622,10 @@ class Command(BaseCommand):
             self.stdout.write(f"  • {usuario.correo} ({usuario.id_cargo.nombre})")
         
         self.stdout.write(self.style.SUCCESS("\n✅ Datos listos para testing!\n"))
+
+
+if __name__ == "__main__":
+    from django.core.management import execute_from_command_line
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    execute_from_command_line([sys.argv[0], "poblar_bd", *sys.argv[1:]])
