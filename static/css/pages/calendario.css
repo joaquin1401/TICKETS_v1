@@ -1,0 +1,130 @@
+.cal-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cal-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.cal-month-title {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-dow {
+  text-align: center;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 6px 0;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-dim);
+  position: relative;
+  cursor: default;
+  border: 1px solid transparent;
+  transition: all 0.12s;
+}
+
+.cal-day.empty {
+  visibility: hidden;
+}
+
+.cal-day.has-reservas {
+  background: rgba(85, 139, 186, 0.12);
+  color: var(--accent);
+  border-color: rgba(85, 139, 186, 0.3);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cal-day.has-reservas:hover {
+  background: rgba(85, 139, 186, 0.22);
+  border-color: var(--accent);
+}
+
+.cal-day.today {
+  border-color: var(--accent);
+  color: var(--accent2);
+}
+
+.cal-day.has-reservas::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.legend-dot.reservado {
+  background: rgba(85, 139, 186, 0.3);
+  border: 1px solid rgba(85, 139, 186, 0.5);
+}
+
+.legend-dot.libre {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.legend-dot.hoy {
+  background: transparent;
+  border: 1px solid var(--accent);
+}
+
+@media (max-width: 900px) {
+  .cal-layout {
+    grid-template-columns: 1fr;
+  }
+}

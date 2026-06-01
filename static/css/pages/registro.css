@@ -1,0 +1,43 @@
+.auth-center {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  background: var(--bg);
+}
+
+.register-box {
+  width: 100%;
+  max-width: 500px;
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.register-header .brand {
+  font-family: var(--serif);
+  font-size: 28px;
+  color: var(--accent);
+}
+
+.register-header h2 {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.notice {
+  background: rgba(85, 139, 186, 0.06);
+  border: 1px solid rgba(85, 139, 186, 0.2);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  font-size: 12px;
+  color: var(--accent2);
+  margin-bottom: 24px;
+  display: flex;
+  gap: 8px;
+}
