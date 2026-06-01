@@ -281,3 +281,36 @@ class Ticket(models.Model):
 
     def __str__(self):
         return f"Ticket #{self.pk} - {self.id_usuario} -> {self.destino} ({self.estado})"
+
+
+class NotificationLog(models.Model):
+    """
+    Registro de notificaciones enviadas para evitar reenvíos duplicados.
+
+    Se usa para marcar que un `Ticket` ya recibió cierto tipo de notificación
+    (recordatorio 3 días, recordatorio mismo día, aviso de cancelación, etc.).
+    """
+
+    TYPE_CREATED = "created"
+    TYPE_CANCELLED = "cancelled"
+    TYPE_REMINDER_3_DAYS = "reminder_3_days"
+    TYPE_REMINDER_SAME_DAY = "reminder_same_day"
+
+    TYPES = [
+        (TYPE_CREATED, "Creación"),
+        (TYPE_CANCELLED, "Cancelación"),
+        (TYPE_REMINDER_3_DAYS, "Recordatorio 3 días"),
+        (TYPE_REMINDER_SAME_DAY, "Recordatorio mismo día"),
+    ]
+
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="notification_logs")
+    notification_type = models.CharField(max_length=50, choices=TYPES)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Notification Log"
+        verbose_name_plural = "Notification Logs"
+        indexes = [models.Index(fields=["notification_type", "sent_at"])]
+
+    def __str__(self):
+        return f"{self.notification_type} @ {self.ticket_id} -> {self.sent_at.isoformat()}"

@@ -24,3 +24,10 @@ class ReservasConfig(AppConfig):
     """
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'reservas'
+    def ready(self):
+        # Import signals to ensure they are registered when app is ready
+        try:
+            import reservas.signals  # noqa: F401
+        except Exception:
+            # Avoid breaking startup if signals fail during migrations
+            pass

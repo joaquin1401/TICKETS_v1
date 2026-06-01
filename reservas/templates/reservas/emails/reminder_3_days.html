@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Recordatorio: reserva en 3 días</title>
+  <style>
+    :root{--bg:#0f1014;--surface:#181b22;--border:#2a2f3d;--accent:#558bba;--text:#dde1ea;--muted:#6b7280;--radius:8px}
+    body{background:var(--bg);color:var(--text);font-family:DM Sans, Arial, sans-serif;padding:24px}
+    .container{max-width:680px;margin:0 auto}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+    h1{font-family:DM Serif Display, serif;color:var(--accent);margin-bottom:8px}
+    p{color:var(--text)}
+    .muted{color:var(--muted);font-size:13px}
+    .meta{background:rgba(255,255,255,0.02);padding:12px;border-radius:6px;margin:12px 0}
+    .footer{margin-top:18px;font-size:13px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>Recordatorio: tu reserva es en 3 días</h1>
+      <p>Hola {{ usuario.nombre }} {{ usuario.apellido }},</p>
+      <p>Te recordamos que tu reserva programada en 3 días está próxima. Detalles:</p>
+      <div class="meta">
+        <div class="muted">Vehículo:</div>
+        <div>{{ ticket.id_vehiculo }}</div>
+        <div class="muted" style="margin-top:8px">Destino:</div>
+        <div>{{ ticket.destino }}</div>
+        <div class="muted" style="margin-top:8px">Inicio:</div>
+        <div>{{ ticket.hora_inicio }}</div>
+      </div>
+
+      <p class="muted">¡No olvides revisar los detalles y preparar lo necesario!</p>
+
+      <div class="footer">Saludos,<br>Equipo de Reservas</div>
+    </div>
+  </div>
+</body>
+</html>
