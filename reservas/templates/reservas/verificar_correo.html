@@ -1,0 +1,322 @@
+{% extends "reservas/base.html" %}
+{% load static %}
+{% block title %}Verificar Correo — Sistema de Reserva de Vehículos{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block topbar %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Layout centrado igual al de registro.html ── */
+  .auth-center {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    background: var(--bg);
+  }
+  .verify-box {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  /* ── Header ── */
+  .verify-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .verify-header .brand {
+    font-family: var(--serif);
+    font-size: 26px;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .verify-header h2 {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .correo-chip {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 14px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent2);
+  }
+
+  /* ── Tabs de método (código / enlace) ── */
+  .method-tabs {
+    display: flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .method-tab {
+    flex: 1;
+    padding: 10px 12px;
+    text-align: center;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    cursor: pointer;
+    background: var(--surface2);
+    border: none;
+    transition: background 0.15s, color 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .method-tab:hover { color: var(--text); }
+  .method-tab.active {
+    background: rgba(232,160,32,0.12);
+    color: var(--accent);
+  }
+  .method-pane { display: none; }
+  .method-pane.active { display: block; }
+
+  /* ── Input del código tipo OTP ── */
+  .codigo-input {
+    width: 100%;
+    padding: 14px 12px;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: 14px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .codigo-input:focus { border-color: var(--accent); }
+  .codigo-input::placeholder { color: var(--border); letter-spacing: 12px; }
+
+  /* ── Divisor "o" ── */
+  .divider-text {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .divider-text::before,
+  .divider-text::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Fila inferior: timer + reenvío ── */
+  .resend-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .timer-text {
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-muted);
+  }
+  .timer-text #timer { color: var(--accent2); }
+  .timer-text #timer.expirado { color: var(--danger); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-center">
+  <div class="verify-box">
+
+    <!-- Header con logo igual a registro.html -->
+    <div class="verify-header">
+      <img src="{% static 'img/logo_dark.png' %}" alt="Logo Universitario"
+           style="max-width:120px;display:block;margin:0 auto 14px;">
+      <span class="brand">Sistema de Reserva de Vehículos</span>
+      <h2>Verificá tu correo electrónico</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin:0;">
+        Enviamos un código y un enlace a<br>
+        <span class="correo-chip">{{ correo }}</span>
+      </p>
+    </div>
+
+    <!-- Mensajes de Django (éxito, error, advertencia) -->
+    {% if messages %}
+    <div style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px;">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {% if message.tags == 'success' %}✓
+        {% elif message.tags == 'danger' %}✕
+        {% elif message.tags == 'warning' %}⚠
+        {% else %}ℹ{% endif %}
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-body" style="padding:24px;">
+
+        <!-- Tabs de método -->
+        <div class="method-tabs">
+          <button type="button" class="method-tab active" onclick="switchTab('codigo', this)">
+            ◎ Código numérico
+          </button>
+          <button type="button" class="method-tab" onclick="switchTab('enlace', this)">
+            ◈ Enlace mágico
+          </button>
+        </div>
+
+        <!-- Panel 1: Ingresar código -->
+        <div class="method-pane active" id="pane-codigo">
+          <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+            Ingresá el código de <strong style="color:var(--text);">6 dígitos</strong>
+            que enviamos a tu correo.
+          </p>
+          <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+              <input
+                type="text"
+                name="codigo"
+                class="codigo-input"
+                placeholder="······"
+                maxlength="6"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                autofocus
+              >
+              {% if form.codigo.errors %}
+              <p class="form-error" style="text-align:center;margin-top:8px;">
+                {{ form.codigo.errors.0 }}
+              </p>
+              {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg" style="width:100%;">
+              Verificar código
+            </button>
+          </form>
+        </div>
+
+        <!-- Panel 2: Instrucciones del enlace mágico -->
+        <div class="method-pane" id="pane-enlace">
+          <div style="text-align:center;padding:20px 0;">
+            <div style="font-size:40px;margin-bottom:14px;">📩</div>
+            <p style="font-size:13px;color:var(--text-dim);line-height:1.7;margin:0;">
+              Abrí el correo que te enviamos y hacé clic en el botón<br>
+              <strong style="color:var(--text);">"Verificar mi correo"</strong>.<br>
+              Serás redirigido automáticamente.
+            </p>
+          </div>
+        </div>
+
+        <!-- Divisor -->
+        <div class="divider-text">o</div>
+
+        <!-- Fila reenvío + countdown -->
+        <div class="resend-row">
+          <span class="timer-text">
+            Expira en <span id="timer">30:00</span>
+          </span>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="reenviar">
+            <button type="submit" class="btn btn-outline btn-sm">↺ Reenviar correo</button>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <p style="text-align:center;margin-top:16px;font-size:12px;color:var(--text-muted);">
+      ¿Correo incorrecto?
+      <a href="{% url 'registro' %}" style="color:var(--accent);text-decoration:none;">
+        Volvé al registro
+      </a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Cambio de tab (código / enlace mágico) ────────────────────────────────
+  function switchTab(pane, btn) {
+    document.querySelectorAll('.method-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.method-pane').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('pane-' + pane).classList.add('active');
+  }
+
+  // ── Input OTP: solo dígitos, máximo 6 ────────────────────────────────────
+  const codigoInput = document.querySelector('input[name="codigo"]');
+  if (codigoInput) {
+    codigoInput.addEventListener('input', function () {
+      // Eliminar cualquier caracter no numérico y limitar a 6
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    });
+    // Seleccionar todo al hacer foco para facilitar corrección
+    codigoInput.addEventListener('focus', function () {
+      this.select();
+    });
+  }
+
+  // ── Countdown de 30 minutos ───────────────────────────────────────────────
+  // Usa sessionStorage para que el timer persista si el usuario recarga.
+  // Clave: "flotacorp_verify_start" — se resetea al reenviar.
+  (function () {
+    const DURACION_SEG = 30 * 60;
+    const STORAGE_KEY  = 'flotacorp_verify_start';
+    const timerEl      = document.getElementById('timer');
+    if (!timerEl) return;
+
+    // Si no hay timestamp guardado, lo inicializamos ahora
+    if (!sessionStorage.getItem(STORAGE_KEY)) {
+      sessionStorage.setItem(STORAGE_KEY, Date.now().toString());
+    }
+
+    function tick() {
+      const inicio     = parseInt(sessionStorage.getItem(STORAGE_KEY), 10);
+      const transcurrido = Math.floor((Date.now() - inicio) / 1000);
+      const restante   = Math.max(0, DURACION_SEG - transcurrido);
+      const minutos    = String(Math.floor(restante / 60)).padStart(2, '0');
+      const segundos   = String(restante % 60).padStart(2, '0');
+
+      timerEl.textContent = `${minutos}:${segundos}`;
+
+      if (restante > 0) {
+        setTimeout(tick, 1000);
+      } else {
+        timerEl.textContent = 'expirado';
+        timerEl.classList.add('expirado');
+      }
+    }
+
+    tick();
+
+    // Resetear el timer cuando el usuario hace clic en "Reenviar correo"
+    const reenviarForm = document.querySelector('form [name="accion"][value="reenviar"]');
+    if (reenviarForm) {
+      reenviarForm.closest('form').addEventListener('submit', () => {
+        sessionStorage.setItem(STORAGE_KEY, Date.now().toString());
+      });
+    }
+  })();
+</script>
+{% endblock %}

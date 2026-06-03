@@ -304,3 +304,71 @@ class VehiculoForm(forms.ModelForm):
             "marca":  forms.TextInput(attrs={"placeholder": "Ej: Toyota"}),
             "modelo": forms.TextInput(attrs={"placeholder": "Ej: Hilux 2023"}),
         }
+
+
+
+# ══════════════════════════════════════════════
+# NUEVO: Verificación de correo electrónico
+# ══════════════════════════════════════════════
+
+class VerificacionCodigoForm(forms.Form):
+    """
+    Formulario para ingresar el código de 6 dígitos (extensión HU 1.1).
+
+    Se muestra en /verificar-correo/ inmediatamente después del registro.
+    Solo acepta dígitos. La validación de vigencia y corrección del código
+    se delega a email_verification.verificar_por_codigo(), no a este form.
+
+    Fields:
+        codigo (CharField): Código numérico de 6 dígitos recibido por email.
+
+    Atributos del widget:
+        inputmode="numeric"        → teclado numérico en dispositivos móviles.
+        autocomplete="one-time-code" → autorrelleno en navegadores modernos
+                                       (Chrome, Safari sugieren el SMS/email code).
+
+    Validaciones propias:
+        - Exactamente 6 caracteres (min_length + max_length del CharField).
+        - Solo dígitos numéricos (clean_codigo, no se aceptan letras ni símbolos).
+    """
+
+    codigo = forms.CharField(
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            "placeholder": "000000",
+            "inputmode": "numeric",
+            "autocomplete": "one-time-code",
+            # Estilo tipo OTP: centrado, grande y espaciado para fácil lectura
+            "style": (
+                "text-align:center;"
+                "font-size:28px;"
+                "letter-spacing:10px;"
+                "font-family:monospace;"
+            ),
+        }),
+        label="Código de verificación",
+        error_messages={
+            "min_length": "El código debe tener exactamente 6 dígitos.",
+            "max_length": "El código debe tener exactamente 6 dígitos.",
+            "required":   "Ingresá el código de 6 dígitos enviado a tu correo.",
+        }
+    )
+
+    def clean_codigo(self):
+        """
+        Valida que el código contenga únicamente caracteres numéricos.
+
+        Se ejecuta automáticamente por Django al llamar form.is_valid().
+        Elimina espacios accidentales antes de validar.
+
+        Returns:
+            str: Código limpio sin espacios.
+
+        Raises:
+            ValidationError: Si contiene letras, símbolos u otros no-dígitos.
+        """
+        codigo = self.cleaned_data.get("codigo", "").strip()
+        if not codigo.isdigit():
+            raise ValidationError("El código debe contener solo números (sin letras ni símbolos).")
+        return codigo

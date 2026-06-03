@@ -89,4 +89,29 @@ urlpatterns = [
     path("admin-panel/flota/", views.listado_flota, name="listado_flota"),
     path("admin-panel/flota/nueva/", views.alta_vehiculo, name="alta_vehiculo"),
     path("admin-panel/flota/<int:vehiculo_id>/editar/", views.edicion_vehiculo, name="edicion_vehiculo"),
+
+
+    # NUEVO — Verificación de correo electrónico (extensión de HU 1.1)
+    #
+    # Flujo post-registro:
+    #   registro() → guarda usuario con correo_verificado=False
+    #             → genera VerificacionCorreo (código + token UUID)
+    #             → envía email con ambos métodos
+    #             → redirige a /verificar-correo/
+    #
+    # /verificar-correo/
+    #   Vista: views.verificar_correo
+    #   GET:  muestra el formulario con dos tabs (código / enlace mágico).
+    #   POST accion="reenviar": regenera el registro y reenvía el correo.
+    #   POST (sin accion):      valida el código ingresado con VerificacionCodigoForm.
+    #   Requiere request.session["verificacion_uid"] para identificar al usuario.
+    #
+    # /verificar-correo/<uuid:token>/
+    #   Vista: views.verificar_correo_enlace
+    #   El conversor <uuid:> de Django valida el formato antes de llegar a la vista,
+    #   evitando procesar strings malformados. Si el token es válido y vigente,
+    #   marca correo_verificado=True y redirige al login con mensaje de éxito.
+    path("verificar-correo/", views.verificar_correo, name="verificar_correo"),
+    path("verificar-correo/<uuid:token>/", views.verificar_correo_enlace, name="verificar_correo_enlace"),
+
 ]

@@ -314,3 +314,98 @@ class NotificationLog(models.Model):
 
     def __str__(self):
         return f"{self.notification_type} @ {self.ticket_id} -> {self.sent_at.isoformat()}"
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NUEVO: Verificación de correo electrónico
+# ══════════════════════════════════════════════════════════════════════════════
+
+class VerificacionCorreo(models.Model):
+    """
+    Almacena el token/código de verificación de correo electrónico.
+
+    Cada usuario tiene como máximo UN registro activo a la vez. Al solicitar
+    un reenvío el registro anterior se elimina y se genera uno nuevo.
+
+    Soporta dos métodos de verificación en simultáneo (ambos en el mismo envío):
+        1. Código de 6 dígitos: el usuario lo escribe en el formulario.
+        2. Token UUID:          se incluye como enlace mágico en el correo.
+
+    Ambos métodos expiran 30 minutos desde la creación. Una vez usado
+    cualquiera de los dos, el campo 'usado' pasa a True e invalida ambos.
+
+    Flujo completo:
+        registro() → crear_verificacion() → enviar_correo_verificacion()
+              ↓ usuario recibe email con código y enlace
+        verificar_correo()          ← opción 1: formulario con código
+        verificar_correo_enlace()   ← opción 2: clic en el enlace
+
+    Attributes:
+        usuario (OneToOneField): Relación 1-a-1 con Usuario. Si el usuario
+            se elimina, su verificación también (CASCADE).
+        codigo (CharField): Código numérico de 6 dígitos con zero-padding
+            (ej: "048721"). Generado con random.randint(0, 999999).
+        token (UUIDField): UUID v4 único para construir la URL del enlace
+            mágico (ej: /verificar-correo/550e8400-e29b-41d4-...).
+        creado_en (DateTimeField): Timestamp automático. Base para calcular
+            la expiración de 30 minutos en esta_vigente().
+        usado (BooleanField): True si ya fue verificado (por cualquier método).
+            Previene reutilización del mismo código o enlace.
+
+    Methods:
+        esta_vigente(): Retorna True si no fue usado y no expiró.
+    """
+
+    usuario = models.OneToOneField(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name="verificacion",
+        help_text="Usuario propietario de esta verificación"
+    )
+    codigo = models.CharField(
+        max_length=6,
+        help_text="Código numérico de 6 dígitos enviado por correo"
+    )
+    token = models.UUIDField(
+        unique=True,
+        help_text="Token UUID v4 para el enlace mágico del correo"
+    )
+    creado_en = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Momento de generación. El registro expira a los 30 minutos."
+    )
+    usado = models.BooleanField(
+        default=False,
+        help_text="True = ya verificado. Invalida tanto el código como el token."
+    )
+
+    class Meta:
+        verbose_name = "Verificación de correo"
+        verbose_name_plural = "Verificaciones de correo"
+
+    def __str__(self):
+        estado = "usada" if self.usado else "pendiente"
+        return f"Verificación de {self.usuario.correo} ({estado})"
+
+    def esta_vigente(self):
+        """
+        Determina si el código/token todavía puede usarse para verificar.
+
+        Evalúa dos condiciones:
+            1. El registro no fue marcado como usado.
+            2. No pasaron más de 30 minutos desde su creación.
+
+        Returns:
+            bool: True si está vigente y puede verificar, False si no.
+
+        Notes:
+            Usa timezone.now() para ser compatible con USE_TZ=True
+            configurado en settings.py.
+        """
+        from django.utils import timezone
+        from datetime import timedelta
+        return (
+            not self.usado
+            and timezone.now() < self.creado_en + timedelta(minutes=30)
+        )

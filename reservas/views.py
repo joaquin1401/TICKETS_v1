@@ -6,8 +6,9 @@ con decoradores personalizados. Gestiona autenticación, autorización y lógica
 de presentación.
 
 Convención de sesión:
-    request.session["usuario_id"]   → PK del usuario logueado
-    request.session["es_admin"]     → bool (True si cargo.prioridad == 0)
+    request.session["usuario_id"]        → PK del usuario logueado
+    request.session["es_admin"]          → bool (True si cargo.prioridad == 0)
+    request.session["verificacion_uid"]  → PK del usuario durante verificación de correo [NUEVO]
 
 Decoradores de autorización:
     @login_requerido: Redirige a login si no hay sesión activa.
@@ -26,6 +27,13 @@ from .models import Usuario, Vehiculo, Ticket, Cargo
 from .forms import (
     RegistroForm, LoginForm, TicketForm, VehiculoSelectorForm,
     FiltroUsuariosForm, VehiculoForm,
+    VerificacionCodigoForm,          # [NUEVO] formulario de código de 6 dígitos
+)
+from .email_verification import (    # [NUEVO] servicio de verificación de correo
+    crear_verificacion,
+    enviar_correo_verificacion,
+    verificar_por_codigo,
+    verificar_por_token,
 )
 from .services import (
     crear_ticket_con_reglas, ResultadoCreacion,
@@ -147,9 +155,9 @@ def registro(request):
     """
     Vista para registro de cuenta de usuario (HU 1.1).
 
-    Captura datos de registro y crea un usuario con estado pendiente
-    de aprobación por administrador. El formulario valida campos y
-    asegura que las contraseñas coincidan.
+    Captura datos de registro y crea un usuario con estado pendiente.
+    ACTUALIZADO: ahora incluye verificación de correo electrónico como
+    paso previo a la aprobación del administrador.
 
     Args:
         request (HttpRequest): Objeto de solicitud.
@@ -158,26 +166,51 @@ def registro(request):
 
     Returns:
         HttpResponse: Plantilla 'reservas/registro.html' con formulario
-            (GET) o redirige a login tras éxito (POST).
+            (GET) o redirige a verificar_correo tras éxito (POST).
 
     Proceso:
         1. GET: Renderiza RegistroForm vacío.
-        2. POST (válido): Crea Usuario con valido=False, rechazado=False.
-            Muestra mensaje de éxito y redirige a login.
+        2. POST (válido):
+            a. Crea Usuario con correo_verificado=False, valido=False.
+            b. Genera VerificacionCorreo (código 6 dígitos + token UUID).
+            c. Envía email con ambos métodos al correo del usuario.
+            d. Guarda PK en sesión (verificacion_uid).
+            e. Redirige a verificar_correo.
         3. POST (inválido): Re-renderiza formulario con errores.
 
     Messages:
-        - success: "Tu cuenta fue creada. Un administrador deberá aprobar..."
+        - info:    Correo enviado exitosamente con código y enlace.
+        - warning: No se pudo enviar el correo (SMTP error).
     """
     if request.method == "POST":
         form = RegistroForm(request.POST)
         if form.is_valid():
-            form.save()
-            messages.success(
-                request,
-                "Tu cuenta fue creada. Un administrador deberá aprobar tu acceso antes de que puedas ingresar.",
-            )
-            return redirect("login")
+            usuario = form.save()  # correo_verificado=False ya está en RegistroForm.save()
+
+            # Generar código de 6 dígitos y token UUID simultáneamente
+            verificacion = crear_verificacion(usuario)
+
+            # Enviar correo con ambos métodos (código + enlace mágico)
+            enviado = enviar_correo_verificacion(usuario, verificacion, request)
+
+            # Guardar PK en sesión para que verificar_correo() sepa a quién verificar
+            request.session["verificacion_uid"] = usuario.pk
+
+            if enviado:
+                messages.info(
+                    request,
+                    f"Te enviamos un correo a {usuario.correo} con un código de 6 dígitos "
+                    "y un enlace de verificación. Revisá también la carpeta de spam.",
+                )
+            else:
+                # SMTP falló: el usuario puede continuar y pedir reenvío desde la siguiente pantalla
+                messages.warning(
+                    request,
+                    "Tu cuenta fue creada pero no pudimos enviar el correo de verificación. "
+                    "Podés solicitar un reenvío desde la siguiente pantalla.",
+                )
+
+            return redirect("verificar_correo")
     else:
         form = RegistroForm()
     return render(request, "reservas/registro.html", {"form": form})
@@ -231,6 +264,19 @@ def login_view(request):
             if not usuario.check_password(contrasena):
                 messages.error(request, "Correo o contraseña incorrectos.")
                 return render(request, "reservas/login.html", {"form": form})
+
+            # [NUEVO] Verificación de correo: bloquear login si el usuario
+            # completó el registro pero todavía no verificó su email.
+            # Aplica solo si el campo correo_verificado existe en el modelo
+            # (requiere haber corrido la migración correspondiente).
+            if hasattr(usuario, 'correo_verificado') and not usuario.correo_verificado:
+                request.session["verificacion_uid"] = usuario.pk
+                messages.warning(
+                    request,
+                    "Primero debés verificar tu correo electrónico. "
+                    "Revisá tu bandeja de entrada o solicitá un nuevo código.",
+                )
+                return redirect("verificar_correo")
 
             if usuario.rechazado:
                 messages.error(request, "Tu solicitud de acceso fue rechazada. Contactá al administrador.")
@@ -916,3 +962,141 @@ def edicion_vehiculo(request, vehiculo_id):
         "vehiculo": vehiculo,
         "usuario": get_usuario_sesion(request),
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ÉPICA 1 — VERIFICACIÓN DE CORREO ELECTRÓNICO [NUEVO]
+# ══════════════════════════════════════════════════════════════════════════════
+# Extensión de HU 1.1: flujo de confirmación de email post-registro.
+# El usuario debe verificar su correo antes de poder iniciar sesión,
+# independientemente de la aprobación del administrador.
+
+
+def verificar_correo(request):
+    """
+    Vista del formulario de verificación de correo electrónico (extensión HU 1.1).
+
+    Muestra el formulario de código de 6 dígitos y permite reenviar el email.
+    Se llega aquí desde registro() o desde login_view() si el correo no fue
+    verificado todavía.
+
+    Args:
+        request (HttpRequest): Objeto de solicitud.
+            - GET:  Muestra el formulario vacío con los dos tabs (código / enlace).
+            - POST (sin accion):  Valida el código ingresado.
+            - POST (accion="reenviar"): Regenera código/token y reenvía el correo.
+
+    Returns:
+        HttpResponse: Plantilla 'reservas/verificar_correo.html' con:
+            - form:   VerificacionCodigoForm (vacío o con errores).
+            - correo: Email del usuario (para mostrarlo en pantalla).
+        O redirect a login (verificación exitosa) o registro (sesión perdida).
+
+    Protecciones:
+        - Sin verificacion_uid en sesión → redirige al registro.
+        - Usuario ya verificado → redirige al login con mensaje de éxito.
+
+    Session:
+        Lee:   request.session["verificacion_uid"]
+        Borra: request.session["verificacion_uid"] al verificar exitosamente.
+    """
+    uid = request.session.get("verificacion_uid")
+    if not uid:
+        # Sesión perdida o acceso directo a la URL sin registrarse antes
+        messages.error(request, "Sesión de verificación no encontrada. Registrate nuevamente.")
+        return redirect("registro")
+
+    try:
+        usuario = Usuario.objects.get(pk=uid)
+    except Usuario.DoesNotExist:
+        return redirect("registro")
+
+    # Si ya verificó (ej: abrió el enlace mágico en otra pestaña), ir al login
+    if hasattr(usuario, 'correo_verificado') and usuario.correo_verificado:
+        messages.success(request, "Tu correo ya fue verificado. Podés iniciar sesión.")
+        return redirect("login")
+
+    if request.method == "POST":
+        accion = request.POST.get("accion")
+
+        # ── Reenvío: elimina registro anterior y genera uno nuevo ──────────
+        if accion == "reenviar":
+            verificacion = crear_verificacion(usuario)
+            enviado = enviar_correo_verificacion(usuario, verificacion, request)
+            if enviado:
+                messages.success(request, "Código reenviado. Revisá tu bandeja de entrada.")
+            else:
+                messages.error(request, "No se pudo enviar el correo. Intentá de nuevo en unos minutos.")
+            return redirect("verificar_correo")
+
+        # ── Validación del código ingresado ────────────────────────────────
+        form = VerificacionCodigoForm(request.POST)
+        if form.is_valid():
+            codigo = form.cleaned_data["codigo"]
+            resultado = verificar_por_codigo(usuario, codigo)
+
+            if resultado.exito:
+                # Limpiar sesión de verificación (ya no es necesaria)
+                del request.session["verificacion_uid"]
+                messages.success(
+                    request,
+                    "✓ Correo verificado correctamente. "
+                    "Tu solicitud quedó pendiente de aprobación por un administrador.",
+                )
+                return redirect("login")
+            else:
+                # Código incorrecto, expirado o ya usado → mostrar mensaje descriptivo
+                messages.error(request, resultado.mensaje)
+    else:
+        form = VerificacionCodigoForm()
+
+    return render(request, "reservas/verificar_correo.html", {
+        "form": form,
+        "correo": usuario.correo,
+    })
+
+
+def verificar_correo_enlace(request, token):
+    """
+    Vista del enlace mágico de verificación (extensión HU 1.1).
+
+    Se activa cuando el usuario hace clic en el botón del correo electrónico.
+    El token llega como parámetro UUID, validado por el conversor <uuid:>
+    en urls.py antes de llegar aquí (no llegan strings malformados).
+
+    Flujo según resultado de verificar_por_token():
+        OK:           limpia sesión → redirect login (éxito).
+        EXPIRADO:     guarda uid en sesión → redirect verificar_correo (pedir reenvío).
+        YA_USADO:     guarda uid en sesión → redirect verificar_correo (informar).
+        INCORRECTO:   token no existe en BD → redirect login (error).
+
+    Args:
+        request (HttpRequest): Solo GET (el enlace del correo es siempre GET).
+        token (uuid.UUID): Token UUID del enlace, ya validado por Django.
+
+    Returns:
+        HttpResponseRedirect: Redirect al login o a verificar_correo.
+    """
+    resultado, usuario = verificar_por_token(token)
+
+    if resultado.exito:
+        # Limpiar sesión de verificación si el usuario tenía el form abierto en paralelo
+        request.session.pop("verificacion_uid", None)
+        messages.success(
+            request,
+            "✓ Correo verificado correctamente. "
+            "Tu solicitud quedó pendiente de aprobación por un administrador.",
+        )
+
+    else:
+        # Guardar uid en sesión para que pueda pedir reenvío desde verificar_correo
+        if usuario:
+            request.session["verificacion_uid"] = usuario.pk
+
+        messages.error(request, resultado.mensaje)
+
+        # Si expiró o ya fue usado, mandarlo a la pantalla de verificación para reenviar
+        if resultado.estado in (resultado.EXPIRADO, resultado.YA_USADO):
+            return redirect("verificar_correo")
+
+    return redirect("login")
