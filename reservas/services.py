@@ -247,6 +247,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
     from django.conf import settings
     
     tickets_cancelados = []
+    correos_notificados = set()
     for t_existente in tickets_conflicto:
         propietario = t_existente.id_usuario.nombre_completo
         cargo_solicitante = usuario.id_cargo.nombre
@@ -260,24 +261,27 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         t_existente.save(update_fields=["estado", "observacion"])
         tickets_cancelados.append(t_existente)
         
-        # Enviar notificación por correo
-        try:
-            send_mail(
-                subject=f"⚠️ Reserva Cancelada: {t_existente.id_vehiculo}",
-                message=(
-                    f"Hola {propietario},\n\n"
-                    f"Te informamos que tu reserva para el vehículo {t_existente.id_vehiculo} "
-                    f"ha sido cancelada.\n\n"
-                    f"Motivo: {motivo}\n\n"
-                    "Por favor, ingresa al sistema para realizar una nueva reserva si es necesario.\n\n"
-                    "Saludos,\nSistema de Reservas SEU"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[t_existente.id_usuario.correo],
-                fail_silently=True,
-            )
-        except Exception:
-            pass
+        # Enviar notificación por correo solo una vez por usuario
+        correo_usuario = t_existente.id_usuario.correo
+        if correo_usuario not in correos_notificados:
+            try:
+                send_mail(
+                    subject=f"⚠️ Reserva Cancelada: {t_existente.id_vehiculo}",
+                    message=(
+                        f"Hola {propietario},\n\n"
+                        f"Te informamos que tu reserva para el vehículo {t_existente.id_vehiculo} "
+                        f"ha sido cancelada.\n\n"
+                        f"Motivo: {motivo}\n\n"
+                        "Por favor, ingresa al sistema para realizar una nueva reserva si es necesario.\n\n"
+                        "Saludos,\nSistema de Reservas SEU"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[correo_usuario],
+                    fail_silently=True,
+                )
+                correos_notificados.add(correo_usuario)
+            except Exception:
+                pass
 
     ticket = Ticket.objects.create(
         id_usuario=usuario,

@@ -103,6 +103,10 @@ class Usuario(models.Model):
         default=False,
         help_text="True = fue explícitamente rechazado por el admin"
     )
+    correo_verificado = models.BooleanField(
+        default=False,
+        help_text="True = el usuario verificó su correo electrónico"
+    )
 
     class Meta:
         verbose_name = "Usuario"

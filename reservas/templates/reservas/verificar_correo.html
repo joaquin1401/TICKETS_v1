@@ -277,30 +277,19 @@
     });
   }
 
-  // ── Countdown de 30 minutos ───────────────────────────────────────────────
-  // Usa sessionStorage para que el timer persista si el usuario recarga.
-  // Clave: "flotacorp_verify_start" — se resetea al reenviar.
+  // ── Countdown de 30 minutos (Backend-driven) ──────────────────────────────
   (function () {
-    const DURACION_SEG = 30 * 60;
-    const STORAGE_KEY  = 'flotacorp_verify_start';
-    const timerEl      = document.getElementById('timer');
+    let restante = {{ segundos_restantes|default:0 }};
+    const timerEl = document.getElementById('timer');
     if (!timerEl) return;
 
-    // Si no hay timestamp guardado, lo inicializamos ahora
-    if (!sessionStorage.getItem(STORAGE_KEY)) {
-      sessionStorage.setItem(STORAGE_KEY, Date.now().toString());
-    }
-
     function tick() {
-      const inicio     = parseInt(sessionStorage.getItem(STORAGE_KEY), 10);
-      const transcurrido = Math.floor((Date.now() - inicio) / 1000);
-      const restante   = Math.max(0, DURACION_SEG - transcurrido);
-      const minutos    = String(Math.floor(restante / 60)).padStart(2, '0');
-      const segundos   = String(restante % 60).padStart(2, '0');
-
-      timerEl.textContent = `${minutos}:${segundos}`;
+      const minutos = String(Math.floor(restante / 60)).padStart(2, '0');
+      const segundos = String(restante % 60).padStart(2, '0');
 
       if (restante > 0) {
+        timerEl.textContent = `${minutos}:${segundos}`;
+        restante--;
         setTimeout(tick, 1000);
       } else {
         timerEl.textContent = 'expirado';
@@ -309,14 +298,6 @@
     }
 
     tick();
-
-    // Resetear el timer cuando el usuario hace clic en "Reenviar correo"
-    const reenviarForm = document.querySelector('form [name="accion"][value="reenviar"]');
-    if (reenviarForm) {
-      reenviarForm.closest('form').addEventListener('submit', () => {
-        sessionStorage.setItem(STORAGE_KEY, Date.now().toString());
-      });
-    }
   })();
 </script>
 {% endblock %}

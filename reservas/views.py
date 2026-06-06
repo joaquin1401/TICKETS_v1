@@ -187,6 +187,13 @@ def registro(request):
         if form.is_valid():
             usuario = form.save()  # correo_verificado=False ya está en RegistroForm.save()
 
+            # Si el usuario es Administrador (prioridad 0), no requerir verificación
+            if usuario.id_cargo.prioridad == 0:
+                usuario.correo_verificado = True
+                usuario.save(update_fields=['correo_verificado'])
+                messages.success(request, "Cuenta de administrador creada exitosamente. Tu cuenta ya está validada, podés iniciar sesión.")
+                return redirect("login")
+
             # Generar código de 6 dígitos y token UUID simultáneamente
             verificacion = crear_verificacion(usuario)
 
@@ -268,8 +275,8 @@ def login_view(request):
             # [NUEVO] Verificación de correo: bloquear login si el usuario
             # completó el registro pero todavía no verificó su email.
             # Aplica solo si el campo correo_verificado existe en el modelo
-            # (requiere haber corrido la migración correspondiente).
-            if hasattr(usuario, 'correo_verificado') and not usuario.correo_verificado:
+            # (requiere haber corrido la migración correspondiente) y si no es Admin.
+            if hasattr(usuario, 'correo_verificado') and not usuario.correo_verificado and usuario.id_cargo.prioridad != 0:
                 request.session["verificacion_uid"] = usuario.pk
                 messages.warning(
                     request,
@@ -1444,9 +1451,19 @@ def verificar_correo(request):
     else:
         form = VerificacionCodigoForm()
 
+    from .models import VerificacionCorreo
+    from django.utils import timezone
+    try:
+        verificacion = VerificacionCorreo.objects.get(usuario=usuario)
+        tiempo_transcurrido = (timezone.now() - verificacion.creado_en).total_seconds()
+        segundos_restantes = int(max(0, 30 * 60 - tiempo_transcurrido))
+    except VerificacionCorreo.DoesNotExist:
+        segundos_restantes = 0
+
     return render(request, "reservas/verificar_correo.html", {
         "form": form,
         "correo": usuario.correo,
+        "segundos_restantes": segundos_restantes,
     })
 
 
