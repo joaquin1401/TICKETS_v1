@@ -243,18 +243,41 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
 
     # ── Caso 3: El solicitante tiene MAYOR jerarquía que todos los conflictos ───────
     # Sobrescribir y notificar
+    from django.core.mail import send_mail
+    from django.conf import settings
+    
     tickets_cancelados = []
     for t_existente in tickets_conflicto:
         propietario = t_existente.id_usuario.nombre_completo
         cargo_solicitante = usuario.id_cargo.nombre
-        t_existente.estado = Ticket.ESTADO_CANCELADO
-        t_existente.observacion = (
+        motivo = (
             f"Reserva cancelada automáticamente el {timezone.now().strftime('%d/%m/%Y %H:%M')} "
             f"porque {usuario.nombre_completo} ({cargo_solicitante}) "
             f"con mayor jerarquía tomó el vehículo para la misma franja horaria."
         )
+        t_existente.estado = Ticket.ESTADO_CANCELADO
+        t_existente.observacion = motivo
         t_existente.save(update_fields=["estado", "observacion"])
         tickets_cancelados.append(t_existente)
+        
+        # Enviar notificación por correo
+        try:
+            send_mail(
+                subject=f"⚠️ Reserva Cancelada: {t_existente.id_vehiculo}",
+                message=(
+                    f"Hola {propietario},\n\n"
+                    f"Te informamos que tu reserva para el vehículo {t_existente.id_vehiculo} "
+                    f"ha sido cancelada.\n\n"
+                    f"Motivo: {motivo}\n\n"
+                    "Por favor, ingresa al sistema para realizar una nueva reserva si es necesario.\n\n"
+                    "Saludos,\nSistema de Reservas SEU"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[t_existente.id_usuario.correo],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
 
     ticket = Ticket.objects.create(
         id_usuario=usuario,
