@@ -1511,3 +1511,134 @@ def verificar_correo_enlace(request, token):
             return redirect("verificar_correo")
 
     return redirect("login")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Flujo de Recuperación de Contraseña
+# ══════════════════════════════════════════════════════════════════════════════
+
+def solicitar_recuperacion(request):
+    from .forms import SolicitarRecuperacionForm
+    from .password_recovery import crear_recuperacion, enviar_correo_recuperacion
+
+    if request.method == "POST":
+        form = SolicitarRecuperacionForm(request.POST)
+        if form.is_valid():
+            correo = form.cleaned_data["correo"]
+            try:
+                usuario = Usuario.objects.get(correo=correo)
+                recuperacion = crear_recuperacion(usuario)
+                enviar_correo_recuperacion(usuario, recuperacion, request)
+                request.session["recuperacion_uid"] = usuario.pk
+                messages.info(request, "Te hemos enviado un correo con instrucciones para restablecer tu contraseña.")
+                return redirect("verificar_recuperacion")
+            except Usuario.DoesNotExist:
+                # No revelar si el correo existe o no por seguridad,
+                # solo mostrar el mismo mensaje de éxito.
+                messages.info(request, "Si el correo está registrado, recibirás instrucciones en unos minutos.")
+                return redirect("login")
+    else:
+        form = SolicitarRecuperacionForm()
+
+    return render(request, "reservas/solicitar_recuperacion.html", {"form": form})
+
+
+def verificar_recuperacion(request):
+    from .forms import VerificarRecuperacionForm
+    from .password_recovery import verificar_recuperacion_por_codigo, crear_recuperacion, enviar_correo_recuperacion
+    from .models import RecuperacionPassword
+    from django.utils import timezone
+
+    uid = request.session.get("recuperacion_uid")
+    if not uid:
+        messages.error(request, "Sesión de recuperación inválida o expirada.")
+        return redirect("solicitar_recuperacion")
+
+    try:
+        usuario = Usuario.objects.get(pk=uid)
+    except Usuario.DoesNotExist:
+        return redirect("solicitar_recuperacion")
+
+    if request.method == "POST":
+        accion = request.POST.get("accion")
+        if accion == "reenviar":
+            recuperacion = crear_recuperacion(usuario)
+            enviar_correo_recuperacion(usuario, recuperacion, request)
+            messages.success(request, "Código reenviado. Revisá tu correo.")
+            return redirect("verificar_recuperacion")
+
+        form = VerificarRecuperacionForm(request.POST)
+        if form.is_valid():
+            codigo = form.cleaned_data["codigo"]
+            resultado = verificar_recuperacion_por_codigo(usuario, codigo)
+            
+            if resultado.exito:
+                request.session["can_reset_password"] = True
+                messages.success(request, "Código verificado. Ahora podés ingresar tu nueva contraseña.")
+                return redirect("nueva_contrasena")
+            else:
+                messages.error(request, resultado.mensaje)
+    else:
+        form = VerificarRecuperacionForm()
+
+    try:
+        recuperacion = RecuperacionPassword.objects.get(usuario=usuario)
+        tiempo_transcurrido = (timezone.now() - recuperacion.creado_en).total_seconds()
+        segundos_restantes = int(max(0, 30 * 60 - tiempo_transcurrido))
+    except RecuperacionPassword.DoesNotExist:
+        segundos_restantes = 0
+
+    return render(request, "reservas/verificar_recuperacion.html", {
+        "form": form,
+        "correo": usuario.correo,
+        "segundos_restantes": segundos_restantes,
+    })
+
+
+def verificar_recuperacion_enlace(request, token):
+    from .password_recovery import verificar_recuperacion_por_token
+
+    resultado, usuario = verificar_recuperacion_por_token(token)
+    
+    if resultado.exito:
+        request.session["recuperacion_uid"] = usuario.pk
+        request.session["can_reset_password"] = True
+        messages.success(request, "Enlace verificado. Ingresá tu nueva contraseña.")
+        return redirect("nueva_contrasena")
+    else:
+        messages.error(request, resultado.mensaje)
+        return redirect("login")
+
+
+def nueva_contrasena(request):
+    from .forms import NuevaContrasenaForm
+    from .password_recovery import consumir_recuperacion
+
+    uid = request.session.get("recuperacion_uid")
+    can_reset = request.session.get("can_reset_password")
+
+    if not uid or not can_reset:
+        messages.error(request, "No tenés permiso para cambiar la contraseña en este momento.")
+        return redirect("solicitar_recuperacion")
+
+    try:
+        usuario = Usuario.objects.get(pk=uid)
+    except Usuario.DoesNotExist:
+        return redirect("solicitar_recuperacion")
+
+    if request.method == "POST":
+        form = NuevaContrasenaForm(request.POST)
+        if form.is_valid():
+            usuario.set_password(form.cleaned_data["contrasena_nueva"])
+            usuario.save(update_fields=["contrasena"])
+            consumir_recuperacion(usuario)
+            
+            # Limpiar sesión
+            request.session.pop("recuperacion_uid", None)
+            request.session.pop("can_reset_password", None)
+            
+            messages.success(request, "Tu contraseña ha sido restablecida exitosamente. Ya podés iniciar sesión.")
+            return redirect("login")
+    else:
+        form = NuevaContrasenaForm()
+
+    return render(request, "reservas/nueva_contrasena.html", {"form": form})

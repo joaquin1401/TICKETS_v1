@@ -381,3 +381,55 @@ class VerificacionCodigoForm(forms.Form):
         if not codigo.isdigit():
             raise ValidationError("El código debe contener solo números (sin letras ni símbolos).")
         return codigo
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Formularios de Recuperación de Contraseña
+# ══════════════════════════════════════════════════════════════════════════════
+
+class SolicitarRecuperacionForm(forms.Form):
+    correo = forms.EmailField(
+        label="Correo electrónico",
+        widget=forms.EmailInput(attrs={"placeholder": "tu.nombre@universidad.edu.ar"})
+    )
+
+class VerificarRecuperacionForm(forms.Form):
+    codigo = forms.CharField(
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            "placeholder": "······",
+            "autocomplete": "one-time-code",
+            "style": "text-align:center; font-size:28px; letter-spacing:10px; font-family:monospace;"
+        }),
+        error_messages={
+            "min_length": "El código debe tener exactamente 6 dígitos.",
+            "max_length": "El código debe tener exactamente 6 dígitos.",
+            "required":   "Ingresá el código de 6 dígitos enviado a tu correo.",
+        }
+    )
+
+    def clean_codigo(self):
+        codigo = self.cleaned_data.get("codigo", "").strip()
+        if not codigo.isdigit():
+            raise forms.ValidationError("El código debe contener solo números.")
+        return codigo
+
+class NuevaContrasenaForm(forms.Form):
+    contrasena_nueva = forms.CharField(
+        label="Nueva contraseña",
+        widget=forms.PasswordInput(attrs={"placeholder": "Mínimo 8 caracteres"}),
+        min_length=8
+    )
+    contrasena_confirmacion = forms.CharField(
+        label="Confirmar contraseña",
+        widget=forms.PasswordInput(attrs={"placeholder": "Repetí tu nueva contraseña"}),
+        min_length=8
+    )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        c1 = cleaned_data.get("contrasena_nueva")
+        c2 = cleaned_data.get("contrasena_confirmacion")
+        if c1 and c2 and c1 != c2:
+            raise forms.ValidationError("Las contraseñas no coinciden.")
+        return cleaned_data

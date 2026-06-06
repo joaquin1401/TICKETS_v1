@@ -13,6 +13,7 @@ conflictos de disponibilidad según la prioridad del cargo del solicitante.
 
 from django.db import models
 from django.contrib.auth.hashers import make_password
+import uuid
 
 
 class Cargo(models.Model):
@@ -411,6 +412,49 @@ class VerificacionCorreo(models.Model):
             Usa timezone.now() para ser compatible con USE_TZ=True
             configurado en settings.py.
         """
+        from django.utils import timezone
+        from datetime import timedelta
+        return (
+            not self.usado
+            and timezone.now() < self.creado_en + timedelta(minutes=30)
+        )
+
+
+class RecuperacionPassword(models.Model):
+    """
+    Controla el proceso temporal de recuperación de contraseña de un usuario.
+    """
+    usuario = models.ForeignKey(
+        Usuario, on_delete=models.CASCADE, related_name="recuperaciones_password"
+    )
+    codigo = models.CharField(
+        max_length=6,
+        help_text="Código numérico de 6 dígitos"
+    )
+    token = models.UUIDField(
+        default=uuid.uuid4,
+        editable=False,
+        help_text="Token UUID v4 para el enlace de recuperación rápida"
+    )
+    creado_en = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Momento de generación. Expira a los 30 minutos."
+    )
+    usado = models.BooleanField(
+        default=False,
+        help_text="True = código/token ya canjeado."
+    )
+
+    class Meta:
+        verbose_name = "Recuperación de contraseña"
+        verbose_name_plural = "Recuperaciones de contraseña"
+
+    def __str__(self):
+        estado = "usada" if self.usado else "pendiente"
+        return f"Recuperación de {self.usuario.correo} ({estado})"
+
+    def esta_vigente(self):
+        """Determina si la solicitud no fue usada y está dentro de los 30 minutos."""
         from django.utils import timezone
         from datetime import timedelta
         return (

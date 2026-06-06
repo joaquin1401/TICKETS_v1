@@ -49,6 +49,11 @@
           class="form-control"
           placeholder="••••••••"
         />
+        <div style="text-align: right; margin-top: 6px;">
+          <a href="{% url 'solicitar_recuperacion' %}" style="font-size: 12px; color: var(--accent); text-decoration: none;">
+            ¿Olvidaste tu contraseña?
+          </a>
+        </div>
         {% if form.contrasena.errors %}
         <p class="form-error">{{ form.contrasena.errors.0 }}</p>
         {% endif %}

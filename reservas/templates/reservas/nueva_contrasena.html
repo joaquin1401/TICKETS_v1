@@ -1,0 +1,144 @@
+{% extends "reservas/base.html" %}
+{% load static %}
+{% block title %}Nueva Contraseña — Sistema de Reserva de Vehículos{% endblock %}
+{% block body_class %}no-sidebar{% endblock %}
+{% block topbar %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .auth-center {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    background: var(--bg);
+  }
+  .verify-box {
+    width: 100%;
+    max-width: 440px;
+  }
+  .verify-header {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .verify-header .brand {
+    font-family: var(--serif);
+    font-size: 26px;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .verify-header h2 {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .input-group {
+    margin-bottom: 16px;
+  }
+  .input-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .input-group input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--sans);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input-group input:focus {
+    border-color: var(--accent);
+  }
+  .form-error {
+    color: var(--danger);
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .non-field-errors {
+    background: rgba(235,87,87,0.1);
+    border: 1px solid rgba(235,87,87,0.3);
+    color: var(--danger);
+    padding: 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-center">
+  <div class="verify-box">
+    <div class="verify-header">
+      <img src="{% static 'img/logo_dark.png' %}" alt="Logo Universitario"
+           style="max-width:120px;display:block;margin:0 auto 14px;">
+      <span class="brand">Sistema de Reserva de Vehículos</span>
+      <h2>Crear Nueva Contraseña</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin:0;">
+        Elegí una nueva contraseña para tu cuenta.<br>Asegurate de que tenga al menos 8 caracteres.
+      </p>
+    </div>
+
+    {% if messages %}
+    <div style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px;">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {% if message.tags == 'success' %}✓
+        {% elif message.tags == 'danger' %}✕
+        {% elif message.tags == 'warning' %}⚠
+        {% else %}ℹ{% endif %}
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-body" style="padding:24px;">
+        <form method="post">
+          {% csrf_token %}
+          
+          {% if form.non_field_errors %}
+          <div class="non-field-errors">
+            {{ form.non_field_errors.0 }}
+          </div>
+          {% endif %}
+
+          <div class="input-group">
+            <label for="{{ form.contrasena_nueva.id_for_label }}">{{ form.contrasena_nueva.label }}</label>
+            {{ form.contrasena_nueva }}
+            {% if form.contrasena_nueva.errors %}
+              <div class="form-error">{{ form.contrasena_nueva.errors.0 }}</div>
+            {% endif %}
+          </div>
+          
+          <div class="input-group">
+            <label for="{{ form.contrasena_confirmacion.id_for_label }}">{{ form.contrasena_confirmacion.label }}</label>
+            {{ form.contrasena_confirmacion }}
+            {% if form.contrasena_confirmacion.errors %}
+              <div class="form-error">{{ form.contrasena_confirmacion.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%; margin-top: 8px;">
+            Guardar contraseña
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

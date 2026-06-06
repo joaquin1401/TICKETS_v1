@@ -117,4 +117,10 @@ urlpatterns = [
     path("verificar-correo/", views.verificar_correo, name="verificar_correo"),
     path("verificar-correo/<uuid:token>/", views.verificar_correo_enlace, name="verificar_correo_enlace"),
 
+    # Recuperación de contraseña
+    path("recuperar-password/", views.solicitar_recuperacion, name="solicitar_recuperacion"),
+    path("recuperar-password/verificar/", views.verificar_recuperacion, name="verificar_recuperacion"),
+    path("recuperar-password/verificar/<uuid:token>/", views.verificar_recuperacion_enlace, name="verificar_recuperacion_enlace"),
+    path("recuperar-password/nueva/", views.nueva_contrasena, name="nueva_contrasena"),
+
 ]
