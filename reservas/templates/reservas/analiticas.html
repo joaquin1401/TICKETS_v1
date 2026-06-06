@@ -1,0 +1,176 @@
+{% extends "reservas/base.html" %}
+{% load static %}
+{% block title %}Analíticas — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}Analíticas{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/analiticas.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="report-header" id="report-top">
+  <div class="report-header-text">
+    <p class="report-eyebrow">Reporte de Flota · Admin</p>
+    <h1>Analíticas de uso</h1>
+    <p class="report-period">Período: <strong>{{ rango_label }}</strong></p>
+  </div>
+  <div class="report-header-actions no-print">
+    <!-- Filtro de rango -->
+    <div class="range-filter">
+      <a href="?rango=30d" class="range-btn {% if rango == '30d'  %}active{% endif %}">30 días</a>
+      <a href="?rango=90d" class="range-btn {% if rango == '90d'  %}active{% endif %}">90 días</a>
+      <a href="?rango=anio" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
+      <a href="?rango=todo" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline pdf-btn" id="btn-pdf">
+      <span>↓</span> Guardar PDF
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ACTO I — La flota en números
+     ═══════════════════════════════════════════════════════ -->
+<div class="act-label">La flota en números</div>
+<div class="kpi-grid">
+  <div class="kpi-card kpi-accent">
+    <div class="kpi-value">{{ total_aprobados }}</div>
+    <div class="kpi-label">Reservas aprobadas</div>
+    <div class="kpi-sub">en {{ rango_label|lower }}</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">{{ horas_totales }}h</div>
+    <div class="kpi-label">Horas efectivas de uso</div>
+    <div class="kpi-sub">suma de todos los vehículos</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">{{ duracion_promedio }}h</div>
+    <div class="kpi-label">Duración promedio por viaje</div>
+    <div class="kpi-sub">tickets aprobados con hora_fin</div>
+  </div>
+  <div class="kpi-card {% if tasa_cancelacion_global > 20 %}kpi-warn{% endif %}">
+    <div class="kpi-value">{{ tasa_cancelacion_global }}%</div>
+    <div class="kpi-label">Tasa de cancelación global</div>
+    <div class="kpi-sub">{{ total_cancelados }} de {{ total_tickets }} tickets</div>
+  </div>
+</div>
+
+<div class="kpi-grid kpi-grid-secondary">
+  <div class="kpi-card kpi-small">
+    <div class="kpi-value-sm">{{ total_usuarios_activos }}</div>
+    <div class="kpi-label">Usuarios activos</div>
+  </div>
+  <div class="kpi-card kpi-small {% if total_usuarios_pendientes > 0 %}kpi-warn{% endif %}">
+    <div class="kpi-value-sm">{{ total_usuarios_pendientes }}</div>
+    <div class="kpi-label">Usuarios pendientes</div>
+  </div>
+  <div class="kpi-card kpi-small">
+    <div class="kpi-value-sm">{{ total_vehiculos_activos }}</div>
+    <div class="kpi-label">Vehículos activos</div>
+  </div>
+  <div class="kpi-card kpi-small">
+    <div class="kpi-value-sm">{{ total_vehiculos_inactivos }}</div>
+    <div class="kpi-label">Vehículos inactivos</div>
+  </div>
+  {% if rango != '30d' %}
+  <div class="kpi-card kpi-small">
+    <div class="kpi-label" style="margin-bottom:6px;">Mes con más actividad</div>
+    <div class="kpi-month-label">{{ mes_pico_label }}</div>
+    <div class="kpi-sub">{{ mes_pico_count }} reservas aprobadas</div>
+  </div>
+  {% endif %}
+  <div class="kpi-card kpi-small">
+    <div class="kpi-value-sm">{{ total_pendientes_tickets }}</div>
+    <div class="kpi-label">Tickets pendientes</div>
+    <div class="kpi-sub">en {{ rango_label|lower }}</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ACTO II — Rendimiento por vehículo
+     ═══════════════════════════════════════════════════════ -->
+<div class="act-label" style="margin-top:36px;">Rendimiento por vehículo</div>
+<div class="card report-card">
+  <div class="card-header">
+    <span class="card-title">◧ Vehículos</span>
+    <span class="badge badge-neutral">ordenados por tiempo de uso</span>
+  </div>
+  {% if stats_vehiculos %}
+  <div class="table-wrap">
+    <table class="fleet-table">
+      <thead>
+        <tr>
+          <th>Vehículo</th>
+          <th>Estado</th>
+          <th class="align-right">Reservas</th>
+          <th class="align-right">Canceladas</th>
+          <th class="align-right">% Cancel.</th>
+          <th>Horas efectivas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sv in stats_vehiculos %}
+        <tr class="{% if forloop.first %}row-leader{% endif %}">
+          <td>
+            <div class="vehicle-name">
+              {% if forloop.first %}<span class="leader-crown" title="Vehículo más demandado">★</span>{% endif %}
+              <span class="primary">{{ sv.vehiculo.marca }} {{ sv.vehiculo.modelo }}</span>
+            </div>
+            <div class="vehicle-sub">{{ sv.vehiculo.cant_pasajeros }} pasajeros</div>
+          </td>
+          <td>
+            {% if sv.vehiculo.activo %}
+            <span class="badge badge-success">Activo</span>
+            {% else %}
+            <span class="badge badge-neutral">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="align-right text-mono">{{ sv.count_aprobados }}</td>
+          <td class="align-right text-mono">{{ sv.count_cancelados }}</td>
+          <td class="align-right">
+            <span
+              class="pct-badge {% if sv.tasa_cancelacion > 25 %}pct-high{% elif sv.tasa_cancelacion > 10 %}pct-mid{% else %}pct-low{% endif %}">
+              {{ sv.tasa_cancelacion }}%
+            </span>
+          </td>
+          <td class="bar-cell">
+            <div class="bar-row">
+              <div class="bar-track">
+                <div class="bar-fill" style="width: {{ sv.barra_pct }}%;"></div>
+              </div>
+              <span class="bar-label">{{ sv.horas_efectivas }}h</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="icon">◌</div>
+    <p>No hay vehículos registrados.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     ACTO III — Lo que los datos nos dicen
+     ═══════════════════════════════════════════════════════ -->
+<div class="act-label" style="margin-top:36px;">Lo que los datos nos dicen</div>
+<div class="insights-list">
+  {% for insight in insights %}
+  <div class="insight-item">
+    <span class="insight-bullet">→</span>
+    <p class="insight-text">{{ insight }}</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Nota de pie para el PDF -->
+<div class="report-footer">
+  <span>Sistema de Reserva de Vehículos</span>
+  <span>Reporte generado · {{ rango_label }}</span>
+</div>
+
+{% endblock %}

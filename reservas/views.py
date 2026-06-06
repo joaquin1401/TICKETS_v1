@@ -965,6 +965,228 @@ def edicion_vehiculo(request, vehiculo_id):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ÉPICA 7: ANALÍTICAS Y REPORTES (ADMIN ONLY)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_requerido
+@admin_requerido
+def reporte_analiticas(request):
+    """
+    Vista de analíticas y reportes narrativos de la flota (admin only).
+
+    Calcula métricas de uso efectivo por vehículo y globales de la app,
+    con filtro de rango temporal. Aplica principios de data storytelling
+    (Knaflic & Few): una historia clara, sin ruido, jerarquía intencional.
+
+    Query params:
+        rango (str): '30d' | '90d' | 'anio' | 'todo' (default: '30d')
+
+    Métricas por vehículo:
+        - Total reservas (aprobadas)
+        - Tiempo efectivo de uso (suma horas)
+        - Tasa de cancelación
+
+    Métricas globales:
+        - Total tickets, usuarios, vehículos
+        - Distribución de estados
+        - Mes con mayor actividad
+        - Vehículo con mayor tasa de cancelación
+        - Duración promedio de viaje
+        - Usuarios pendientes de aprobación
+    """
+    from django.db.models import Count
+    from django.db.models.functions import TruncMonth
+    from django.utils import timezone
+    from datetime import timedelta
+
+    usuario = get_usuario_sesion(request)
+    rango = request.GET.get("rango", "30d")
+
+    # ── Calcular fecha de corte ──────────────────────────────────────────────
+    hoy = timezone.now()
+    if rango == "30d":
+        desde = hoy - timedelta(days=30)
+        rango_label = "Últimos 30 días"
+    elif rango == "90d":
+        desde = hoy - timedelta(days=90)
+        rango_label = "Últimos 90 días"
+    elif rango == "anio":
+        desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        rango_label = f"Año {hoy.year}"
+    else:
+        desde = None
+        rango = "todo"
+        rango_label = "Todo el tiempo"
+
+    def filtro_base(qs):
+        if desde:
+            return qs.filter(hora_inicio__gte=desde)
+        return qs
+
+    # ── Tickets en el período ────────────────────────────────────────────────
+    tickets_periodo   = filtro_base(Ticket.objects.all())
+    tickets_aprobados = tickets_periodo.filter(estado=Ticket.ESTADO_APROBADO)
+    tickets_cancelados = tickets_periodo.filter(estado=Ticket.ESTADO_CANCELADO)
+
+    total_tickets            = tickets_periodo.count()
+    total_aprobados          = tickets_aprobados.count()
+    total_cancelados         = tickets_cancelados.count()
+    total_pendientes_tickets = tickets_periodo.filter(estado=Ticket.ESTADO_PENDIENTE).count()
+
+    tasa_cancelacion_global = round(
+        (total_cancelados / total_tickets * 100) if total_tickets > 0 else 0, 1
+    )
+
+    # ── Métricas por vehículo ────────────────────────────────────────────────
+    vehiculos = Vehiculo.objects.all().order_by("marca", "modelo")
+    stats_vehiculos = []
+    max_horas = 0
+
+    for v in vehiculos:
+        t_aprobados  = filtro_base(Ticket.objects.filter(id_vehiculo=v, estado=Ticket.ESTADO_APROBADO))
+        t_cancelados = filtro_base(Ticket.objects.filter(id_vehiculo=v, estado=Ticket.ESTADO_CANCELADO))
+        t_total      = filtro_base(Ticket.objects.filter(id_vehiculo=v))
+
+        count_aprobados  = t_aprobados.count()
+        count_cancelados = t_cancelados.count()
+        count_total      = t_total.count()
+
+        horas_efectivas = 0.0
+        for t in t_aprobados.exclude(hora_fin__isnull=True):
+            delta = t.hora_fin - t.hora_inicio
+            horas_efectivas += delta.total_seconds() / 3600
+
+        horas_efectivas = round(horas_efectivas, 1)
+        if horas_efectivas > max_horas:
+            max_horas = horas_efectivas
+
+        tasa_cancel = round(
+            (count_cancelados / count_total * 100) if count_total > 0 else 0, 1
+        )
+
+        stats_vehiculos.append({
+            "vehiculo":         v,
+            "count_aprobados":  count_aprobados,
+            "count_cancelados": count_cancelados,
+            "count_total":      count_total,
+            "horas_efectivas":  horas_efectivas,
+            "tasa_cancelacion": tasa_cancel,
+        })
+
+    for sv in stats_vehiculos:
+        sv["barra_pct"] = round(
+            (sv["horas_efectivas"] / max_horas * 100) if max_horas > 0 else 0
+        )
+
+    stats_vehiculos.sort(key=lambda x: x["horas_efectivas"], reverse=True)
+
+    horas_totales = sum(sv["horas_efectivas"] for sv in stats_vehiculos)
+
+    # ── Mes con mayor actividad ──────────────────────────────────────────────
+    _MESES_ES = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre",
+    }
+    mes_pico_label = "—"
+    mes_pico_count = 0
+    meses_qs = (
+        tickets_aprobados
+        .annotate(mes=TruncMonth("hora_inicio"))
+        .values("mes")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+    if meses_qs.exists():
+        top_mes = meses_qs.first()
+        mes_dt = top_mes["mes"]
+        mes_pico_label = f"{_MESES_ES[mes_dt.month]} {mes_dt.year}"
+        mes_pico_count = top_mes["total"]
+
+    # ── Duración promedio de viaje ────────────────────────────────────────────
+    duraciones = [
+        (t.hora_fin - t.hora_inicio).total_seconds() / 3600
+        for t in tickets_aprobados.exclude(hora_fin__isnull=True)
+    ]
+    duracion_promedio = round(sum(duraciones) / len(duraciones), 1) if duraciones else 0
+
+    # ── Usuarios y flota ─────────────────────────────────────────────────────
+    total_usuarios_activos    = Usuario.objects.filter(valido=True).count()
+    total_usuarios_pendientes = Usuario.objects.filter(valido=False, rechazado=False).count()
+    total_vehiculos_activos   = Vehiculo.objects.filter(activo=True).count()
+    total_vehiculos_inactivos = Vehiculo.objects.filter(activo=False).count()
+
+    # ── Insights narrativos ───────────────────────────────────────────────────
+    insights = []
+
+    if stats_vehiculos and stats_vehiculos[0]["horas_efectivas"] > 0:
+        lider = stats_vehiculos[0]
+        pct_lider = round(
+            lider["horas_efectivas"] / horas_totales * 100
+        ) if horas_totales > 0 else 0
+        insights.append(
+            f"El {lider['vehiculo'].marca} {lider['vehiculo'].modelo} concentra "
+            f"el {pct_lider}% del tiempo efectivo de uso de la flota "
+            f"({lider['horas_efectivas']}h en {rango_label.lower()})."
+        )
+
+    if mes_pico_count > 0:
+        insights.append(
+            f"{mes_pico_label} fue el mes con mayor demanda: "
+            f"{mes_pico_count} reservas aprobadas."
+        )
+
+    if duracion_promedio > 0:
+        insights.append(
+            f"La duración promedio de un viaje es de {duracion_promedio} horas."
+        )
+
+    candidatos = [sv for sv in stats_vehiculos if sv["count_total"] >= 3]
+    if candidatos:
+        peor = max(candidatos, key=lambda x: x["tasa_cancelacion"])
+        if peor["tasa_cancelacion"] > tasa_cancelacion_global:
+            diff = round(peor["tasa_cancelacion"] - tasa_cancelacion_global, 1)
+            insights.append(
+                f"El {peor['vehiculo'].marca} {peor['vehiculo'].modelo} tiene una tasa de "
+                f"cancelación del {peor['tasa_cancelacion']}%, "
+                f"{diff} puntos por encima del promedio de la flota."
+            )
+
+    if total_usuarios_pendientes > 0:
+        insights.append(
+            f"Hay {total_usuarios_pendientes} usuario"
+            f"{'s' if total_usuarios_pendientes > 1 else ''} "
+            f"pendiente{'s' if total_usuarios_pendientes > 1 else ''} de aprobación."
+        )
+
+    if not insights:
+        insights.append(
+            "No hay suficientes datos en el período seleccionado para generar insights."
+        )
+
+    return render(request, "reservas/analiticas.html", {
+        "usuario":                   usuario,
+        "rango":                     rango,
+        "rango_label":               rango_label,
+        "stats_vehiculos":           stats_vehiculos,
+        "total_tickets":             total_tickets,
+        "total_aprobados":           total_aprobados,
+        "total_cancelados":          total_cancelados,
+        "total_pendientes_tickets":  total_pendientes_tickets,
+        "tasa_cancelacion_global":   tasa_cancelacion_global,
+        "horas_totales":             round(horas_totales, 1),
+        "mes_pico_label":            mes_pico_label,
+        "mes_pico_count":            mes_pico_count,
+        "duracion_promedio":         duracion_promedio,
+        "total_usuarios_activos":    total_usuarios_activos,
+        "total_usuarios_pendientes": total_usuarios_pendientes,
+        "total_vehiculos_activos":   total_vehiculos_activos,
+        "total_vehiculos_inactivos": total_vehiculos_inactivos,
+        "insights":                  insights,
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # ÉPICA 1 — VERIFICACIÓN DE CORREO ELECTRÓNICO [NUEVO]
 # ══════════════════════════════════════════════════════════════════════════════
 # Extensión de HU 1.1: flujo de confirmación de email post-registro.

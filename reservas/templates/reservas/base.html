@@ -51,6 +51,9 @@
     <a href="{% url 'auditoria_tickets' %}" class="nav-item {% if request.resolver_match.url_name == 'auditoria_tickets' %}active{% endif %}">
       <span class="icon">◌</span> Auditoría
     </a>
+    <a href="{% url 'reporte_analiticas' %}" class="nav-item {% if request.resolver_match.url_name == 'reporte_analiticas' %}active{% endif %}">
+      <span class="icon">◈</span> Analíticas
+    </a>
     <a href="{% url 'listado_flota' %}" class="nav-item {% if 'flota' in request.resolver_match.url_name or 'vehiculo' in request.resolver_match.url_name %}active{% endif %}">
       <span class="icon">◧</span> Flota
     </a>

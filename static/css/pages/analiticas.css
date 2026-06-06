@@ -1,0 +1,371 @@
+/* ══════════════════════════════════════════════════════════
+   analiticas.css — Data storytelling dashboard
+   Principios: jerarquía clara, mínimo ruido visual, un dato protagonista
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Report Header ─────────────────────────────────────── */
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.report-eyebrow {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.report-header h1 {
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.report-period {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+.report-period strong {
+  color: var(--accent2);
+}
+.report-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+/* ── Range Filter Tabs ─────────────────────────────────── */
+.range-filter {
+  display: flex;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px;
+}
+.range-btn {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.range-btn:hover { color: var(--text); background: var(--surface2); }
+.range-btn.active {
+  background: var(--accent);
+  color: var(--bg);
+  font-weight: 600;
+}
+
+/* ── Act Labels (narrative structure) ─────────────────── */
+.act-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  padding-left: 2px;
+  border-left: 2px solid var(--accent);
+  padding-left: 10px;
+}
+
+/* ── KPI Cards ─────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.kpi-grid-secondary {
+  grid-template-columns: repeat(6, 1fr);
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px 18px;
+  transition: border-color 0.2s;
+}
+.kpi-card:hover { border-color: rgba(85,139,186,0.4); }
+.kpi-card.kpi-accent {
+  border-color: rgba(85,139,186,0.4);
+  background: linear-gradient(135deg, rgba(85,139,186,0.08) 0%, var(--surface) 100%);
+}
+.kpi-card.kpi-warn {
+  border-color: rgba(232,160,32,0.4);
+  background: rgba(232,160,32,0.04);
+}
+.kpi-value {
+  font-family: var(--serif);
+  font-size: 40px;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -0.02em;
+}
+.kpi-card.kpi-accent .kpi-value { color: var(--accent2); }
+.kpi-card.kpi-warn    .kpi-value { color: var(--warning); }
+.kpi-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 3px;
+}
+.kpi-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+
+/* Small KPI variant */
+.kpi-card.kpi-small { padding: 14px 16px 12px; }
+.kpi-value-sm {
+  font-family: var(--serif);
+  font-size: 26px;
+  color: var(--text);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.kpi-month-label {
+  font-family: var(--serif);
+  font-size: 17px;
+  color: var(--text);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.kpi-card.kpi-warn .kpi-value-sm { color: var(--warning); }
+
+/* ── Fleet Table ───────────────────────────────────────── */
+.report-card { margin-bottom: 0; }
+
+.fleet-table { width: 100%; border-collapse: collapse; }
+.fleet-table thead th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: 10px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  font-weight: 400;
+}
+.fleet-table thead th.align-right { text-align: right; }
+.fleet-table tbody tr {
+  border-bottom: 1px solid rgba(42,47,61,0.5);
+  transition: background 0.12s;
+}
+.fleet-table tbody tr:last-child { border-bottom: none; }
+.fleet-table tbody tr:hover { background: var(--surface2); }
+.fleet-table tbody td { padding: 13px 16px; font-size: 13px; color: var(--text-dim); }
+.fleet-table tbody td.align-right { text-align: right; }
+
+.row-leader { background: rgba(85,139,186,0.04); }
+
+.vehicle-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.vehicle-name .primary { font-weight: 500; color: var(--text); font-size: 13.5px; }
+.vehicle-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--mono);
+}
+.leader-crown {
+  font-size: 13px;
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+/* Percentage badge */
+.pct-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+.pct-low  { background: rgba(61,186,122,0.1);  color: var(--success); }
+.pct-mid  { background: rgba(232,160,32,0.1);  color: var(--warning); }
+.pct-high { background: rgba(224,82,82,0.1);   color: var(--danger);  }
+
+/* Progress bar */
+.bar-cell { min-width: 160px; }
+.bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent2) 100%);
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 2px;
+}
+.bar-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  min-width: 36px;
+  text-align: right;
+}
+
+/* ── Insights ──────────────────────────────────────────── */
+.insights-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 36px;
+}
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  transition: border-color 0.15s;
+  animation: fadeSlide 0.3s ease both;
+}
+.insight-item:nth-child(1) { animation-delay: 0.05s; }
+.insight-item:nth-child(2) { animation-delay: 0.10s; }
+.insight-item:nth-child(3) { animation-delay: 0.15s; }
+.insight-item:nth-child(4) { animation-delay: 0.20s; }
+.insight-item:nth-child(5) { animation-delay: 0.25s; }
+.insight-item:hover { border-left-color: var(--accent2); }
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.insight-bullet {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.insight-text {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.55;
+  margin: 0;
+}
+.insight-text strong { color: var(--text); }
+
+/* ── Report Footer ─────────────────────────────────────── */
+.report-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 8px;
+  letter-spacing: 0.05em;
+}
+
+/* ── PDF Button ────────────────────────────────────────── */
+.pdf-btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-grid-secondary { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .report-header { flex-direction: column; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-grid-secondary { grid-template-columns: repeat(2, 1fr); }
+  .kpi-value { font-size: 30px; }
+  .bar-cell { min-width: 100px; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   PRINT / PDF — se activa con window.print()
+   ══════════════════════════════════════════════════════════ */
+@media print {
+  /* Ocultar todo lo que no es el reporte */
+  .no-print,
+  .sidebar,
+  .topbar,
+  .alerts,
+  .pdf-btn { display: none !important; }
+
+  /* Forzar fondo blanco y texto oscuro para impresión legible */
+  :root {
+    --bg:        #ffffff;
+    --surface:   #f7f7f8;
+    --surface2:  #efefef;
+    --border:    #d0d3da;
+    --accent:    #2a5f8f;
+    --accent2:   #3a7ab0;
+    --text:      #111318;
+    --text-muted:#606878;
+    --text-dim:  #404550;
+    --danger:    #c0392b;
+    --success:   #1a7a4a;
+    --warning:   #b06000;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    font-size: 12px;
+  }
+
+  .main { margin-left: 0 !important; }
+  .page-content { padding: 0 24px; }
+
+  .kpi-card, .insight-item, .report-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+  .kpi-grid-secondary { grid-template-columns: repeat(6, 1fr); }
+
+  .bar-fill { background: var(--accent) !important; }
+
+  .report-footer { display: flex !important; }
+
+  @page {
+    size: A4 landscape;
+    margin: 16mm 12mm;
+  }
+}
