@@ -1186,6 +1186,146 @@ def reporte_analiticas(request):
     })
 
 
+@login_requerido
+@admin_requerido
+def reporte_analiticas_pdf(request):
+    """
+    Genera y descarga el reporte de analíticas como PDF usando WeasyPrint.
+
+    Reutiliza la misma lógica de cálculo de reporte_analiticas() y renderiza
+    un template standalone (sin sidebar/nav) optimizado para WeasyPrint.
+
+    Query params:
+        rango (str): '30d' | '90d' | 'anio' | 'todo'
+    """
+    import io
+    from django.http import HttpResponse
+    from django.template.loader import render_to_string
+    from django.utils import timezone
+    from django.db.models import Count
+    from django.db.models.functions import TruncMonth
+    from datetime import timedelta
+    from weasyprint import HTML
+
+    usuario = get_usuario_sesion(request)
+    rango = request.GET.get("rango", "30d")
+
+    hoy = timezone.now()
+    if rango == "30d":
+        desde = hoy - timedelta(days=30)
+        rango_label = "Últimos 30 días"
+    elif rango == "90d":
+        desde = hoy - timedelta(days=90)
+        rango_label = "Últimos 90 días"
+    elif rango == "anio":
+        desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        rango_label = f"Año {hoy.year}"
+    else:
+        desde = None
+        rango = "todo"
+        rango_label = "Todo el tiempo"
+
+    def filtro_base(qs):
+        return qs.filter(hora_inicio__gte=desde) if desde else qs
+
+    tickets_periodo    = filtro_base(Ticket.objects.all())
+    tickets_aprobados  = tickets_periodo.filter(estado=Ticket.ESTADO_APROBADO)
+    tickets_cancelados = tickets_periodo.filter(estado=Ticket.ESTADO_CANCELADO)
+
+    total_tickets            = tickets_periodo.count()
+    total_aprobados          = tickets_aprobados.count()
+    total_cancelados         = tickets_cancelados.count()
+    total_pendientes_tickets = tickets_periodo.filter(estado=Ticket.ESTADO_PENDIENTE).count()
+    tasa_cancelacion_global  = round(
+        (total_cancelados / total_tickets * 100) if total_tickets > 0 else 0, 1
+    )
+
+    vehiculos = Vehiculo.objects.all().order_by("marca", "modelo")
+    stats_vehiculos = []
+    max_horas = 0
+
+    for v in vehiculos:
+        t_aprobados  = filtro_base(Ticket.objects.filter(id_vehiculo=v, estado=Ticket.ESTADO_APROBADO))
+        t_cancelados = filtro_base(Ticket.objects.filter(id_vehiculo=v, estado=Ticket.ESTADO_CANCELADO))
+        t_total      = filtro_base(Ticket.objects.filter(id_vehiculo=v))
+        count_aprobados  = t_aprobados.count()
+        count_cancelados = t_cancelados.count()
+        count_total      = t_total.count()
+        horas_efectivas  = 0.0
+        for t in t_aprobados.exclude(hora_fin__isnull=True):
+            horas_efectivas += (t.hora_fin - t.hora_inicio).total_seconds() / 3600
+        horas_efectivas = round(horas_efectivas, 1)
+        if horas_efectivas > max_horas:
+            max_horas = horas_efectivas
+        stats_vehiculos.append({
+            "vehiculo":         v,
+            "count_aprobados":  count_aprobados,
+            "count_cancelados": count_cancelados,
+            "count_total":      count_total,
+            "horas_efectivas":  horas_efectivas,
+            "tasa_cancelacion": round((count_cancelados / count_total * 100) if count_total > 0 else 0, 1),
+        })
+
+    for sv in stats_vehiculos:
+        sv["barra_pct"] = round((sv["horas_efectivas"] / max_horas * 100) if max_horas > 0 else 0)
+    stats_vehiculos.sort(key=lambda x: x["horas_efectivas"], reverse=True)
+    horas_totales = sum(sv["horas_efectivas"] for sv in stats_vehiculos)
+
+    _MESES_ES = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre",
+    }
+    mes_pico_label = "—"
+    mes_pico_count = 0
+    meses_qs = (
+        tickets_aprobados
+        .annotate(mes=TruncMonth("hora_inicio"))
+        .values("mes")
+        .annotate(total=Count("id"))
+        .order_by("-total")
+    )
+    if meses_qs.exists():
+        top_mes = meses_qs.first()
+        mes_pico_label = f"{_MESES_ES[top_mes['mes'].month]} {top_mes['mes'].year}"
+        mes_pico_count = top_mes["total"]
+
+    duraciones = [
+        (t.hora_fin - t.hora_inicio).total_seconds() / 3600
+        for t in tickets_aprobados.exclude(hora_fin__isnull=True)
+    ]
+    duracion_promedio = round(sum(duraciones) / len(duraciones), 1) if duraciones else 0
+
+    context = {
+        "usuario":                   usuario,
+        "rango":                     rango,
+        "rango_label":               rango_label,
+        "stats_vehiculos":           stats_vehiculos,
+        "total_tickets":             total_tickets,
+        "total_aprobados":           total_aprobados,
+        "total_cancelados":          total_cancelados,
+        "total_pendientes_tickets":  total_pendientes_tickets,
+        "tasa_cancelacion_global":   tasa_cancelacion_global,
+        "horas_totales":             round(horas_totales, 1),
+        "mes_pico_label":            mes_pico_label,
+        "mes_pico_count":            mes_pico_count,
+        "duracion_promedio":         duracion_promedio,
+        "total_usuarios_activos":    Usuario.objects.filter(valido=True).count(),
+        "total_usuarios_pendientes": Usuario.objects.filter(valido=False, rechazado=False).count(),
+        "total_vehiculos_activos":   Vehiculo.objects.filter(activo=True).count(),
+        "total_vehiculos_inactivos": Vehiculo.objects.filter(activo=False).count(),
+        "fecha_generacion":          f"{hoy.day} de {_MESES_ES[hoy.month]} de {hoy.year}",
+    }
+
+    html_string = render_to_string("reservas/analiticas_pdf.html", context)
+    pdf_bytes = HTML(string=html_string).write_pdf()
+
+    filename = f"analiticas_{rango}_{hoy.strftime('%Y%m%d')}.pdf"
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ÉPICA 1 — VERIFICACIÓN DE CORREO ELECTRÓNICO [NUEVO]
 # ══════════════════════════════════════════════════════════════════════════════

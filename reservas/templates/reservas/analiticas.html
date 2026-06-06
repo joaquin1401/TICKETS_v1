@@ -22,9 +22,9 @@
       <a href="?rango=anio" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
       <a href="?rango=todo" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
     </div>
-    <button onclick="window.print()" class="btn btn-outline pdf-btn" id="btn-pdf">
-      <span>↓</span> Guardar PDF
-    </button>
+    <a href="{% url 'reporte_analiticas_pdf' %}?rango={{ rango }}" class="btn btn-outline pdf-btn" id="btn-pdf">
+      <span>↓</span> Descargar PDF
+    </a>
   </div>
 </div>
 
@@ -152,19 +152,6 @@
     <p>No hay vehículos registrados.</p>
   </div>
   {% endif %}
-</div>
-
-<!-- ═══════════════════════════════════════════════════════
-     ACTO III — Lo que los datos nos dicen
-     ═══════════════════════════════════════════════════════ -->
-<div class="act-label" style="margin-top:36px;">Lo que los datos nos dicen</div>
-<div class="insights-list">
-  {% for insight in insights %}
-  <div class="insight-item">
-    <span class="insight-bullet">→</span>
-    <p class="insight-text">{{ insight }}</p>
-  </div>
-  {% endfor %}
 </div>
 
 <!-- Nota de pie para el PDF -->

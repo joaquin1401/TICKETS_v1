@@ -18,3 +18,4 @@ more-itertools==11.1.0
 premailer==3.10.0
 requests==2.34.2
 urllib3==2.7.0
+weasyprint==69.0
