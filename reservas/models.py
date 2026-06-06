@@ -188,6 +188,10 @@ class Vehiculo(models.Model):
         default=True,
         help_text="False = dado de baja (ej: fue al taller permanente)"
     )
+    exclusivo_decanato = models.BooleanField(
+        default=False,
+        help_text="True = solo puede ser reservado por el Decano"
+    )
 
     class Meta:
         verbose_name = "Vehículo"

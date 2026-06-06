@@ -460,10 +460,42 @@ def detalle_ticket(request, ticket_id):
     else:
         ticket = get_object_or_404(Ticket, pk=ticket_id, id_usuario=usuario)
 
+    from django.utils import timezone
+    puede_cancelar = False
+    if ticket.estado == Ticket.ESTADO_APROBADO and ticket.hora_inicio >= timezone.now() + timezone.timedelta(days=5):
+        puede_cancelar = True
+
     return render(request, "reservas/detalle_ticket.html", {
         "ticket": ticket,
         "usuario": usuario,
+        "puede_cancelar": puede_cancelar,
     })
+
+
+@login_requerido
+def cancelar_ticket(request, ticket_id):
+    """
+    Vista para que un usuario cancele su propio ticket (HU 2.4).
+    
+    Verifica que la petición sea POST. Delega la validación de negocio 
+    (5 días de antelación) a la capa de servicios.
+    """
+    from django.contrib import messages
+    from .services import cancelar_ticket_usuario
+    
+    if request.method != "POST":
+        return redirect("dashboard")
+        
+    usuario = get_usuario_sesion(request)
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    
+    exito, mensaje = cancelar_ticket_usuario(ticket, usuario)
+    if exito:
+        messages.success(request, mensaje)
+    else:
+        messages.error(request, mensaje)
+        
+    return redirect("detalle_ticket", ticket_id=ticket.pk)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

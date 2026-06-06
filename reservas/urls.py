@@ -49,6 +49,7 @@ urlpatterns = [
     path("dashboard/", views.dashboard, name="dashboard"),
     path("historial/", views.historial, name="historial"),
     path("tickets/<int:ticket_id>/", views.detalle_ticket, name="detalle_ticket"),
+    path("tickets/<int:ticket_id>/cancelar/", views.cancelar_ticket, name="cancelar_ticket"),
 
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 3: Calendario e Interactividad

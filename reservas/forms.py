@@ -205,22 +205,31 @@ class TicketForm(forms.ModelForm):
         Valida la lógica temporal del ticket.
 
         Raises:
-            ValidationError: Si hora_inicio <= ahora o hora_fin <= hora_inicio.
+            ValidationError: Si incumple reglas de tiempo (pasado, más de 60 días, menos de 3 días).
 
         Returns:
             dict: Datos limpios del formulario.
         """
+        from datetime import timedelta
         cleaned = super().clean()
         hora_inicio = cleaned.get("hora_inicio")
         hora_fin = cleaned.get("hora_fin")
 
+        ahora = timezone.now()
+
         if hora_inicio:
-            if hora_inicio <= timezone.now():
+            if hora_inicio <= ahora:
                 raise ValidationError("La hora de inicio debe ser en el futuro.")
+            
+            if hora_inicio > ahora + timedelta(days=60):
+                self.add_error("hora_inicio", "No se pueden realizar reservas con más de 2 meses (60 días) de antelación.")
+                
+            if hora_inicio < ahora + timedelta(days=3):
+                self.add_error("hora_inicio", "Debe reservar con al menos 3 días de anticipación.")
 
         if hora_inicio and hora_fin:
             if hora_fin <= hora_inicio:
-                raise ValidationError("La hora de regreso debe ser posterior a la de salida.")
+                self.add_error("hora_fin", "La hora de regreso debe ser posterior a la de salida.")
 
         return cleaned
 

@@ -176,6 +176,36 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         - Transacción ACID para garantizar consistencia en sobrescrituras.
     """
     prioridad_solicitante = usuario.prioridad  # número: menor = más alto en jerarquía
+    
+    # ── Regla: Vehículo en mantenimiento ─────────────────────────────────────────────
+    if not vehiculo.activo:
+        return ResultadoCreacion(
+            estado=ResultadoCreacion.BLOQUEADO,
+            mensaje="El vehículo seleccionado se encuentra en mantenimiento o inactivo."
+        )
+
+    # ── Regla: Vehículo exclusivo del Decanato ───────────────────────────────────────
+    from .models import Cargo
+    if vehiculo.exclusivo_decanato and usuario.id_cargo.nombre != Cargo.DECANO:
+        return ResultadoCreacion(
+            estado=ResultadoCreacion.BLOQUEADO,
+            mensaje="Este vehículo es de uso exclusivo del Decanato."
+        )
+
+    # ── Reglas Temporales: Max 2 meses, Min 3 días ──────────────────────────────────
+    from datetime import timedelta
+    ahora = timezone.now()
+    if hora_inicio > ahora + timedelta(days=60):
+        return ResultadoCreacion(
+            estado=ResultadoCreacion.BLOQUEADO,
+            mensaje="No se pueden realizar reservas con más de 2 meses (60 días) de antelación."
+        )
+    if hora_inicio < ahora + timedelta(days=3):
+        return ResultadoCreacion(
+            estado=ResultadoCreacion.BLOQUEADO,
+            mensaje="Debe reservar con al menos 3 días de anticipación."
+        )
+
     tickets_conflicto = list(
         obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin)
     )
@@ -247,6 +277,41 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             f"por jerarquía de cargo."
         ),
     )
+
+
+@transaction.atomic
+def cancelar_ticket_usuario(ticket, usuario):
+    """
+    Permite a un usuario cancelar su propio ticket si falta tiempo suficiente.
+    
+    Regla: Cancelación permitida hasta 5 días antes del inicio.
+    
+    Args:
+        ticket (Ticket): El ticket a cancelar.
+        usuario (Usuario): El usuario que intenta cancelar.
+        
+    Returns:
+        tuple (bool, str): (Éxito, Mensaje descriptivo o de error)
+    """
+    from datetime import timedelta
+    
+    if ticket.id_usuario != usuario:
+        return False, "No tienes permiso para cancelar este ticket."
+        
+    if ticket.estado != Ticket.ESTADO_APROBADO:
+        return False, "El ticket ya no está activo."
+        
+    ahora = timezone.now()
+    if ticket.hora_inicio < ahora + timedelta(days=5):
+        return False, "No se puede cancelar la reserva con menos de 5 días de anticipación."
+        
+    ticket.estado = Ticket.ESTADO_CANCELADO
+    ticket.observacion = (
+        f"Cancelado por el usuario el {ahora.strftime('%d/%m/%Y %H:%M')}."
+    )
+    ticket.save(update_fields=["estado", "observacion"])
+    
+    return True, "Reserva cancelada exitosamente."
 
 
 # ══════════════════════════════════════════════

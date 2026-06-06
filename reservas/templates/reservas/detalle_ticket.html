@@ -14,6 +14,12 @@
     <p class="sub">Detalle de la reserva</p>
   </div>
   <div class="flex gap-8">
+    {% if puede_cancelar %}
+    <form method="post" action="{% url 'cancelar_ticket' ticket.pk %}" onsubmit="return confirm('¿Estás seguro de que quieres cancelar este ticket? Esta acción no se puede deshacer.');" style="display:inline;">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Cancelar Ticket</button>
+    </form>
+    {% endif %}
     {% if request.session.es_admin %}
     <a href="{% url 'monitor_tickets_activos' %}" class="btn btn-outline">← Volver</a>
     {% else %}
