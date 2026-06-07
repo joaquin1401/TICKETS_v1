@@ -11,6 +11,43 @@
   <a href="{% url 'dashboard' %}" class="btn btn-primary">+ Nueva reserva</a>
 </div>
 
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-body" style="padding:14px 18px;">
+    <form method="get" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <label class="form-label">Buscar</label>
+        <input type="text" name="busqueda" class="form-control"
+               placeholder="Buscar solicitante o destino..."
+               value="{{ form.busqueda.value|default:'' }}">
+      </div>
+      <div style="min-width:180px;">
+        <label class="form-label">Vehículo</label>
+        <select name="vehiculo" class="form-control">
+          <option value="">Todos los vehículos</option>
+          {% for vehiculo in form.vehiculo.field.queryset %}
+          <option value="{{ vehiculo.pk }}"
+            {% if form.vehiculo.value|stringformat:"s" == vehiculo.pk|stringformat:"s" %}selected{% endif %}>
+            {{ vehiculo.marca }} {{ vehiculo.modelo }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="min-width:130px;">
+        <label class="form-label">Desde</label>
+        <input type="date" name="fecha_inicio" class="form-control" value="{{ request.GET.fecha_inicio|default:'' }}">
+      </div>
+      <div style="min-width:130px;">
+        <label class="form-label">Hasta</label>
+        <input type="date" name="fecha_fin" class="form-control" value="{{ request.GET.fecha_fin|default:'' }}">
+      </div>
+      <button type="submit" class="btn btn-primary">Filtrar</button>
+      {% if request.GET %}
+      <a href="{% url 'historial' %}" class="btn btn-outline">Limpiar</a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-header">
     <span class="card-title">◫ Reservas</span>

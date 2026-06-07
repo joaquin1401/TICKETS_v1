@@ -26,7 +26,7 @@ from django.db.models import Q
 from .models import Usuario, Vehiculo, Ticket, Cargo
 from .forms import (
     RegistroForm, LoginForm, TicketForm, VehiculoSelectorForm,
-    FiltroUsuariosForm, VehiculoForm,
+    FiltroUsuariosForm, FiltroTicketsForm, VehiculoForm,
     VerificacionCodigoForm,          # [NUEVO] formulario de código de 6 dígitos
 )
 from .email_verification import (    # [NUEVO] servicio de verificación de correo
@@ -424,12 +424,34 @@ def historial(request):
             - usuario: Instancia del usuario logueado.
     """
     usuario = get_usuario_sesion(request)
+    form = FiltroTicketsForm(request.GET or None)
     tickets_qs = Ticket.objects.filter(
         id_usuario=usuario
     ).select_related("id_vehiculo").order_by("-hora_inicio")
+
+    if form.is_valid():
+        busqueda = form.cleaned_data.get("busqueda")
+        vehiculo = form.cleaned_data.get("vehiculo")
+        fecha_inicio = form.cleaned_data.get("fecha_inicio")
+        fecha_fin = form.cleaned_data.get("fecha_fin")
+        
+        if busqueda:
+            tickets_qs = tickets_qs.filter(
+                Q(id_usuario__nombre__icontains=busqueda)
+                | Q(id_usuario__apellido__icontains=busqueda)
+                | Q(destino__icontains=busqueda)
+            )
+        if vehiculo:
+            tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
+        if fecha_inicio:
+            tickets_qs = tickets_qs.filter(hora_inicio__date__gte=fecha_inicio)
+        if fecha_fin:
+            tickets_qs = tickets_qs.filter(hora_inicio__date__lte=fecha_fin)
+
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
 
     return render(request, "reservas/historial.html", {
+        "form": form,
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
         "pagination_query": pagination_query,
@@ -814,15 +836,36 @@ def monitor_tickets_activos(request):
         - "Activos" = aprobados y con hora_inicio desde hoy en adelante.
         - Útil para supervisión de operaciones y conflictos en tiempo real.
     """
+    form = FiltroTicketsForm(request.GET or None)
     tickets_qs = Ticket.objects.filter(
         estado=Ticket.ESTADO_APROBADO,
         hora_inicio__gte=date.today(),
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("hora_inicio")
 
+    if form.is_valid():
+        busqueda = form.cleaned_data.get("busqueda")
+        vehiculo = form.cleaned_data.get("vehiculo")
+        fecha_inicio = form.cleaned_data.get("fecha_inicio")
+        fecha_fin = form.cleaned_data.get("fecha_fin")
+        
+        if busqueda:
+            tickets_qs = tickets_qs.filter(
+                Q(id_usuario__nombre__icontains=busqueda)
+                | Q(id_usuario__apellido__icontains=busqueda)
+                | Q(destino__icontains=busqueda)
+            )
+        if vehiculo:
+            tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
+        if fecha_inicio:
+            tickets_qs = tickets_qs.filter(hora_inicio__date__gte=fecha_inicio)
+        if fecha_fin:
+            tickets_qs = tickets_qs.filter(hora_inicio__date__lte=fecha_fin)
+
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
     vehiculos_en_uso = tickets_qs.values("id_vehiculo").distinct().count()
 
     return render(request, "reservas/monitor_activos.html", {
+        "form": form,
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
         "pagination_query": pagination_query,
@@ -834,9 +877,9 @@ def monitor_tickets_activos(request):
 
 @login_requerido
 @admin_requerido
-def auditoria_tickets(request):
+def historial_tickets(request):
     """
-    Vista de auditoría de tickets históricos y cancelados (HU 5.4).
+    Vista de historial de tickets históricos y cancelados (HU 5.4).
 
     Muestra todos los tickets con estado CANCELADO o con hora_inicio < hoy.
     Útil para análisis de patrones, conflictos resueltos y cancelaciones.
@@ -845,7 +888,7 @@ def auditoria_tickets(request):
         request (HttpRequest): Objeto de solicitud (GET).
 
     Returns:
-        HttpResponse: Plantilla 'reservas/auditoria.html' con:
+        HttpResponse: Plantilla 'reservas/historial_tickets.html' con:
             - tickets: QuerySet de tickets históricos/cancelados.
             - usuario: Instancia del usuario logueado (admin).
 
@@ -857,13 +900,34 @@ def auditoria_tickets(request):
         - Campo observacion permite revisar razones de cancelación.
         - Ordenados por hora_inicio descendente (más recientes primero).
     """
+    form = FiltroTicketsForm(request.GET or None)
     tickets_qs = Ticket.objects.filter(
         Q(estado=Ticket.ESTADO_CANCELADO) | Q(hora_inicio__lt=date.today())
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-hora_inicio")
 
+    if form.is_valid():
+        busqueda = form.cleaned_data.get("busqueda")
+        vehiculo = form.cleaned_data.get("vehiculo")
+        fecha_inicio = form.cleaned_data.get("fecha_inicio")
+        fecha_fin = form.cleaned_data.get("fecha_fin")
+        
+        if busqueda:
+            tickets_qs = tickets_qs.filter(
+                Q(id_usuario__nombre__icontains=busqueda)
+                | Q(id_usuario__apellido__icontains=busqueda)
+                | Q(destino__icontains=busqueda)
+            )
+        if vehiculo:
+            tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
+        if fecha_inicio:
+            tickets_qs = tickets_qs.filter(hora_inicio__date__gte=fecha_inicio)
+        if fecha_fin:
+            tickets_qs = tickets_qs.filter(hora_inicio__date__lte=fecha_fin)
+
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
 
-    return render(request, "reservas/auditoria.html", {
+    return render(request, "reservas/historial_tickets.html", {
+        "form": form,
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
         "pagination_query": pagination_query,

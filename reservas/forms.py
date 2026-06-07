@@ -282,6 +282,37 @@ class FiltroUsuariosForm(forms.Form):
     )
 
 
+class FiltroTicketsForm(forms.Form):
+    """
+    Formulario de filtrado para monitor de tickets y auditoría.
+
+    Permite buscar tickets por solicitante o destino, y filtrar por vehículo.
+    """
+
+    busqueda = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Buscar por solicitante o destino..."}),
+        label="",
+    )
+    vehiculo = forms.ModelChoiceField(
+        queryset=Vehiculo.objects.all(),
+        required=False,
+        empty_label="Todos los vehículos",
+        label="Vehículo",
+    )
+    fecha_inicio = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+        label="Desde",
+    )
+    fecha_fin = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+        label="Hasta",
+    )
+
+
+
 # ══════════════════════════════════════════════
 # Épica 6 — ABM de Flota
 # ══════════════════════════════════════════════

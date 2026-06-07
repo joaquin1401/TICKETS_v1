@@ -48,8 +48,8 @@
     <a href="{% url 'monitor_tickets_activos' %}" class="nav-item {% if request.resolver_match.url_name == 'monitor_tickets_activos' %}active{% endif %}">
       <span class="icon">◉</span> Tickets Activos
     </a>
-    <a href="{% url 'auditoria_tickets' %}" class="nav-item {% if request.resolver_match.url_name == 'auditoria_tickets' %}active{% endif %}">
-      <span class="icon">◌</span> Auditoría
+    <a href="{% url 'historial_tickets' %}" class="nav-item {% if request.resolver_match.url_name == 'historial_tickets' %}active{% endif %}">
+      <span class="icon">◌</span> Historial
     </a>
     <a href="{% url 'reporte_analiticas' %}" class="nav-item {% if request.resolver_match.url_name == 'reporte_analiticas' %}active{% endif %}">
       <span class="icon">◈</span> Analíticas
