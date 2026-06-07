@@ -2,7 +2,7 @@ from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
 
-from .email_utils import send_templated_email
+from django_q.tasks import async_task
 from .models import NotificationLog
 
 
@@ -14,7 +14,7 @@ def notify_reservation_created(ticket):
 
     ctx = {"ticket": ticket, "usuario": ticket.id_usuario}
     subject = f"Tu reserva #{ticket.pk} fue creada"
-    send_templated_email(subject, "reservas/emails/reservation_created", ctx, ticket.id_usuario.correo)
+    async_task("reservas.tasks.enviar_correo_templated_async", subject, "reservas/emails/reservation_created", ctx, ticket.id_usuario.correo)
     NotificationLog.objects.create(ticket=ticket, notification_type=NotificationLog.TYPE_CREATED)
 
 
@@ -25,7 +25,7 @@ def notify_reservation_cancelled(ticket):
 
     ctx = {"ticket": ticket, "usuario": ticket.id_usuario}
     subject = f"Tu reserva #{ticket.pk} fue cancelada"
-    send_templated_email(subject, "reservas/emails/reservation_cancelled", ctx, ticket.id_usuario.correo)
+    async_task("reservas.tasks.enviar_correo_templated_async", subject, "reservas/emails/reservation_cancelled", ctx, ticket.id_usuario.correo)
     NotificationLog.objects.create(ticket=ticket, notification_type=NotificationLog.TYPE_CANCELLED)
 
 
@@ -45,5 +45,5 @@ def send_reminder(ticket, kind):
         template = "reservas/emails/reminder_same_day"
 
     ctx = {"ticket": ticket, "usuario": ticket.id_usuario}
-    send_templated_email(subject, template, ctx, ticket.id_usuario.correo)
+    async_task("reservas.tasks.enviar_correo_templated_async", subject, template, ctx, ticket.id_usuario.correo)
     NotificationLog.objects.create(ticket=ticket, notification_type=kind)

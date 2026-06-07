@@ -251,7 +251,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
 
     # ── Caso 3: El solicitante tiene MAYOR jerarquía que todos los conflictos ───────
     # Sobrescribir y notificar
-    from django.core.mail import send_mail
+    from django_q.tasks import async_task
     from django.conf import settings
     
     tickets_cancelados = []
@@ -273,7 +273,8 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         correo_usuario = t_existente.id_usuario.correo
         if correo_usuario not in correos_notificados:
             try:
-                send_mail(
+                async_task(
+                    "reservas.tasks.enviar_correo_async",
                     subject=f"⚠️ Reserva Cancelada: {t_existente.id_vehiculo}",
                     message=(
                         f"Hola {propietario},\n\n"

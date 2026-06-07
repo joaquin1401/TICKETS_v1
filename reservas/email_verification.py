@@ -33,7 +33,7 @@ import uuid
 import random
 import logging
 
-from django.core.mail import send_mail
+from django_q.tasks import async_task
 from django.conf import settings
 from django.utils import timezone
 from django.urls import reverse
@@ -130,7 +130,8 @@ def enviar_correo_verificacion(usuario, verificacion, request):
     asunto = "Sistema de Reserva de Vehículos — Verificá tu correo"
 
     try:
-        send_mail(
+        async_task(
+            "reservas.tasks.enviar_correo_async",
             subject=asunto,
             message=_cuerpo_texto(usuario, verificacion.codigo, enlace),
             from_email=settings.DEFAULT_FROM_EMAIL,

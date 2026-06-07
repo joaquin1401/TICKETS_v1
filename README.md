@@ -118,3 +118,42 @@ Para facilitar el desarrollo, el proyecto incluye un archivo de datos iniciales 
 
 3. **Verificar en el Administrador:**
    Ingresa a `http://127.0.0.1:8000/admin` y verifica que las tablas tengan registros.
+
+## Despliegue en Producción (Deployment)
+
+Para desplegar esta aplicación en un entorno de producción (como Render, Heroku, VPS o similar), debes tener en cuenta los siguientes puntos críticos:
+
+### 1. Variables de Entorno Adicionales
+Además de la base de datos, debes configurar las credenciales de correo electrónico para que el sistema pueda enviar notificaciones y recuperar contraseñas:
+
+- `EMAIL_HOST`: Servidor SMTP (ej. `smtp.gmail.com`).
+- `EMAIL_PORT`: Puerto SMTP (ej. `587`).
+- `EMAIL_USE_TLS`: `True` o `False`.
+- `EMAIL_HOST_USER`: Tu dirección de correo (ej. `tu-correo@gmail.com`).
+- `EMAIL_HOST_PASSWORD`: Contraseña de aplicación de tu proveedor de correo.
+
+### 2. Servidor Web (Gunicorn)
+No uses `manage.py runserver` en producción. Utiliza un servidor WSGI como `gunicorn`:
+
+```bash
+pip install gunicorn
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
+```
+
+### 3. Tareas en Segundo Plano (Worker) ⚠️ IMPORTANTE
+El sistema utiliza **django-q2** para procesar el envío de correos de forma asíncrona usando la base de datos. Si no ejecutas este proceso, **los correos no se enviarán**.
+
+En tu plataforma de despliegue, debes configurar un proceso adicional (tipo *Worker* o *Background Job*) que ejecute el siguiente comando de forma continua:
+
+```bash
+python manage.py qcluster
+```
+
+*(En un VPS tradicional, puedes usar `systemd` o `supervisor` para mantener este proceso vivo. En plataformas como Render, puedes crear un nuevo servicio de tipo "Background Worker" apuntando al mismo repositorio y ejecutar ese comando).*
+
+### 4. Archivos Estáticos
+En producción, asegúrate de recolectar los archivos estáticos durante el proceso de build:
+
+```bash
+python manage.py collectstatic --noinput
+```
