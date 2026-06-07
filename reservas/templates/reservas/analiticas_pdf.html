@@ -1,30 +1,38 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <title>Analíticas — {{ rango_label }}</title>
   <style>
     /* ── Reset & Base ────────────────────────────────────── */
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap');
 
     :root {
-      --bg:        #0f1014;
-      --surface:   #181b22;
-      --surface2:  #1f232d;
-      --border:    #2a2f3d;
-      --accent:    #558bba;
-      --accent2:   #77a5cd;
-      --text:      #dde1ea;
-      --text-muted:#6b7280;
-      --text-dim:  #9aa0ad;
-      --danger:    #e05252;
-      --success:   #3dba7a;
-      --warning:   #e8a020;
+      --bg: #0f1014;
+      --surface: #181b22;
+      --surface2: #1f232d;
+      --border: #2a2f3d;
+      --accent: #558bba;
+      --accent2: #77a5cd;
+      --text: #dde1ea;
+      --text-muted: #6b7280;
+      --text-dim: #9aa0ad;
+      --danger: #e05252;
+      --success: #3dba7a;
+      --warning: #e8a020;
     }
 
-    html, body {
+    html,
+    body {
       background: var(--bg);
       color: var(--text);
       font-family: 'DM Sans', 'Segoe UI', sans-serif;
@@ -47,6 +55,7 @@
       padding-bottom: 12pt;
       margin-bottom: 20pt;
     }
+
     .report-eyebrow {
       font-family: 'JetBrains Mono', monospace;
       font-size: 7pt;
@@ -55,6 +64,7 @@
       color: var(--accent);
       margin-bottom: 4pt;
     }
+
     .report-header h1 {
       font-family: 'DM Serif Display', Georgia, serif;
       font-size: 22pt;
@@ -62,6 +72,7 @@
       color: var(--text);
       line-height: 1.1;
     }
+
     .report-meta {
       text-align: right;
       font-family: 'JetBrains Mono', monospace;
@@ -69,7 +80,10 @@
       color: var(--text-muted);
       line-height: 1.7;
     }
-    .report-meta strong { color: var(--accent2); }
+
+    .report-meta strong {
+      color: var(--accent2);
+    }
 
     /* ── Section labels ──────────────────────────────────── */
     .act-label {
@@ -90,6 +104,7 @@
       gap: 8pt;
       margin-bottom: 8pt;
     }
+
     .kpi-card {
       background: var(--surface);
       border: 1pt solid var(--border);
@@ -97,13 +112,16 @@
       padding: 12pt 14pt 10pt;
       page-break-inside: avoid;
     }
+
     .kpi-card.kpi-accent {
-      border-color: rgba(85,139,186,0.5);
-      background: linear-gradient(135deg, rgba(85,139,186,0.1) 0%, var(--surface) 100%);
+      border-color: rgba(85, 139, 186, 0.5);
+      background: linear-gradient(135deg, rgba(85, 139, 186, 0.1) 0%, var(--surface) 100%);
     }
+
     .kpi-card.kpi-warn {
-      border-color: rgba(232,160,32,0.45);
+      border-color: rgba(232, 160, 32, 0.45);
     }
+
     .kpi-value {
       font-family: 'DM Serif Display', Georgia, serif;
       font-size: 28pt;
@@ -111,14 +129,22 @@
       line-height: 1;
       margin-bottom: 4pt;
     }
-    .kpi-card.kpi-accent .kpi-value { color: var(--accent2); }
-    .kpi-card.kpi-warn    .kpi-value { color: var(--warning); }
+
+    .kpi-card.kpi-accent .kpi-value {
+      color: var(--accent2);
+    }
+
+    .kpi-card.kpi-warn .kpi-value {
+      color: var(--warning);
+    }
+
     .kpi-label {
       font-size: 8.5pt;
       font-weight: 500;
       color: var(--text);
       margin-bottom: 2pt;
     }
+
     .kpi-sub {
       font-family: 'JetBrains Mono', monospace;
       font-size: 7pt;
@@ -127,10 +153,26 @@
 
     /* ── KPI Grid (secondary) ────────────────────────────── */
     .kpi-grid-secondary {
-      grid-template-columns: repeat({% if rango != '30d' %}6{% else %}5{% endif %}, 1fr);
-      margin-bottom: 18pt;
+      grid-template-columns: repeat({
+        % if rango !='30d' %
+      }
+
+      6 {
+        % else %
+      }
+
+      5 {
+        % endif %
+      }
+
+      , 1fr);
+    margin-bottom: 18pt;
     }
-    .kpi-card.kpi-small { padding: 9pt 12pt 8pt; }
+
+    .kpi-card.kpi-small {
+      padding: 9pt 12pt 8pt;
+    }
+
     .kpi-value-sm {
       font-family: 'DM Serif Display', Georgia, serif;
       font-size: 18pt;
@@ -138,7 +180,11 @@
       line-height: 1;
       margin-bottom: 3pt;
     }
-    .kpi-card.kpi-warn .kpi-value-sm { color: var(--warning); }
+
+    .kpi-card.kpi-warn .kpi-value-sm {
+      color: var(--warning);
+    }
+
     .kpi-month-label {
       font-family: 'DM Serif Display', Georgia, serif;
       font-size: 12pt;
@@ -152,13 +198,18 @@
       margin-top: 18pt;
       margin-bottom: 10pt;
     }
+
     table {
       width: 100%;
       border-collapse: collapse;
       font-size: 9pt;
       page-break-inside: auto;
     }
-    thead { display: table-header-group; }
+
+    thead {
+      display: table-header-group;
+    }
+
     thead th {
       text-align: left;
       padding: 7pt 10pt;
@@ -171,22 +222,51 @@
       font-weight: 400;
       background: var(--surface);
     }
-    thead th.align-right { text-align: right; }
+
+    thead th.align-right {
+      text-align: right;
+    }
+
     tbody tr {
-      border-bottom: 1pt solid rgba(42,47,61,0.6);
+      border-bottom: 1pt solid rgba(42, 47, 61, 0.6);
       page-break-inside: avoid;
     }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr.row-leader { background: rgba(85,139,186,0.06); }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    tbody tr.row-leader {
+      background: rgba(85, 139, 186, 0.06);
+    }
+
     tbody td {
       padding: 8pt 10pt;
       color: var(--text-dim);
       vertical-align: middle;
     }
-    tbody td.align-right { text-align: right; }
-    .vehicle-name { font-weight: 500; color: var(--text); font-size: 9.5pt; }
-    .vehicle-sub  { font-family: 'JetBrains Mono', monospace; font-size: 7pt; color: var(--text-muted); margin-top: 1pt; }
-    .leader-crown { color: var(--warning); margin-right: 4pt; }
+
+    tbody td.align-right {
+      text-align: right;
+    }
+
+    .vehicle-name {
+      font-weight: 500;
+      color: var(--text);
+      font-size: 9.5pt;
+    }
+
+    .vehicle-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7pt;
+      color: var(--text-muted);
+      margin-top: 1pt;
+    }
+
+    .leader-crown {
+      color: var(--warning);
+      margin-right: 4pt;
+    }
 
     /* Badges */
     .badge {
@@ -200,8 +280,18 @@
       letter-spacing: 0.05em;
       border: 1pt solid;
     }
-    .badge-success { background: rgba(61,186,122,0.12); color: #3dba7a; border-color: rgba(61,186,122,0.3); }
-    .badge-neutral { background: var(--surface2); color: var(--text-dim); border-color: var(--border); }
+
+    .badge-success {
+      background: rgba(61, 186, 122, 0.12);
+      color: #3dba7a;
+      border-color: rgba(61, 186, 122, 0.3);
+    }
+
+    .badge-neutral {
+      background: var(--surface2);
+      color: var(--text-dim);
+      border-color: var(--border);
+    }
 
     /* Pct badge */
     .pct-badge {
@@ -211,12 +301,29 @@
       border-radius: 2pt;
       font-weight: 600;
     }
-    .pct-low  { background: rgba(61,186,122,0.12);  color: #3dba7a; }
-    .pct-mid  { background: rgba(232,160,32,0.12);  color: var(--warning); }
-    .pct-high { background: rgba(224,82,82,0.12);   color: var(--danger); }
+
+    .pct-low {
+      background: rgba(61, 186, 122, 0.12);
+      color: #3dba7a;
+    }
+
+    .pct-mid {
+      background: rgba(232, 160, 32, 0.12);
+      color: var(--warning);
+    }
+
+    .pct-high {
+      background: rgba(224, 82, 82, 0.12);
+      color: var(--danger);
+    }
 
     /* Progress bar */
-    .bar-row  { display: flex; align-items: center; gap: 6pt; }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 6pt;
+    }
+
     .bar-track {
       flex: 1;
       height: 5pt;
@@ -225,11 +332,13 @@
       overflow: hidden;
       min-width: 60pt;
     }
+
     .bar-fill {
       height: 100%;
       background: var(--accent);
       border-radius: 3pt;
     }
+
     .bar-label {
       font-family: 'JetBrains Mono', monospace;
       font-size: 7.5pt;
@@ -259,136 +368,134 @@
     }
   </style>
 </head>
+
 <body>
-<div class="page">
+  <div class="page">
 
-  <!-- Header -->
-  <div class="report-header">
-    <div>
-      <p class="report-eyebrow">Reporte de Flota · Administrador SEU</p>
-      <h1>Analíticas de uso</h1>
+    <!-- Header -->
+    <div class="report-header">
+      <div>
+        <p class="report-eyebrow">Reporte de Flota · Administrador SEU</p>
+        <h1>Analíticas de uso</h1>
+      </div>
+      <div class="report-meta">
+        <div>Período: <strong>{{ rango_label }}</strong></div>
+        <div>{{ fecha_generacion }}</div>
+        <div>Sistema de Reserva de Vehículos</div>
+      </div>
     </div>
-    <div class="report-meta">
-      <div>Período: <strong>{{ rango_label }}</strong></div>
-      <div>{{ fecha_generacion }}</div>
-      <div>Sistema de Reserva de Vehículos</div>
-    </div>
-  </div>
 
-  <!-- Acto I: KPIs principales -->
-  <div class="act-label">La flota en números</div>
-  <div class="kpi-grid">
-    <div class="kpi-card kpi-accent">
-      <div class="kpi-value">{{ total_aprobados }}</div>
-      <div class="kpi-label">Reservas aprobadas</div>
-      <div class="kpi-sub">en {{ rango_label|lower }}</div>
+    <!-- Acto I: KPIs principales -->
+    <div class="act-label">La flota en números</div>
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-accent">
+        <div class="kpi-value">{{ total_aprobados }}</div>
+        <div class="kpi-label">Reservas aprobadas</div>
+        <div class="kpi-sub">en {{ rango_label|lower }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">{{ horas_totales }}h</div>
+        <div class="kpi-label">Horas efectivas de uso</div>
+        <div class="kpi-sub">suma de todos los vehículos</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value">{{ duracion_promedio }}h</div>
+        <div class="kpi-label">Duración promedio por viaje</div>
+        <div class="kpi-sub">tickets con hora de regreso</div>
+      </div>
+      <div class="kpi-card {% if tasa_cancelacion_global > 20 %}kpi-warn{% endif %}">
+        <div class="kpi-value">{{ tasa_cancelacion_global }}%</div>
+        <div class="kpi-label">Tasa de cancelación global</div>
+        <div class="kpi-sub">{{ total_cancelados }} de {{ total_tickets }} tickets</div>
+      </div>
     </div>
-    <div class="kpi-card">
-      <div class="kpi-value">{{ horas_totales }}h</div>
-      <div class="kpi-label">Horas efectivas de uso</div>
-      <div class="kpi-sub">suma de todos los vehículos</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-value">{{ duracion_promedio }}h</div>
-      <div class="kpi-label">Duración promedio por viaje</div>
-      <div class="kpi-sub">tickets con hora de regreso</div>
-    </div>
-    <div class="kpi-card {% if tasa_cancelacion_global > 20 %}kpi-warn{% endif %}">
-      <div class="kpi-value">{{ tasa_cancelacion_global }}%</div>
-      <div class="kpi-label">Tasa de cancelación global</div>
-      <div class="kpi-sub">{{ total_cancelados }} de {{ total_tickets }} tickets</div>
-    </div>
-  </div>
 
-  <div class="kpi-grid kpi-grid-secondary">
-    <div class="kpi-card kpi-small">
-      <div class="kpi-value-sm">{{ total_usuarios_activos }}</div>
-      <div class="kpi-label">Usuarios activos</div>
+    <div class="kpi-grid kpi-grid-secondary">
+      <div class="kpi-card kpi-small">
+        <div class="kpi-value-sm">{{ total_usuarios_activos }}</div>
+        <div class="kpi-label">Usuarios activos</div>
+      </div>
+      <div class="kpi-card kpi-small {% if total_usuarios_pendientes > 0 %}kpi-warn{% endif %}">
+        <div class="kpi-value-sm">{{ total_usuarios_pendientes }}</div>
+        <div class="kpi-label">Usuarios pendientes</div>
+      </div>
+      <div class="kpi-card kpi-small">
+        <div class="kpi-value-sm">{{ total_vehiculos_activos }}</div>
+        <div class="kpi-label">Vehículos activos</div>
+      </div>
+      <div class="kpi-card kpi-small">
+        <div class="kpi-value-sm">{{ total_vehiculos_inactivos }}</div>
+        <div class="kpi-label">Vehículos inactivos</div>
+      </div>
+      {% if rango != '30d' %}
+      <div class="kpi-card kpi-small">
+        <div class="kpi-label" style="margin-bottom:4pt;">Mes con más actividad</div>
+        <div class="kpi-month-label">{{ mes_pico_label }}</div>
+        <div class="kpi-sub">{{ mes_pico_count }} reservas aprobadas</div>
+      </div>
+      {% endif %}
     </div>
-    <div class="kpi-card kpi-small {% if total_usuarios_pendientes > 0 %}kpi-warn{% endif %}">
-      <div class="kpi-value-sm">{{ total_usuarios_pendientes }}</div>
-      <div class="kpi-label">Usuarios pendientes</div>
-    </div>
-    <div class="kpi-card kpi-small">
-      <div class="kpi-value-sm">{{ total_vehiculos_activos }}</div>
-      <div class="kpi-label">Vehículos activos</div>
-    </div>
-    <div class="kpi-card kpi-small">
-      <div class="kpi-value-sm">{{ total_vehiculos_inactivos }}</div>
-      <div class="kpi-label">Vehículos inactivos</div>
-    </div>
-    {% if rango != '30d' %}
-    <div class="kpi-card kpi-small">
-      <div class="kpi-label" style="margin-bottom:4pt;">Mes con más actividad</div>
-      <div class="kpi-month-label">{{ mes_pico_label }}</div>
-      <div class="kpi-sub">{{ mes_pico_count }} reservas aprobadas</div>
-    </div>
-    {% endif %}
-    <div class="kpi-card kpi-small">
-      <div class="kpi-value-sm">{{ total_pendientes_tickets }}</div>
-      <div class="kpi-label">Tickets pendientes</div>
-      <div class="kpi-sub">en {{ rango_label|lower }}</div>
-    </div>
-  </div>
 
-  <!-- Acto II: Tabla por vehículo -->
-  <div class="act-label section-title">Rendimiento por vehículo</div>
-  {% if stats_vehiculos %}
-  <table>
-    <thead>
-      <tr>
-        <th>Vehículo</th>
-        <th>Estado</th>
-        <th class="align-right">Reservas</th>
-        <th class="align-right">Canceladas</th>
-        <th class="align-right">% Cancel.</th>
-        <th>Horas efectivas</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for sv in stats_vehiculos %}
-      <tr class="{% if forloop.first %}row-leader{% endif %}">
-        <td>
-          <div class="vehicle-name">
-            {% if forloop.first %}<span class="leader-crown">★</span>{% endif %}
-            {{ sv.vehiculo.marca }} {{ sv.vehiculo.modelo }}
-          </div>
-          <div class="vehicle-sub">{{ sv.vehiculo.cant_pasajeros }} pasajeros</div>
-        </td>
-        <td>
-          {% if sv.vehiculo.activo %}
-            <span class="badge badge-success">Activo</span>
-          {% else %}
-            <span class="badge badge-neutral">Inactivo</span>
-          {% endif %}
-        </td>
-        <td class="align-right">{{ sv.count_aprobados }}</td>
-        <td class="align-right">{{ sv.count_cancelados }}</td>
-        <td class="align-right">
-          <span class="pct-badge {% if sv.tasa_cancelacion > 25 %}pct-high{% elif sv.tasa_cancelacion > 10 %}pct-mid{% else %}pct-low{% endif %}">
-            {{ sv.tasa_cancelacion }}%
-          </span>
-        </td>
-        <td>
-          <div class="bar-row">
-            <div class="bar-track">
-              <div class="bar-fill" style="width:{{ sv.barra_pct }}%;"></div>
+    <!-- Acto II: Tabla por vehículo -->
+    <div class="act-label section-title">Rendimiento por vehículo</div>
+    {% if stats_vehiculos %}
+    <table>
+      <thead>
+        <tr>
+          <th>Vehículo</th>
+          <th>Estado</th>
+          <th class="align-right">Reservas</th>
+          <th class="align-right">Canceladas</th>
+          <th class="align-right">% Cancel.</th>
+          <th>Horas efectivas</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sv in stats_vehiculos %}
+        <tr class="{% if forloop.first %}row-leader{% endif %}">
+          <td>
+            <div class="vehicle-name">
+              {% if forloop.first %}<span class="leader-crown">★</span>{% endif %}
+              {{ sv.vehiculo.marca }} {{ sv.vehiculo.modelo }}
             </div>
-            <span class="bar-label">{{ sv.horas_efectivas }}h</span>
-          </div>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
+            <div class="vehicle-sub">{{ sv.vehiculo.cant_pasajeros }} pasajeros</div>
+          </td>
+          <td>
+            {% if sv.vehiculo.activo %}
+            <span class="badge badge-success">Activo</span>
+            {% else %}
+            <span class="badge badge-neutral">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="align-right">{{ sv.count_aprobados }}</td>
+          <td class="align-right">{{ sv.count_cancelados }}</td>
+          <td class="align-right">
+            <span
+              class="pct-badge {% if sv.tasa_cancelacion > 25 %}pct-high{% elif sv.tasa_cancelacion > 10 %}pct-mid{% else %}pct-low{% endif %}">
+              {{ sv.tasa_cancelacion }}%
+            </span>
+          </td>
+          <td>
+            <div class="bar-row">
+              <div class="bar-track">
+                <div class="bar-fill" style="width:{{ sv.barra_pct }}%;"></div>
+              </div>
+              <span class="bar-label">{{ sv.horas_efectivas }}h</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
 
-  <!-- Footer -->
-  <div class="report-footer">
-    <span>Sistema de Reserva de Vehículos — Administrador SEU</span>
-    <span>{{ fecha_generacion }} · Período: {{ rango_label }}</span>
+    <!-- Footer -->
+    <div class="report-footer">
+      <span>Sistema de Reserva de Vehículos — Administrador SEU</span>
+      <span>{{ fecha_generacion }} · Período: {{ rango_label }}</span>
+    </div>
+
   </div>
-
-</div>
 </body>
+
 </html>
