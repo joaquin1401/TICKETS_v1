@@ -10,6 +10,21 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: test_db
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
     - uses: actions/checkout@v3
     
@@ -25,6 +40,12 @@ jobs:
         pip install -r requirements.txt
         
     - name: Run Tests
+      env:
+        DB_NAME: test_db
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        DB_HOST: localhost
+        DB_PORT: 5432
       run: |
         python manage.py test
         
@@ -32,6 +53,10 @@ jobs:
       run: |
         python manage.py collectstatic --noinput
       env:
-        # Provide dummy values for environment variables if needed during collectstatic
         SECRET_KEY: 'dummy-secret-key-for-build'
         DEBUG: 'True'
+        DB_NAME: test_db
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        DB_HOST: localhost
+        DB_PORT: 5432
