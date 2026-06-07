@@ -171,3 +171,41 @@ class TestReglasNegocioTickets(TestCase):
         )
         res = crear_ticket_con_reglas(secretario2, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
+
+    def test_creacion_exitosa_sin_conflictos(self):
+        """Creación de un ticket sin conflictos debería retornar OK y guardar los datos correctamente."""
+        inicio = self.ahora + timedelta(days=10)
+        fin = inicio + timedelta(hours=2)
+        
+        res = crear_ticket_con_reglas(
+            self.usuario_comun, 
+            self.vehiculo_normal, 
+            inicio, 
+            fin, 
+            destino="Centro de la ciudad", 
+            cant_pasajeros=2,
+            descripcion="Viaje de prueba"
+        )
+        
+        self.assertEqual(res.estado, ResultadoCreacion.OK)
+        self.assertIsNotNone(res.ticket)
+        self.assertEqual(res.ticket.estado, Ticket.ESTADO_APROBADO)
+        self.assertEqual(res.ticket.destino, "Centro de la ciudad")
+        self.assertEqual(res.ticket.cant_pasajeros, 2)
+        self.assertEqual(res.ticket.descripcion, "Viaje de prueba")
+
+    def test_capacidad_vehiculo_excedida(self):
+        """No se permite crear una reserva si la cantidad de pasajeros solicitada supera la capacidad del vehículo."""
+        inicio = self.ahora + timedelta(days=10)
+        fin = inicio + timedelta(hours=2)
+        
+        res = crear_ticket_con_reglas(
+            self.usuario_comun, 
+            self.vehiculo_normal, 
+            inicio, 
+            fin, 
+            destino="Sede Central", 
+            cant_pasajeros=5  # vehiculo_normal tiene cant_pasajeros=4 en setUp
+        )
+        self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
+        self.assertIn("excede la capacidad", res.mensaje)

@@ -192,6 +192,14 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             mensaje="Este vehículo es de uso exclusivo del Decanato."
         )
 
+    # ── Regla: Capacidad de pasajeros ────────────────────────────────────────────────
+    cant_pasajeros = kwargs.get("cant_pasajeros")
+    if cant_pasajeros is not None and cant_pasajeros > vehiculo.cant_pasajeros:
+        return ResultadoCreacion(
+            estado=ResultadoCreacion.BLOQUEADO,
+            mensaje=f"La cantidad de pasajeros solicitada ({cant_pasajeros}) excede la capacidad del vehículo ({vehiculo.cant_pasajeros})."
+        )
+
     # ── Reglas Temporales: Max 2 meses, Min 3 días ──────────────────────────────────
     from datetime import timedelta
     ahora = timezone.now()
