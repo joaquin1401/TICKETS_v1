@@ -144,3 +144,30 @@ class TestReglasNegocioTickets(TestCase):
         self.assertFalse(exito_cerca)
         t_cerca.refresh_from_db()
         self.assertEqual(t_cerca.estado, Ticket.ESTADO_APROBADO)
+
+    def test_usuario_menor_jerarquia_no_sobrescribe(self):
+        """Un usuario de menor jerarquía (ej. Usuario, prioridad 3) no puede sobrescribir a uno de mayor (ej. Decano, prioridad 1)."""
+        inicio = self.ahora + timedelta(days=10)
+        fin = inicio + timedelta(hours=2)
+        
+        # Decano reserva primero
+        crear_ticket_con_reglas(self.decano, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1)
+        
+        # Usuario intenta sobrescribir
+        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1)
+        self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
+
+    def test_usuario_misma_jerarquia_no_sobrescribe(self):
+        """Un usuario no puede sobrescribir una reserva de otro con la misma jerarquía."""
+        inicio = self.ahora + timedelta(days=10)
+        fin = inicio + timedelta(hours=2)
+        
+        # Secretario reserva primero
+        crear_ticket_con_reglas(self.secretario, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1)
+        
+        # Otro usuario con jerarquía Secretario intenta sobrescribir
+        secretario2 = Usuario.objects.create(
+            nombre="Sec2", apellido="2", correo="sec2@test.com", id_cargo=self.cargo_secretario, valido=True
+        )
+        res = crear_ticket_con_reglas(secretario2, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1)
+        self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)

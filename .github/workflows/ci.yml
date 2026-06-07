@@ -1,0 +1,37 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run Tests
+      run: |
+        python manage.py test
+        
+    - name: Run Build (Collect Static)
+      run: |
+        python manage.py collectstatic --noinput
+      env:
+        # Provide dummy values for environment variables if needed during collectstatic
+        SECRET_KEY: 'dummy-secret-key-for-build'
+        DEBUG: 'True'
