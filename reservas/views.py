@@ -651,9 +651,9 @@ def panel_validacion(request):
 
 @login_requerido
 @admin_requerido
-def directorio_usuarios(request):
+def usuarios(request):
     """
-    Vista del directorio de usuarios con búsqueda y filtros (HU 5.1).
+    Vista de usuarios con búsqueda y filtros (HU 5.1).
 
     Muestra lista de usuarios aprobados (valido=True). Permite buscar
     por nombre/apellido/correo y filtrar por cargo.
@@ -665,7 +665,7 @@ def directorio_usuarios(request):
             - cargo (int): PK de cargo para filtrar.
 
     Returns:
-        HttpResponse: Plantilla 'reservas/directorio_usuarios.html' con:
+        HttpResponse: Plantilla 'reservas/usuarios.html' con:
             - form: FiltroUsuariosForm.
             - usuarios: QuerySet filtrado de usuarios válidos.
             - usuario: Instancia del usuario logueado (admin).
@@ -692,7 +692,7 @@ def directorio_usuarios(request):
 
     page_obj, pagination_query = paginate_queryset(request, usuarios)
 
-    return render(request, "reservas/directorio_usuarios.html", {
+    return render(request, "reservas/usuarios.html", {
         "form": form,
         "usuarios": page_obj.object_list,
         "page_obj": page_obj,

@@ -72,7 +72,7 @@ urlpatterns = [
     # HU 5.4: Historial de tickets históricos y cancelados
     
     path("admin-panel/validacion/", views.panel_validacion, name="panel_validacion"),
-    path("admin-panel/usuarios/", views.directorio_usuarios, name="directorio_usuarios"),
+    path("admin-panel/usuarios/", views.usuarios, name="usuarios"),
     path("admin-panel/usuarios/rechazados/", views.usuarios_rechazados, name="usuarios_rechazados"),
     path("admin-panel/tickets/activos/", views.monitor_tickets_activos, name="monitor_tickets_activos"),
     path("admin-panel/tickets/historial/", views.historial_tickets, name="historial_tickets"),

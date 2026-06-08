@@ -39,8 +39,8 @@
     <a href="{% url 'panel_validacion' %}" class="nav-item {% if request.resolver_match.url_name == 'panel_validacion' %}active{% endif %}">
       <span class="icon">◎</span> Validar Usuarios
     </a>
-    <a href="{% url 'directorio_usuarios' %}" class="nav-item {% if 'usuario' in request.resolver_match.url_name %}active{% endif %}">
-      <span class="icon">◷</span> Directorio
+    <a href="{% url 'usuarios' %}" class="nav-item {% if 'usuarios' in request.resolver_match.url_name %}active{% endif %}">
+      <span class="icon">◷</span> Usuarios
     </a>
     <a href="{% url 'monitor_tickets_activos' %}" class="nav-item {% if request.resolver_match.url_name == 'monitor_tickets_activos' %}active{% endif %}">
       <span class="icon">◉</span> Tickets Activos

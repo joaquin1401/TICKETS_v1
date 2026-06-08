@@ -1,11 +1,11 @@
 {% extends "reservas/base.html" %}
-{% block title %}Directorio de Usuarios — Sistema de Reserva de Vehículos{% endblock %}
-{% block breadcrumb %}Directorio{% endblock %}
+{% block title %}Usuarios — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}Usuarios{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
-    <h1>Directorio de Usuarios</h1>
+    <h1>Usuarios</h1>
     <p class="sub">Empleados con acceso activo</p>
   </div>
   <a href="{% url 'panel_validacion' %}" class="btn btn-outline">Pendientes →</a>
@@ -34,7 +34,7 @@
       </div>
       <button type="submit" class="btn btn-primary">Filtrar</button>
       {% if request.GET %}
-      <a href="{% url 'directorio_usuarios' %}" class="btn btn-outline">Limpiar</a>
+      <a href="{% url 'usuarios' %}" class="btn btn-outline">Limpiar</a>
       {% endif %}
     </form>
   </div>
