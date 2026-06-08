@@ -5,6 +5,8 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/pages/inicio.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/calendario.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/timeline_dia.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -21,18 +23,16 @@
   <div class="card quick-form">
     <div class="card-header">
       <span class="card-title">⬡ Nueva reserva</span>
-      <span class="badge badge-warning">Rápida</span>
     </div>
     <div class="card-body">
-      <form method="post">
+      <form method="post" action="{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
         {% csrf_token %}
         <div class="form-group">
           <label class="form-label">Vehículo <span style="color:var(--danger);">*</span></label>
           <select name="id_vehiculo" class="form-control">
             <option value="">-- Seleccionar vehículo --</option>
             {% for v in form.id_vehiculo.field.queryset %}
-            <option value="{{ v.pk }}" data-capacity="{{ v.cant_pasajeros }}"
-              {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
+            <option value="{{ v.pk }}" data-capacity="{{ v.cant_pasajeros }}" {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
               {{ v.marca }} {{ v.modelo }} ({{ v.cant_pasajeros }} pas.)
             </option>
             {% endfor %}
@@ -42,7 +42,7 @@
         <div class="form-group">
           <label class="form-label">Destino <span style="color:var(--danger);">*</span></label>
           <input type="text" name="destino" class="form-control" placeholder="Ej: Sede Tucumán"
-                 value="{{ form.destino.value|default:'' }}">
+            value="{{ form.destino.value|default:'' }}">
           {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
         </div>
         <div class="form-row">
@@ -60,86 +60,196 @@
         <div class="form-row">
           <div class="form-group">
             <label class="form-label">Pasajeros <span style="color:var(--danger);">*</span></label>
-            <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="1"
-                   id="pasajerosInput" value="{{ form.cant_pasajeros.value|default:'' }}">
+            <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="1" id="pasajerosInput"
+              value="{{ form.cant_pasajeros.value|default:'' }}">
             {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">Descripción / Motivo</label>
-          <textarea name="descripcion" class="form-control" rows="2" placeholder="Motivo del viaje...">{{ form.descripcion.value|default:'' }}</textarea>
+          <textarea name="descripcion" class="form-control" rows="2"
+            placeholder="Motivo del viaje...">{{ form.descripcion.value|default:'' }}</textarea>
         </div>
         {% if form.non_field_errors %}
         <p class="form-error" style="margin-bottom:10px;">{{ form.non_field_errors.0 }}</p>
         {% endif %}
-        <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span style="color:var(--danger);">*</span> Campos requeridos</p>
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span
+            style="color:var(--danger);">*</span> Campos requeridos</p>
         <button type="submit" class="btn btn-primary" style="width:100%;">Solicitar reserva</button>
       </form>
-          <script>
-            const vehiculoSelect = document.querySelector('select[name="id_vehiculo"]');
-            const pasajerosInput = document.getElementById('pasajerosInput');
-        
-            function updateMaxPassengers() {
-              const selectedOption = vehiculoSelect.options[vehiculoSelect.selectedIndex];
-              const capacity = selectedOption.getAttribute('data-capacity');
-          
-              if (capacity) {
-                pasajerosInput.max = capacity;
-                pasajerosInput.placeholder = '1 - ' + capacity;
-              } else {
-                pasajerosInput.removeAttribute('max');
-                pasajerosInput.placeholder = '1';
-              }
+      <script>
+        const vehiculoSelect = document.querySelector('select[name="id_vehiculo"]');
+        const pasajerosInput = document.getElementById('pasajerosInput');
+
+        function updateMaxPassengers() {
+          const selectedOption = vehiculoSelect.options[vehiculoSelect.selectedIndex];
+          const capacity = selectedOption.getAttribute('data-capacity');
+
+          if (capacity) {
+            pasajerosInput.max = capacity;
+            pasajerosInput.placeholder = '1 - ' + capacity;
+          } else {
+            pasajerosInput.removeAttribute('max');
+            pasajerosInput.placeholder = '1';
+          }
+        }
+
+        // Set max on page load if vehicle is already selected
+        updateMaxPassengers();
+
+        // Guardar datos en localStorage para evitar pérdida al recargar
+        const formInputs = document.querySelectorAll('input[name="destino"], input[name="hora_inicio"], input[name="hora_fin"], input[name="cant_pasajeros"], textarea[name="descripcion"]');
+
+        formInputs.forEach(input => {
+          const saved = localStorage.getItem('form_' + input.name);
+          // Solo cargar si el input no tiene valor o si tiene errores de validación no pisarlo?
+          // Si el input está vacío, intentar cargar de localStorage
+          if (saved && !input.value) {
+            input.value = saved;
+          }
+          input.addEventListener('input', function () {
+            localStorage.setItem('form_' + input.name, this.value);
+          });
+        });
+
+        // Limpiar localStorage al enviar el formulario con éxito
+        document.querySelector('form').addEventListener('submit', function () {
+          // Limpiamos si queremos que la prox vez esté vacío
+          // formInputs.forEach(input => localStorage.removeItem('form_' + input.name));
+        });
+
+        // Recargar con el vehículo seleccionado
+        vehiculoSelect.addEventListener('change', function () {
+          updateMaxPassengers();
+          const v = this.value;
+          if (v) {
+            window.location.href = "?vehiculo=" + v;
+          } else {
+            window.location.href = "?";
+          }
+        });
+
+        function selectDateAndNavigate(anio, mes, dia, vehiculo) {
+          const dStr = anio + "-" + String(mes).padStart(2, '0') + "-" + String(dia).padStart(2, '0');
+          const input = document.querySelector('input[name="hora_inicio"]');
+          if (input) {
+            let timePart = "08:00"; // default
+            if (input.value) {
+               const parts = input.value.split("T");
+               if (parts.length > 1) {
+                  timePart = parts[1];
+               }
             }
-        
-            // Set max on page load if vehicle is already selected
-            updateMaxPassengers();
-        
-            // Update max when vehicle selection changes
-            vehiculoSelect.addEventListener('change', updateMaxPassengers);
-          </script>
+            const newVal = dStr + "T" + timePart;
+            input.value = newVal;
+            localStorage.setItem('form_hora_inicio', newVal);
+          }
+          window.location.href = '?vehiculo=' + vehiculo + '&anio=' + anio + '&mes=' + mes + '&dia=' + dia;
+        }
+      </script>
     </div>
   </div>
 
-  <!-- Panel lateral -->
+  <!-- Panel lateral con Calendario y Timeline -->
   <div style="display:flex;flex-direction:column;gap:16px;">
-    <!-- Mis últimas reservas -->
+    <!-- Calendario mensual -->
     <div class="card">
       <div class="card-header">
-        <span class="card-title">◫ Últimas reservas</span>
-        <a href="{% url 'historial' %}" class="btn btn-outline btn-sm">Ver todas</a>
-      </div>
-      <div class="card-body" style="padding:14px 18px;">
-        {% if tickets_recientes %}
-          {% for t in tickets_recientes %}
-          <a href="{% url 'detalle_ticket' t.pk %}" style="text-decoration:none;">
-            <div class="ticket-mini">
-              <div class="ticket-mini-dot dot-{{ t.estado }}"></div>
-              <div class="ticket-mini-info">
-                <div class="ticket-mini-dest">{{ t.destino }}</div>
-                <div class="ticket-mini-sub">{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} · {{ t.hora_inicio|date:"d/m H:i" }}</div>
-              </div>
-              <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">{{ t.estado }}</span>
-            </div>
-          </a>
-          {% endfor %}
-        {% else %}
-          <div class="empty-state" style="padding:24px;">
-            <div class="icon">◌</div>
-            <p>Sin reservas aún</p>
+        {% if vehiculo_cal %}
+        <div class="cal-header" style="width:100%;margin:0;">
+          <span class="cal-month-title">{{ nombre_mes }}</span>
+          <div class="cal-nav">
+            <a href="?vehiculo={{ vehiculo_cal.pk }}&anio={{ mes_anterior.0 }}&mes={{ mes_anterior.1 }}"
+              class="btn btn-outline btn-sm">←</a>
+            <a href="?vehiculo={{ vehiculo_cal.pk }}&anio={{ mes_siguiente.0 }}&mes={{ mes_siguiente.1 }}"
+              class="btn btn-outline btn-sm">→</a>
           </div>
+        </div>
+        {% else %}
+        <span class="card-title">◈ Calendario mensual</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if vehiculo_cal %}
+        <div class="cal-grid">
+          {% for dow in "LMXJVSD" %}
+          <div class="cal-dow">{{ dow }}</div>
+          {% endfor %}
+
+          {% for week in cal %}
+          {% for day in week %}
+          {% if day == 0 %}
+          <div class="cal-day empty"></div>
+          {% else %}
+          <div class="cal-day
+                  {% for rd in dias_con_reservas %}{% if rd.day == day and rd.month == mes and rd.year == anio %}has-reservas{% endif %}{% endfor %}
+                  {% if dia_seleccionado == day %}selected-day{% endif %}"
+            onclick="selectDateAndNavigate({{ anio }}, {{ mes }}, {{ day }}, '{{ vehiculo_cal.pk }}')" {% if dia_seleccionado == day %}style="border: 2px solid var(--primary);" {% endif %}>{{ day }}</div>
+          {% endif %}
+          {% endfor %}
+          {% endfor %}
+        </div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot reservado"></div> Con reservas
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot libre"></div> Libre
+          </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="icon">◈</div>
+          <p>Seleccioná un vehículo para ver su disponibilidad.</p>
+        </div>
         {% endif %}
       </div>
     </div>
 
-    <!-- Acceso rápido al calendario -->
-    <div class="card" style="background: rgba(85,139,186,0.04); border-color: rgba(85,139,186,0.2);">
-      <div class="card-body" style="padding:16px 18px;">
-        <p style="font-size:12px;color:var(--text-muted);margin-bottom:10px;font-family:var(--mono);text-transform:uppercase;letter-spacing:0.08em;">Disponibilidad</p>
-        <p style="font-size:13px;color:var(--text-dim);margin-bottom:14px;">Consultá la disponibilidad de la flota antes de solicitar.</p>
-        <a href="{% url 'calendario' %}" class="btn btn-outline" style="width:100%;">◈ Ver calendario</a>
-      </div>
-    </div>
   </div>
 </div>
+
+<!-- Timeline del día -->
+{% if fecha_timeline %}
+<div class="card" style="margin-top:20px;">
+  <div class="card-header">
+    <span class="card-title">◈ Timeline {{ fecha_timeline|date:"d/m" }}</span>
+    <span class="badge badge-neutral">{{ total_tickets }} res.</span>
+  </div>
+  <div class="card-body">
+    {% if tickets_dia %}
+    <div class="timeline-wrap">
+      {% for hora in horas %}
+      {% with hora_int=hora|add:"0" %}
+      <div class="hour-row">
+        <span class="hour-label">{{ hora }}:00</span>
+        <div class="hour-line"></div>
+        <div class="hour-content">
+          {% for t in tickets_dia %}
+          {% if t.hora_inicio.hour|stringformat:"02d" == hora %}
+          <div class="reservation-block">
+            <div class="res-times">{{ t.hora_inicio|date:"H:i" }} → {% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}?{% endif %}</div>
+            <div class="res-dest">{{ t.destino }}</div>
+            <div class="res-user">{{ t.id_usuario.nombre_completo }}</div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endwith %}
+      {% endfor %}
+    </div>
+    <hr class="divider">
+    <p style="font-size:12px;color:var(--text-muted);">
+      ⚠ Los bloques muestran la hora de <strong>inicio</strong> de cada reserva.
+    </p>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">✓</div>
+      <p style="color:var(--success);">El vehículo está libre todo el día.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 {% endblock %}

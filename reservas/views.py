@@ -334,39 +334,7 @@ def logout_view(request):
 def inicio(request):
     """
     Vista de inicio principal del usuario (HU 2.1).
-
-    Muestra un formulario rápido para crear reservas y listado de
-    los 5 tickets más recientes del usuario. Aplica lógica de conflictos
-    y jerarquía mediante services.crear_ticket_con_reglas().
-
-    Args:
-        request (HttpRequest): Objeto de solicitud.
-            - GET: Muestra inicio con formulario vacío.
-            - POST: Procesa creación de ticket.
-
-    Returns:
-        HttpResponse: Plantilla 'reservas/inicio.html' con:
-            - form: TicketForm (vacío o con errores).
-            - usuario: Instancia del usuario logueado.
-            - tickets_recientes: Últimos 5 tickets del usuario.
-
-    POST (crear ticket):
-        1. Valida TicketForm.clean() (horas, coincidencia contraseñas, etc).
-        2. Si hora_fin no especificada, asigna hora_inicio + 2 horas (default).
-        3. Llama crear_ticket_con_reglas() que aplica lógica de conflictos.
-        4. Según ResultadoCreacion.estado:
-            - OK: success message, redirige a historial.
-            - SOBRESCRITO: warning message, redirige a historial.
-            - BLOQUEADO: error message, re-renderiza inicio.
-
-    Messages:
-        - success: "Reserva creada exitosamente."
-        - warning: "Reserva creada. Se cancelaron reservas de... por jerarquía."
-        - error: Mensaje específico de bloqueo por conflicto.
-
-    Optimizaciones BD:
-        - .select_related("id_vehiculo") para tickets recientes.
-        - get_usuario_sesion() pre-carga id_cargo.
+    Muestra formulario de reserva rápida, calendario y timeline.
     """
     usuario = get_usuario_sesion(request)
     form = TicketForm()
@@ -396,14 +364,71 @@ def inicio(request):
             else:
                 messages.error(request, resultado.mensaje)
 
-    tickets_recientes = Ticket.objects.filter(
-        id_usuario=usuario
-    ).select_related("id_vehiculo").order_by("-hora_inicio")[:5]
+    # Lógica de calendario y timeline
+    vehiculo_id = request.GET.get("vehiculo")
+    anio = int(request.GET.get("anio", date.today().year))
+    mes = int(request.GET.get("mes", date.today().month))
+    dia_str = request.GET.get("dia")
+
+    vehiculo_cal = None
+    dias_con_reservas = set()
+    tickets_dia = []
+    fecha_timeline = None
+    horas = []
+    page_obj = None
+    pagination_query = ""
+    total_tickets = 0
+
+    if vehiculo_id:
+        try:
+            vehiculo_cal = Vehiculo.objects.get(pk=vehiculo_id, activo=True)
+            if request.method == "GET":
+                form = TicketForm(initial={"id_vehiculo": vehiculo_cal})
+
+            tickets_mes = get_tickets_del_mes(vehiculo_cal, anio, mes)
+            dias_con_reservas = {t.hora_inicio.date() for t in tickets_mes}
+
+            if dia_str:
+                dia = int(dia_str)
+                fecha_timeline = date(anio, mes, dia)
+                tickets_qs = get_tickets_del_dia(vehiculo_cal, fecha_timeline)
+                page_obj, pagination_query = paginate_queryset(request, tickets_qs)
+                tickets_dia = page_obj.object_list
+                horas = ["06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"]
+                total_tickets = page_obj.paginator.count
+        except (Vehiculo.DoesNotExist, ValueError):
+            pass
+
+    cal = calendar.monthcalendar(anio, mes)
+    nombre_mes = date(anio, mes, 1).strftime("%B %Y").capitalize()
+
+    if mes == 1:
+        mes_anterior = (anio - 1, 12)
+    else:
+        mes_anterior = (anio, mes - 1)
+    if mes == 12:
+        mes_siguiente = (anio + 1, 1)
+    else:
+        mes_siguiente = (anio, mes + 1)
 
     return render(request, "reservas/inicio.html", {
         "form": form,
         "usuario": usuario,
-        "tickets_recientes": tickets_recientes,
+        "vehiculo_cal": vehiculo_cal,
+        "cal": cal,
+        "nombre_mes": nombre_mes,
+        "anio": anio,
+        "mes": mes,
+        "dias_con_reservas": dias_con_reservas,
+        "mes_anterior": mes_anterior,
+        "mes_siguiente": mes_siguiente,
+        "tickets_dia": tickets_dia,
+        "fecha_timeline": fecha_timeline,
+        "horas": horas,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_tickets": total_tickets,
+        "dia_seleccionado": int(dia_str) if dia_str and dia_str.isdigit() else None,
     })
 
 
@@ -526,136 +551,6 @@ def cancelar_ticket(request, ticket_id):
         
     return redirect("detalle_ticket", ticket_id=ticket.pk)
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# ÉPICA 3: CALENDARIO INTERACTIVO
-# ══════════════════════════════════════════════════════════════════════════════
-# HU 3.1: Selector de vehículo
-# HU 3.2: Vista mensual del calendario
-# HU 3.3: Línea de tiempo horaria
-
-
-@login_requerido
-def calendario(request):
-    """
-    Vista del calendario interactivo (HU 3.1, 3.2).
-
-    Permite seleccionar un vehículo y ver su disponibilidad mensual.
-    Marca días con reservas aprobadas. Proporciona navegación entre meses.
-
-    Args:
-        request (HttpRequest): Objeto de solicitud.
-            - GET: Recibe parámetros ?vehiculo=X&anio=Y&mes=Z
-            - POST: No utilizado (GET form).
-
-    Returns:
-        HttpResponse: Plantilla 'reservas/calendario.html' con:
-            - form: VehiculoSelectorForm.
-            - vehiculo: Vehículo seleccionado (None si no válido).
-            - cal: Matriz de semanas (calendar.monthcalendar).
-            - nombre_mes: Nombre legible del mes (ej: "Diciembre 2024").
-            - anio, mes: Valores de navegación.
-            - dias_con_reservas: Set de date con tickets aprobados.
-            - mes_anterior, mes_siguiente: Tuplas (anio, mes) para links.
-            - usuario: Instancia del usuario logueado.
-
-    Lógica:
-        1. GET ?vehiculo=X: Valida formulario y carga tickets del mes.
-        2. Si formulario válido: dias_con_reservas = {ticket.hora_inicio.date()}.
-        3. Genera matriz de calendario y tuplas de navegación.
-
-    Notas:
-        - Navega a mes anterior/siguiente considerando bordes de año.
-        - Utiliza calendar.monthcalendar() del módulo estándar.
-        - Los días sin reservas no tienen restricción visual (diseño en template).
-    """
-    usuario = get_usuario_sesion(request)
-    form = VehiculoSelectorForm(request.GET or None)
-
-    vehiculo = None
-    dias_con_reservas = set()
-    anio = int(request.GET.get("anio", date.today().year))
-    mes = int(request.GET.get("mes", date.today().month))
-
-    if form.is_valid():
-        vehiculo = form.cleaned_data["vehiculo"]
-        tickets_mes = get_tickets_del_mes(vehiculo, anio, mes)
-        dias_con_reservas = {t.hora_inicio.date() for t in tickets_mes}
-
-    cal = calendar.monthcalendar(anio, mes)
-    nombre_mes = date(anio, mes, 1).strftime("%B %Y").capitalize()
-
-    # Navegación mes anterior / siguiente
-    if mes == 1:
-        mes_anterior = (anio - 1, 12)
-    else:
-        mes_anterior = (anio, mes - 1)
-    if mes == 12:
-        mes_siguiente = (anio + 1, 1)
-    else:
-        mes_siguiente = (anio, mes + 1)
-
-    return render(request, "reservas/calendario.html", {
-        "form": form,
-        "vehiculo": vehiculo,
-        "cal": cal,
-        "nombre_mes": nombre_mes,
-        "anio": anio,
-        "mes": mes,
-        "dias_con_reservas": dias_con_reservas,
-        "mes_anterior": mes_anterior,
-        "mes_siguiente": mes_siguiente,
-        "usuario": usuario,
-    })
-
-
-@login_requerido
-def timeline_dia(request, vehiculo_id, anio, mes, dia):
-    """
-    Vista de línea de tiempo horaria de un día específico (HU 3.3).
-
-    Muestra ocupación horaria de un vehículo en un día determinado.
-    Útil para visualizar conflictos y rangos disponibles.
-
-    Args:
-        request (HttpRequest): Objeto de solicitud (GET).
-        vehiculo_id (int): PK del vehículo.
-        anio (int): Año (YYYY).
-        mes (int): Mes (1-12).
-        dia (int): Día (1-31).
-
-    Returns:
-        HttpResponse: Plantilla 'reservas/timeline_dia.html' con:
-            - vehiculo: Instancia de vehículo.
-            - fecha: date(anio, mes, dia).
-            - tickets: QuerySet de tickets aprobados ese día.
-            - usuario: Instancia del usuario logueado.
-            - horas: Lista de strings ["06", "07", ..., "22"] para template.
-
-    Raises:
-        Http404: Si el vehículo no existe o está inactivo.
-
-    Notas:
-        - Rango de horas: 6:00 a 22:59 (16 horas de trabajo).
-        - Template itera sobre horas y tickets para mostrar ocupación.
-    """
-    usuario = get_usuario_sesion(request)
-    vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id, activo=True)
-    fecha = date(anio, mes, dia)
-    tickets_qs = get_tickets_del_dia(vehiculo, fecha)
-    page_obj, pagination_query = paginate_queryset(request, tickets_qs)
-    horas = ["06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"]
-
-    return render(request, "reservas/timeline_dia.html", {
-        "vehiculo": vehiculo,
-        "fecha": fecha,
-        "tickets": page_obj.object_list,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "total_tickets": page_obj.paginator.count,
-        "usuario": usuario,
-        "horas": horas,
-    })
 
 
 # ══════════════════════════════════════════════════════════════════════════════

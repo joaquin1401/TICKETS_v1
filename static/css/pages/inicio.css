@@ -1,6 +1,7 @@
 .inicio-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: minmax(auto, 600px) 360px;
+  justify-content: start;
   gap: 20px;
   align-items: start;
 }
@@ -89,7 +90,7 @@
   margin-top: 2px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .inicio-grid {
     grid-template-columns: 1fr;
   }

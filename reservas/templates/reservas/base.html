@@ -30,9 +30,6 @@
     <a href="{% url 'historial' %}" class="nav-item {% if request.resolver_match.url_name == 'historial' %}active{% endif %}">
       <span class="icon">◫</span> Mis Tickets
     </a>
-    <a href="{% url 'calendario' %}" class="nav-item {% if request.resolver_match.url_name == 'calendario' %}active{% endif %}">
-      <span class="icon">◈</span> Calendario
-    </a>
   </div>
   {% endif %}
 

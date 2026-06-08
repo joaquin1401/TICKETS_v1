@@ -58,12 +58,9 @@ urlpatterns = [
     # HU 3.2: Vista mensual del calendario
     # HU 3.3: Línea de tiempo horaria de un día
     
-    path("calendario/", views.calendario, name="calendario"),
-    path(
-        "calendario/<int:vehiculo_id>/<int:anio>/<int:mes>/<int:dia>/",
-        views.timeline_dia,
-        name="timeline_dia",
-    ),
+    # HU 3.1: Selector de vehículo
+    # HU 3.2: Vista mensual del calendario
+    # HU 3.3: Línea de tiempo horaria de un día
 
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 5: Supervisión y Administración
