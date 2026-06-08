@@ -219,25 +219,26 @@
   <div class="card-body">
     {% if tickets_dia %}
     <div class="timeline-wrap">
-      {% for hora in horas %}
-      {% with hora_int=hora|add:"0" %}
-      <div class="hour-row">
-        <span class="hour-label">{{ hora }}:00</span>
-        <div class="hour-line"></div>
-        <div class="hour-content">
-          {% for t in tickets_dia %}
-          {% if t.hora_inicio.hour|stringformat:"02d" == hora %}
-          <div class="reservation-block">
-            <div class="res-times">{{ t.hora_inicio|date:"H:i" }} → {% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}?{% endif %}</div>
-            <div class="res-dest">{{ t.destino }}</div>
-            <div class="res-user">{{ t.id_usuario.nombre_completo }}</div>
-          </div>
-          {% endif %}
-          {% endfor %}
+      <!-- Background Grid -->
+      <div class="timeline-grid">
+        {% for hora in horas %}
+        <div class="hour-row">
+          <span class="hour-label">{{ hora }}:00</span>
+          <div class="hour-line"></div>
         </div>
+        {% endfor %}
       </div>
-      {% endwith %}
-      {% endfor %}
+
+      <!-- Tickets Overlay -->
+      <div class="timeline-overlay" style="position: absolute; top: 8px; left: 56px; right: 0; bottom: 0; pointer-events: none;">
+        {% for t in tickets_dia %}
+        <div class="reservation-block" style="top: {{ t.top_px }}px; height: {{ t.height_px }}px; left: 0; right: 10px; pointer-events: auto;">
+          <div class="res-times">{{ t.hora_inicio|date:"H:i" }} → {% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}?{% endif %}</div>
+          <div class="res-dest">{{ t.destino }}</div>
+          <div class="res-user">{{ t.id_usuario.nombre_completo }}</div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
     <hr class="divider">
     <p style="font-size:12px;color:var(--text-muted);">
