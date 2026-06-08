@@ -1,4 +1,4 @@
-.dashboard-grid {
+.inicio-grid {
   display: grid;
   grid-template-columns: 1fr 360px;
   gap: 20px;
@@ -90,7 +90,7 @@
 }
 
 @media (max-width: 900px) {
-  .dashboard-grid {
+  .inicio-grid {
     grid-template-columns: 1fr;
   }
 }

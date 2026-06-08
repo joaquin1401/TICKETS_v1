@@ -12,7 +12,7 @@ Convención de sesión:
 
 Decoradores de autorización:
     @login_requerido: Redirige a login si no hay sesión activa.
-    @admin_requerido: Redirige a dashboard si no es administrador.
+    @admin_requerido: Redirige a inicio si no es administrador.
 """
 
 import calendar
@@ -122,7 +122,7 @@ def admin_requerido(view_func):
     Decorador que redirige si el usuario no es administrador.
 
     Valida que request.session["es_admin"] sea True. Si es False,
-    registra un mensaje de error y redirige al dashboard.
+    registra un mensaje de error y redirige al inicio.
 
     Args:
         view_func: Función de vista a proteger.
@@ -137,7 +137,7 @@ def admin_requerido(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.session.get("es_admin"):
             messages.error(request, "No tenés permisos para acceder a esa sección.")
-            return redirect("dashboard")
+            return redirect("inicio")
         return view_func(request, *args, **kwargs)
     wrapper.__name__ = view_func.__name__
     return wrapper
@@ -236,11 +236,11 @@ def login_view(request):
             - POST: Procesa credenciales.
 
     Returns:
-        HttpResponse: Redirige a dashboard tras login exitoso,
+        HttpResponse: Redirige a inicio tras login exitoso,
             o re-renderiza formulario con errores.
 
     Validaciones:
-        1. Si usuario logueado: redirige a dashboard.
+        1. Si usuario logueado: redirige a inicio.
         2. Si credenciales inválidas: "Correo o contraseña incorrectos."
         3. Si usuario rechazado: "Tu solicitud fue rechazada..."
         4. Si usuario pendiente: "Tu cuenta está pendiente de aprobación..."
@@ -255,7 +255,7 @@ def login_view(request):
         - warning: Pendiente de aprobación.
     """
     if request.session.get("usuario_id"):
-        return redirect("dashboard")
+        return redirect("inicio")
 
     if request.method == "POST":
         form = LoginForm(request.POST)
@@ -296,7 +296,7 @@ def login_view(request):
             # Establecer sesión
             request.session["usuario_id"] = usuario.pk
             request.session["es_admin"] = (usuario.id_cargo.prioridad == 0)
-            return redirect("dashboard")
+            return redirect("inicio")
     else:
         form = LoginForm()
     return render(request, "reservas/login.html", {"form": form})
@@ -323,17 +323,17 @@ def logout_view(request):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ÉPICA 2: DASHBOARD Y TICKETS (USUARIO NORMAL)
+# ÉPICA 2: INICIO Y TICKETS (USUARIO NORMAL)
 # ══════════════════════════════════════════════════════════════════════════════
-# HU 2.1: Dashboard con formulario rápido de reserva
+# HU 2.1: Inicio con formulario rápido de reserva
 # HU 2.2: Historial de tickets
 # HU 2.3: Detalle de ticket
 
 
 @login_requerido
-def dashboard(request):
+def inicio(request):
     """
-    Vista de dashboard principal del usuario (HU 2.1).
+    Vista de inicio principal del usuario (HU 2.1).
 
     Muestra un formulario rápido para crear reservas y listado de
     los 5 tickets más recientes del usuario. Aplica lógica de conflictos
@@ -341,11 +341,11 @@ def dashboard(request):
 
     Args:
         request (HttpRequest): Objeto de solicitud.
-            - GET: Muestra dashboard con formulario vacío.
+            - GET: Muestra inicio con formulario vacío.
             - POST: Procesa creación de ticket.
 
     Returns:
-        HttpResponse: Plantilla 'reservas/dashboard.html' con:
+        HttpResponse: Plantilla 'reservas/inicio.html' con:
             - form: TicketForm (vacío o con errores).
             - usuario: Instancia del usuario logueado.
             - tickets_recientes: Últimos 5 tickets del usuario.
@@ -357,7 +357,7 @@ def dashboard(request):
         4. Según ResultadoCreacion.estado:
             - OK: success message, redirige a historial.
             - SOBRESCRITO: warning message, redirige a historial.
-            - BLOQUEADO: error message, re-renderiza dashboard.
+            - BLOQUEADO: error message, re-renderiza inicio.
 
     Messages:
         - success: "Reserva creada exitosamente."
@@ -400,7 +400,7 @@ def dashboard(request):
         id_usuario=usuario
     ).select_related("id_vehiculo").order_by("-hora_inicio")[:5]
 
-    return render(request, "reservas/dashboard.html", {
+    return render(request, "reservas/inicio.html", {
         "form": form,
         "usuario": usuario,
         "tickets_recientes": tickets_recientes,
@@ -513,7 +513,7 @@ def cancelar_ticket(request, ticket_id):
     from .services import cancelar_ticket_usuario
     
     if request.method != "POST":
-        return redirect("dashboard")
+        return redirect("inicio")
         
     usuario = get_usuario_sesion(request)
     ticket = get_object_or_404(Ticket, pk=ticket_id)

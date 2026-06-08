@@ -24,8 +24,8 @@
   {% if not usuario.id_cargo.nombre|lower == "administrador" or not request.session.es_admin %}
   <div class="sidebar-section">
     <div class="sidebar-section-label">Menú</div>
-    <a href="{% url 'dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
-      <span class="icon">⬡</span> Dashboard
+    <a href="{% url 'inicio' %}" class="nav-item {% if request.resolver_match.url_name == 'inicio' %}active{% endif %}">
+      <span class="icon">⬡</span> Inicio
     </a>
     <a href="{% url 'historial' %}" class="nav-item {% if request.resolver_match.url_name == 'historial' %}active{% endif %}">
       <span class="icon">◫</span> Mis Tickets
@@ -78,7 +78,7 @@
   {% if usuario %}
   <div class="topbar">
     <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Menú">☰</button>
-    <span class="topbar-title">Sistema de Reserva de Vehículos / <span>{% block breadcrumb %}Dashboard{% endblock %}</span></span>
+    <span class="topbar-title">Sistema de Reserva de Vehículos / <span>{% block breadcrumb %}Inicio{% endblock %}</span></span>
   </div>
   {% endif %}
 

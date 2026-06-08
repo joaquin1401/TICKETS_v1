@@ -21,7 +21,7 @@ Estructura del proyecto:
 
 Épicas funcionales:
     1. Autenticación (registro, login, validación por admin).
-    2. Dashboard y gestión de tickets (usuario normal).
+    2. Inicio y gestión de tickets (usuario normal).
     3. Calendario interactivo e integración temporal.
     4. Reglas de negocio (colisiones, prioridad jerárquica).
     5. Supervisión administrativa (directorio, auditoría, monitor).

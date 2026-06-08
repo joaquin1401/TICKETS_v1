@@ -1,10 +1,10 @@
 {% extends "reservas/base.html" %}
 {% load static %}
-{% block title %}Dashboard — Sistema de Reserva de Vehículos{% endblock %}
-{% block breadcrumb %}Dashboard{% endblock %}
+{% block title %}Inicio — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}Inicio{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/pages/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/pages/inicio.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -16,7 +16,7 @@
   <a href="{% url 'historial' %}" class="btn btn-outline">Ver todos mis tickets →</a>
 </div>
 
-<div class="dashboard-grid">
+<div class="inicio-grid">
   <!-- Formulario de reserva rápida -->
   <div class="card quick-form">
     <div class="card-header">

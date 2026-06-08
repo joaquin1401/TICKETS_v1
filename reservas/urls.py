@@ -3,7 +3,7 @@ Configuración de enrutamiento URL para la aplicación de reservas.
 
 Define todas las rutas HTTP del sistema, organizadas por épica funcional:
 - Épica 1: Autenticación (registro, login, logout)
-- Épica 2: Dashboard y gestión de tickets de usuario
+- Épica 2: Inicio y gestión de tickets de usuario
 - Épica 3: Calendario interactivo y línea de tiempo
 - Épica 5: Panel administrativo (validación, directorio, auditoría)
 - Épica 6: Administración de flota
@@ -18,7 +18,7 @@ Autenticación de sesión:
 
 Decoradores de vista:
     - @login_requerido: Redirige a login si no hay sesión activa.
-    - @admin_requerido: Redirige a dashboard si es_admin == False.
+    - @admin_requerido: Redirige a inicio si es_admin == False.
 """
 
 from django.contrib import admin
@@ -40,13 +40,13 @@ urlpatterns = [
     path("logout/", views.logout_view, name="logout"),
 
     # ═══════════════════════════════════════════════════════════════════════════════
-    # Épica 2: Dashboard y Tickets (Usuario normal)
+    # Épica 2: Inicio y Tickets (Usuario normal)
     # ═══════════════════════════════════════════════════════════════════════════════
-    # HU 2.1: Dashboard con formulario rápido de reserva
+    # HU 2.1: Inicio con formulario rápido de reserva
     # HU 2.2: Historial de tickets
     # HU 2.3: Detalle de ticket específico
     
-    path("dashboard/", views.dashboard, name="dashboard"),
+    path("inicio/", views.inicio, name="inicio"),
     path("historial/", views.historial, name="historial"),
     path("tickets/<int:ticket_id>/", views.detalle_ticket, name="detalle_ticket"),
     path("tickets/<int:ticket_id>/cancelar/", views.cancelar_ticket, name="cancelar_ticket"),
