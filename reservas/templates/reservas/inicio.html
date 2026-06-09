@@ -232,11 +232,13 @@
       <!-- Tickets Overlay -->
       <div class="timeline-overlay" style="position: absolute; top: 8px; left: 56px; right: 0; bottom: 0; pointer-events: none;">
         {% for t in tickets_dia %}
+        {% if t.height_px > 0 %}
         <div class="reservation-block" style="top: {{ t.top_px }}px; height: {{ t.height_px }}px; left: 0; right: 10px; pointer-events: auto;">
           <div class="res-times">{{ t.hora_inicio|date:"H:i" }} → {% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}?{% endif %}</div>
           <div class="res-dest">{{ t.destino }}</div>
           <div class="res-user">{{ t.id_usuario.nombre_completo }}</div>
         </div>
+        {% endif %}
         {% endfor %}
       </div>
     </div>

@@ -402,22 +402,27 @@ def inicio(request):
                     start_h = t.hora_inicio.hour
                     start_m = t.hora_inicio.minute
                     
-                    # Cap start time to 06:00 minimum
-                    if start_h < 6:
-                        start_h = 6
-                        start_m = 0
-                        
-                    t.top_px = ((start_h - 6) * 60) + start_m
-                    
                     # Duration
                     if t.hora_fin:
                         duration_mins = int((t.hora_fin - t.hora_inicio).total_seconds() / 60)
                     else:
                         duration_mins = 60 # Default to 1 hour
                         
+                    # Cap start time to 06:00 minimum
+                    if start_h < 6:
+                        mins_cortados = ((6 - start_h) * 60) - start_m
+                        start_h = 6
+                        start_m = 0
+                        duration_mins -= mins_cortados
+                        
+                    t.top_px = ((start_h - 6) * 60) + start_m
+                    
                     # Cap height so it doesn't overflow past 23:00 (1020px total height)
-                    max_allowed_height = 1020 - t.top_px
-                    t.height_px = min(duration_mins, max_allowed_height) if max_allowed_height > 0 else 0
+                    if duration_mins <= 0:
+                        t.height_px = 0
+                    else:
+                        max_allowed_height = 1020 - t.top_px
+                        t.height_px = min(duration_mins, max_allowed_height) if max_allowed_height > 0 else 0
 
                 horas = ["06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"]
                 total_tickets = page_obj.paginator.count
