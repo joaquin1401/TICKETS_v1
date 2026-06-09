@@ -84,9 +84,17 @@
     <div class="alerts">
       {% for message in messages %}
       <div class="alert alert-{{ message.tags }}">
-        {% if message.tags == 'success' %}✓{% elif message.tags == 'danger' %}✕{% elif message.tags == 'warning' %}⚠{% else %}ℹ{% endif %}
+        {% if 'success' in message.tags %}✓{% elif 'danger' in message.tags %}✕{% elif 'warning' in message.tags %}⚠{% else %}ℹ{% endif %}
         {{ message }}
       </div>
+      {% if 'clear_draft' in message.tags %}
+      <script>
+        (function() {
+          const draftFields = ["destino", "hora_inicio", "hora_fin", "cant_pasajeros", "descripcion"];
+          draftFields.forEach(f => localStorage.removeItem('form_' + f));
+        })();
+      </script>
+      {% endif %}
       {% endfor %}
     </div>
     {% endif %}

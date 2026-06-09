@@ -357,9 +357,9 @@ def inicio(request):
 
             if resultado.exito:
                 if resultado.estado == ResultadoCreacion.SOBRESCRITO:
-                    messages.warning(request, resultado.mensaje)
+                    messages.warning(request, resultado.mensaje, extra_tags="clear_draft")
                 else:
-                    messages.success(request, resultado.mensaje)
+                    messages.success(request, resultado.mensaje, extra_tags="clear_draft")
                 return redirect("historial")
             else:
                 messages.error(request, resultado.mensaje)
