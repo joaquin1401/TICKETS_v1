@@ -235,8 +235,12 @@
         {% if t.height_px > 0 %}
         <div class="reservation-block" style="top: {{ t.top_px }}px; height: {{ t.height_px }}px; left: 0; right: 10px; pointer-events: auto;">
           <div class="res-times">{{ t.hora_inicio|date:"H:i" }} → {% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}?{% endif %}</div>
+          {% if request.session.es_admin or t.id_usuario.pk == usuario.pk %}
           <div class="res-dest">{{ t.destino }}</div>
           <div class="res-user">{{ t.id_usuario.nombre_completo }}</div>
+          {% else %}
+          <div class="res-dest">Reservado</div>
+          {% endif %}
         </div>
         {% endif %}
         {% endfor %}
