@@ -47,6 +47,7 @@
 /* ── Range Filter Tabs ─────────────────────────────────── */
 .range-filter {
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -314,6 +315,10 @@
   .kpi-grid-secondary { grid-template-columns: repeat(2, 1fr); }
   .kpi-value { font-size: 30px; }
   .bar-cell { min-width: 100px; }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+  .kpi-grid-secondary { grid-template-columns: 1fr; }
 }
 
 /* ══════════════════════════════════════════════════════════
