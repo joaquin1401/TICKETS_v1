@@ -55,7 +55,7 @@
         {% csrf_token %}
         <div class="form-group">
           <label class="form-label">Vehículo <span style="color:var(--danger);">*</span></label>
-          <select name="id_vehiculo" class="form-control">
+          <select name="id_vehiculo" id="vehiculoSelect" class="form-control">
             <option value="">-- Seleccionar vehículo --</option>
             {% for v in form.id_vehiculo.field.queryset %}
             <option value="{{ v.pk }}" data-capacity="{{ v.cant_pasajeros }}" {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
@@ -64,6 +64,9 @@
             {% endfor %}
           </select>
           {% if form.id_vehiculo.errors %}<p class="form-error">{{ form.id_vehiculo.errors.0 }}</p>{% endif %}
+          <div id="exclusiveWarning" style="display: none; color: var(--warning); font-size: 0.85rem; margin-top: 8px; background: rgba(232, 160, 32, 0.1); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--warning);">
+            ⚠️ <strong>Atención:</strong> Este vehículo es exclusivo del Decano. Tu reserva puede ser cancelada automáticamente si él requiere utilizarlo.
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Destino <span style="color:var(--danger);">*</span></label>
@@ -229,9 +232,17 @@
         // Existing form scripts
         const vehiculoSelect = document.querySelector('select[name="id_vehiculo"]');
         const pasajerosInput = document.getElementById('pasajerosInput');
+        const exclusiveWarning = document.getElementById('exclusiveWarning');
+        const exclusivosIds = {{ exclusivos_ids|default:"[]"|safe }};
+        const usuarioPrioridad = {{ usuario.id_cargo.prioridad|default:99 }};
 
         function updateMaxPassengers() {
           const selectedOption = vehiculoSelect.options[vehiculoSelect.selectedIndex];
+          if (!selectedOption || !selectedOption.value) {
+            if(exclusiveWarning) exclusiveWarning.style.display = 'none';
+            return;
+          }
+          
           const capacity = selectedOption.getAttribute('data-capacity');
 
           if (capacity) {
@@ -241,9 +252,18 @@
             pasajerosInput.removeAttribute('max');
             pasajerosInput.placeholder = '1';
           }
+          
+          // Mostrar warning si es vehículo exclusivo y el usuario no es el Decano
+          const selectedId = parseInt(selectedOption.value);
+          if (exclusivosIds.includes(selectedId) && usuarioPrioridad > 1) {
+            exclusiveWarning.style.display = 'block';
+          } else {
+            exclusiveWarning.style.display = 'none';
+          }
         }
 
-        // Set max on page load if vehicle is already selected
+        vehiculoSelect.addEventListener('change', updateMaxPassengers);
+        // Set max and warning on page load if vehicle is already selected
         updateMaxPassengers();
 
         // Guardar datos en localStorage para evitar pérdida al recargar

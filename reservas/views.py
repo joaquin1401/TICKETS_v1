@@ -486,6 +486,7 @@ def inicio(request):
         "pagination_query": pagination_query,
         "total_tickets": total_tickets,
         "dia_seleccionado": int(dia_str) if dia_str and dia_str.isdigit() else None,
+        "exclusivos_ids": list(Vehiculo.objects.filter(exclusivo_decanato=True).values_list('id', flat=True)),
     })
 
 
