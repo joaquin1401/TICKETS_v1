@@ -289,6 +289,7 @@ class Command(BaseCommand):
                 'id_cargo': cargo,
                 'valido': valido,
                 'rechazado': rechazado,
+                'correo_verificado': True,
             }
         )
         
@@ -331,10 +332,9 @@ class Command(BaseCommand):
         
         for config in vehiculos_config:
             vehiculo, creado = Vehiculo.objects.get_or_create(
-                placa=config['placa'],
+                marca=config['marca'],
+                modelo=config['modelo'],
                 defaults={
-                    'marca': config['marca'],
-                    'modelo': config['modelo'],
                     'cant_pasajeros': config['cant_pasajeros'],
                     'activo': config['activo'],
                 }
