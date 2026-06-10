@@ -98,11 +98,11 @@
               {{ t.estado }}
             </span>
           </td>
-          <td style="max-width:200px;">
+          <td style="max-width:120px;">
             {% if t.observacion %}
-            <span style="font-size:11px;color:var(--text-muted);" title="{{ t.observacion }}">
-              {{ t.observacion|truncatechars:50 }}
-            </span>
+            <div style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ t.observacion }}">
+              {{ t.observacion }}
+            </div>
             {% else %}
             <span class="text-muted">—</span>
             {% endif %}

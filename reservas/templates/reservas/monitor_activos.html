@@ -43,6 +43,18 @@
           {% endfor %}
         </select>
       </div>
+      <div style="min-width:180px;">
+        <label class="form-label">Cargo</label>
+        <select name="cargo" class="form-control">
+          <option value="">Todos los cargos</option>
+          {% for cargo in form.cargo.field.queryset %}
+          <option value="{{ cargo.pk }}"
+            {% if form.cargo.value|stringformat:"s" == cargo.pk|stringformat:"s" %}selected{% endif %}>
+            {{ cargo.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
       <div style="min-width:130px;">
         <label class="form-label">Desde</label>
         <input type="date" name="fecha_inicio" class="form-control" value="{{ request.GET.fecha_inicio|default:'' }}">

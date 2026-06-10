@@ -797,6 +797,7 @@ def monitor_tickets_activos(request):
     if form.is_valid():
         busqueda = form.cleaned_data.get("busqueda")
         vehiculo = form.cleaned_data.get("vehiculo")
+        cargo = form.cleaned_data.get("cargo")
         fecha_inicio = form.cleaned_data.get("fecha_inicio")
         fecha_fin = form.cleaned_data.get("fecha_fin")
         
@@ -808,6 +809,8 @@ def monitor_tickets_activos(request):
             )
         if vehiculo:
             tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
+        if cargo:
+            tickets_qs = tickets_qs.filter(id_usuario__id_cargo=cargo)
         if fecha_inicio:
             tickets_qs = tickets_qs.filter(hora_inicio__date__gte=fecha_inicio)
         if fecha_fin:
