@@ -68,7 +68,7 @@
         <div class="form-group">
           <label class="form-label">Destino <span style="color:var(--danger);">*</span></label>
           <div class="input-group">
-            <input type="text" name="destino" id="destinoInput" class="form-control" placeholder="Ej: Sede Tucumán"
+            <input type="text" name="destino" id="destinoInput" class="form-control" placeholder="Ej: San Martín 1050, San Miguel de Tucumán"
               value="{{ form.destino.value|default:'' }}">
             <button type="button" class="btn btn-outline" id="openMapBtn" title="Elegir en el mapa" style="padding: 0 12px;">📍</button>
           </div>
@@ -117,6 +117,9 @@
             <button type="button" class="close-modal" id="closeMapBtn">&times;</button>
           </div>
           <div id="map"></div>
+          <div style="margin-top: 12px; padding: 10px; background: var(--bg-color, #f8f9fa); border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.9rem;">
+            <strong>Destino:</strong> <span id="modalAddressDisplay" style="color: var(--primary); font-weight: 500;">Buscando ubicación...</span>
+          </div>
           <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px; margin-bottom: 0;">Hacé clic o arrastrá el marcador para autocompletar la dirección de destino.</p>
         </div>
       </div>
@@ -137,13 +140,19 @@
 
         const marker = L.marker([initialLat, initialLng], {draggable: true}).addTo(map);
 
-        // Si no había valor previo, setear el de por defecto (Tucumán)
-        if (!latInput.value || !lngInput.value) {
-            latInput.value = initialLat;
-            lngInput.value = initialLng;
-        }
+        // No seteamos los hidden inputs por defecto a menos que se use el mapa.
+        // Esto permite que el backend sepa cuándo geocodificar manualmente.
 
         const destinoInput = document.getElementById('destinoInput');
+
+        // Si el usuario escribe a mano, borramos las coordenadas para forzar la validación en el backend
+        destinoInput.addEventListener('input', function(e) {
+            // Evitamos borrar si el input fue despachado por nuestro script de reverseGeocode
+            if (e.isTrusted) {
+                latInput.value = '';
+                lngInput.value = '';
+            }
+        });
 
         async function reverseGeocode(lat, lng) {
             try {
@@ -170,6 +179,8 @@
                         destinoInput.value = data.display_name.split(',').slice(0, 2).join(',');
                     }
                     destinoInput.dispatchEvent(new Event('input'));
+                    const addressDisplay = document.getElementById('modalAddressDisplay');
+                    if (addressDisplay) addressDisplay.innerText = destinoInput.value;
                 }
             } catch (error) {
                 console.error("Error reverse geocoding:", error);
@@ -199,6 +210,10 @@
         openMapBtn.addEventListener('click', function() {
             mapModal.style.display = 'flex';
             setTimeout(() => { map.invalidateSize(); }, 100);
+            const addressDisplay = document.getElementById('modalAddressDisplay');
+            if (addressDisplay) {
+                addressDisplay.innerText = destinoInput.value || 'Buscando ubicación...';
+            }
         });
 
         closeMapBtn.addEventListener('click', function() {

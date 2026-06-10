@@ -175,7 +175,7 @@ class TicketForm(forms.ModelForm):
             "hora_fin":       "Fecha y hora de regreso (estimado)",
         }
         widgets = {
-            "destino":     forms.TextInput(attrs={"placeholder": "Ej: Sede central Tucumán"}),
+            "destino":     forms.TextInput(attrs={"placeholder": "Ej: San Martín 1050, San Miguel de Tucumán"}),
             "latitud_destino": forms.HiddenInput(),
             "longitud_destino": forms.HiddenInput(),
             "descripcion": forms.Textarea(attrs={"rows": 3, "placeholder": "Motivo del viaje"}),
@@ -204,18 +204,23 @@ class TicketForm(forms.ModelForm):
 
     def clean(self):
         """
-        Valida la lógica temporal del ticket.
+        Valida la lógica temporal del ticket y comprueba la validez del destino.
 
         Raises:
-            ValidationError: Si incumple reglas de tiempo (pasado, más de 60 días, menos de 3 días).
+            ValidationError: Si incumple reglas de tiempo o si el destino no es válido.
 
         Returns:
             dict: Datos limpios del formulario.
         """
         from datetime import timedelta
+        import requests
+        
         cleaned = super().clean()
         hora_inicio = cleaned.get("hora_inicio")
         hora_fin = cleaned.get("hora_fin")
+        destino = cleaned.get("destino")
+        lat = cleaned.get("latitud_destino")
+        lon = cleaned.get("longitud_destino")
 
         ahora = timezone.now()
 
@@ -232,6 +237,30 @@ class TicketForm(forms.ModelForm):
         if hora_inicio and hora_fin:
             if hora_fin <= hora_inicio:
                 self.add_error("hora_fin", "La hora de regreso debe ser posterior a la de salida.")
+
+        # Backend Geocoding Validation
+        if destino and (not lat or not lon):
+            try:
+                headers = {'User-Agent': 'TICKETS_v1_App (contacto@ejemplo.com)'}
+                response = requests.get(
+                    'https://nominatim.openstreetmap.org/search',
+                    params={'q': destino, 'format': 'json', 'limit': 1},
+                    headers=headers,
+                    timeout=5
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data:
+                        cleaned["latitud_destino"] = float(data[0]["lat"])
+                        cleaned["longitud_destino"] = float(data[0]["lon"])
+                        self.instance.latitud_destino = cleaned["latitud_destino"]
+                        self.instance.longitud_destino = cleaned["longitud_destino"]
+                    else:
+                        self.add_error("destino", "No pudimos ubicar esta dirección. Verificá que esté bien escrita o utilizá el mapa.")
+                else:
+                    self.add_error("destino", "Servicio de mapas temporalmente inactivo. Por favor, utilizá el mapa para marcar el destino.")
+            except Exception:
+                self.add_error("destino", "Error al verificar la dirección. Por favor, seleccioná el destino en el mapa.")
 
         return cleaned
 
