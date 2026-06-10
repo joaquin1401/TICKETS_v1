@@ -913,10 +913,12 @@ def listado_flota(request):
             - vehiculos: QuerySet de todos los vehículos.
             - usuario: Instancia del usuario logueado (admin).
     """
-    vehiculos_qs = Vehiculo.objects.all().order_by("marca", "modelo")
+    vehiculos_decano = Vehiculo.objects.filter(exclusivo_decanato=True).order_by("marca", "modelo")
+    vehiculos_qs = Vehiculo.objects.filter(exclusivo_decanato=False).order_by("marca", "modelo")
     page_obj, pagination_query = paginate_queryset(request, vehiculos_qs)
 
     return render(request, "reservas/listado_flota.html", {
+        "vehiculos_decano": vehiculos_decano,
         "vehiculos": page_obj.object_list,
         "page_obj": page_obj,
         "pagination_query": pagination_query,

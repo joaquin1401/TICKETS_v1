@@ -364,13 +364,14 @@ class VehiculoForm(forms.ModelForm):
 
     class Meta:
         model = Vehiculo
-        fields = ["marca", "modelo", "cant_pasajeros", "kilometraje", "activo"]
+        fields = ["marca", "modelo", "cant_pasajeros", "kilometraje", "activo", "exclusivo_decanato"]
         labels = {
             "marca":          "Marca",
             "modelo":         "Modelo",
             "cant_pasajeros": "Capacidad de pasajeros",
             "kilometraje":    "Kilometraje inicial (km)",
             "activo":         "Vehículo activo (disponible para reservas)",
+            "exclusivo_decanato": "Exclusivo del Decano",
         }
         widgets = {
             "marca":  forms.TextInput(attrs={"placeholder": "Ej: Toyota"}),
