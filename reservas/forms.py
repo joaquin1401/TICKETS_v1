@@ -69,6 +69,13 @@ class RegistroForm(forms.ModelForm):
             "correo":   forms.EmailInput(attrs={"placeholder": "correo@empresa.com"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        """
+        Inicializa el formulario excluyendo el cargo de Administrador (prioridad 0).
+        """
+        super().__init__(*args, **kwargs)
+        self.fields["id_cargo"].queryset = Cargo.objects.exclude(prioridad=0)
+
     def clean(self):
         """
         Valida que ambas contraseñas coincidan.

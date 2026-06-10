@@ -38,18 +38,8 @@ from django.db import transaction
 from django.utils import timezone
 from datetime import timedelta
 
-try:
-    from faker import Faker
-except ImportError:
-    raise CommandError(
-        "Faker no está instalado. Por favor ejecuta: pip install faker"
-    )
-
 from reservas.models import Cargo, Usuario, Vehiculo, Ticket
 from reservas.services import crear_ticket_con_reglas
-
-fake = Faker('es_ES')
-
 
 class Command(BaseCommand):
     """
@@ -58,7 +48,7 @@ class Command(BaseCommand):
     Características:
     - Idempotente: puede ejecutarse múltiples veces sin duplicar datos
     - Modular: funciones separadas por entidad (cargos, usuarios, vehículos, tickets)
-    - Realista: usa Faker para nombres, correos, textos
+    - Manual: usa listas predefinidas para usuarios, correos y vehículos (fácil de editar)
     - Documentado: cada bloque explica el escenario que prueba
     """
     
@@ -86,7 +76,6 @@ class Command(BaseCommand):
         3. Crear datos en orden de dependencias (Cargo → Usuario → Vehiculo → Ticket)
         4. Mostrar resumen de datos creados
         """
-        self.fake = Faker('es_ES')  # Locale español para nombres realistas
         
         self.stdout.write(self.style.WARNING("🔄 Iniciando poblamiento de base de datos...\n"))
 
@@ -179,82 +168,78 @@ class Command(BaseCommand):
 
     def _crear_usuarios(self, cargos):
         """
-        Crea usuarios de prueba con diferentes estados de aprobación.
+        Crea usuarios de prueba predefinidos con diferentes estados de aprobación.
         
-        Para cada cargo, crea 3 usuarios:
-        1. Aprobado (valido=True, puede ingresar)
-        2. Pendiente (valido=False, no rechazado - esperando aprobación)
-        3. Rechazado (valido=False, rechazado=True - no puede ingresar)
-        
-        Parámetros:
-            cargos: dict de instancias de Cargo
-        
-        Retorna:
-            list: Usuarios aprobados (usados para crear reservas)
-            
-        Nota: Los usuarios rechazados/pendientes se crean pero no se usan
-        para tickets, para validar que solo usuarios aprobados pueden reservar.
+        Se usan diccionarios explícitos para que el desarrollador pueda modificar
+        nombres, correos y roles fácilmente.
         """
-        self.stdout.write("\n👥 Creando usuarios con diferentes estados...")
+        self.stdout.write("\n👥 Creando usuarios predefinidos...")
+        
+        # LISTA DE USUARIOS PREDEFINIDOS PARA EDITAR
+        usuarios_config = [
+            # Administrador SEU
+            {'nombre': 'Denise', 'apellido': 'Mur', 'correo': 'admin@universidad.edu', 'cargo': 'SEU', 'valido': True, 'rechazado': False},
+            
+            # Decanos
+            {'nombre': 'Dorotea', 'apellido': 'Lucena', 'correo': 'decano_aprobado@universidad.edu', 'cargo': Cargo.DECANO, 'valido': True, 'rechazado': False},
+            {'nombre': 'Ani', 'apellido': 'Laguna', 'correo': 'decano_pendiente@universidad.edu', 'cargo': Cargo.DECANO, 'valido': False, 'rechazado': False},
+            {'nombre': 'Danilo', 'apellido': 'Barba', 'correo': 'decano_rechazado@universidad.edu', 'cargo': Cargo.DECANO, 'valido': False, 'rechazado': True},
+            
+            # Secretarios
+            {'nombre': 'Celia', 'apellido': 'Mascaró', 'correo': 'secretario_aprobado@universidad.edu', 'cargo': Cargo.SECRETARIO, 'valido': True, 'rechazado': False},
+            {'nombre': 'Jerónimo', 'apellido': 'Pareja', 'correo': 'secretario_pendiente@universidad.edu', 'cargo': Cargo.SECRETARIO, 'valido': False, 'rechazado': False},
+            {'nombre': 'Anastasia', 'apellido': 'Rueda', 'correo': 'secretario_rechazado@universidad.edu', 'cargo': Cargo.SECRETARIO, 'valido': False, 'rechazado': True},
+            
+            # Usuarios regulares
+            {'nombre': 'Nydia', 'apellido': 'Pereira', 'correo': 'usuario_aprobado@universidad.edu', 'cargo': Cargo.USUARIO, 'valido': True, 'rechazado': False},
+            {'nombre': 'Jaime', 'apellido': 'Ferrera', 'correo': 'usuario_pendiente@universidad.edu', 'cargo': Cargo.USUARIO, 'valido': False, 'rechazado': False},
+            {'nombre': 'Wilfredo', 'apellido': 'Iglesia', 'correo': 'usuario_rechazado@universidad.edu', 'cargo': Cargo.USUARIO, 'valido': False, 'rechazado': True},
+        ]
         
         usuarios_aprobados = []
         contadores = {'aprobados': 0, 'pendientes': 0, 'rechazados': 0}
         
-        for nombre_cargo, cargo in cargos.items():
-            # Caso especial: Administrador SEU (Prioridad 0)
-            if cargo.prioridad == 0:
-                admin_seu = self._crear_usuario_unico(
-                    cargo=cargo,
-                    valido=True,
-                    rechazado=False,
-                    sufijo="_admin_seu"
-                )
-                if admin_seu:
-                    usuarios_aprobados.append(admin_seu)
-                    contadores['aprobados'] += 1
-                    self.stdout.write(f"  ⭐ {admin_seu.nombre_completo} (SEU) - ADMINISTRADOR")
+        for config in usuarios_config:
+            cargo_nombre = config['cargo']
+            if cargo_nombre not in cargos:
+                self.stdout.write(f"  [Warning] Cargo {cargo_nombre} no encontrado, omitiendo usuario {config['correo']}")
                 continue
-
-            # Usuario 1: Aprobado
-            usuario_aprobado = self._crear_usuario_unico(
-                cargo=cargo,
-                valido=True,
-                rechazado=False,
-                sufijo=f"_aprobado_{nombre_cargo.lower()}"
+                
+            cargo_instancia = cargos[cargo_nombre]
+            
+            usuario, creado = Usuario.objects.get_or_create(
+                correo=config['correo'],
+                defaults={
+                    'nombre': config['nombre'],
+                    'apellido': config['apellido'],
+                    'id_cargo': cargo_instancia,
+                    'valido': config['valido'],
+                    'rechazado': config['rechazado'],
+                    'correo_verificado': True,  # Para pruebas siempre verificado
+                }
             )
-            if usuario_aprobado:
-                usuarios_aprobados.append(usuario_aprobado)
+            
+            if creado:
+                usuario.set_password('test123456')
+                usuario.save()
+            
+            estado_str = ""
+            if config['valido']:
+                estado_str = "APROBADO"
                 contadores['aprobados'] += 1
-                self.stdout.write(
-                    f"  ✓ {usuario_aprobado.nombre_completo} ({nombre_cargo}) - APROBADO"
-                )
-            
-            # Usuario 2: Pendiente de aprobación
-            usuario_pendiente = self._crear_usuario_unico(
-                cargo=cargo,
-                valido=False,
-                rechazado=False,
-                sufijo=f"_pendiente_{nombre_cargo.lower()}"
-            )
-            if usuario_pendiente:
-                contadores['pendientes'] += 1
-                self.stdout.write(
-                    f"  ⏳ {usuario_pendiente.nombre_completo} ({nombre_cargo}) - PENDIENTE"
-                )
-            
-            # Usuario 3: Rechazado
-            usuario_rechazado = self._crear_usuario_unico(
-                cargo=cargo,
-                valido=False,
-                rechazado=True,
-                sufijo=f"_rechazado_{nombre_cargo.lower()}"
-            )
-            if usuario_rechazado:
+                usuarios_aprobados.append(usuario)
+            elif config['rechazado']:
+                estado_str = "RECHAZADO"
                 contadores['rechazados'] += 1
-                self.stdout.write(
-                    f"  ✗ {usuario_rechazado.nombre_completo} ({nombre_cargo}) - RECHAZADO"
-                )
-        
+            else:
+                estado_str = "PENDIENTE"
+                contadores['pendientes'] += 1
+                
+            simbolo = "✓" if config['valido'] else ("✗" if config['rechazado'] else "⏳")
+            if cargo_nombre == 'SEU': simbolo = "⭐"
+            
+            self.stdout.write(f"  {simbolo} {usuario.nombre_completo} ({cargo_nombre}) - {estado_str} [{usuario.correo}]")
+            
         self.stdout.write(
             f"  📊 Total: {contadores['aprobados']} aprobados, "
             f"{contadores['pendientes']} pendientes, "
@@ -262,44 +247,6 @@ class Command(BaseCommand):
         )
         
         return usuarios_aprobados
-
-    def _crear_usuario_unico(self, cargo, valido, rechazado, sufijo=""):
-        """
-        Crea un usuario único evitando duplicados por correo.
-        
-        Parámetros:
-            cargo: Instancia de Cargo
-            valido: bool - Si está aprobado
-            rechazado: bool - Si fue explícitamente rechazado
-            sufijo: string para diferenciar correos
-        
-        Retorna:
-            Usuario creado o None si ya existe
-        """
-        nombre = self.fake.first_name()
-        apellido = self.fake.last_name()
-        # Usar sufijo para garantizar emails únicos
-        correo = f"{nombre.lower()}{sufijo}@universidad.edu"
-        
-        usuario, creado = Usuario.objects.get_or_create(
-            correo=correo,
-            defaults={
-                'nombre': nombre,
-                'apellido': apellido,
-                'id_cargo': cargo,
-                'valido': valido,
-                'rechazado': rechazado,
-                'correo_verificado': True,
-            }
-        )
-        
-        if creado:
-            # Hashear contraseña de forma segura
-            usuario.set_password('test123456')
-            usuario.save()
-            return usuario
-        
-        return None if creado else usuario
 
     def _crear_vehiculos(self):
         """

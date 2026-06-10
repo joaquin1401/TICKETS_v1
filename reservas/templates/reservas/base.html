@@ -1,125 +1,146 @@
 {% load static %}
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Sistema de Reserva de Vehículos{% endblock %}</title>
   <link rel="icon" type="image/png" href="{% static 'img/Logotipocompacto.png' %}" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&family=DM+Serif+Display&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/base.css' %}?v=2">
   {% block extra_css %}{% endblock %}
 </head>
+
 <body class="{% block body_class %}{% endblock %}">
 
-{% block sidebar %}
-{% if usuario %}
-<aside class="sidebar">
-  <div class="sidebar-logo">
-    <img src="{% static 'img/logo_dark.png' %}" alt="Logo Universitario" style="max-width: 100%; height: auto; margin-bottom: 8px;">
-    <div class="wordmark">Sistema de Reserva de Vehículos</div>
-  </div>
-
-  {% if not usuario.id_cargo.nombre|lower == "administrador" or not request.session.es_admin %}
-  <div class="sidebar-section">
-    <div class="sidebar-section-label">Menú</div>
-    <a href="{% url 'inicio' %}" class="nav-item {% if request.resolver_match.url_name == 'inicio' %}active{% endif %}">
-      <span class="icon">⬡</span> Inicio
-    </a>
-    <a href="{% url 'historial' %}" class="nav-item {% if request.resolver_match.url_name == 'historial' %}active{% endif %}">
-      <span class="icon">◫</span> Mis Tickets
-    </a>
-  </div>
-  {% endif %}
-
-  {% if request.session.es_admin %}
-  <div class="sidebar-section">
-    <div class="sidebar-section-label">Administración</div>
-    <a href="{% url 'panel_validacion' %}" class="nav-item {% if request.resolver_match.url_name == 'panel_validacion' %}active{% endif %}">
-      <span class="icon">◎</span> Validar Usuarios
-    </a>
-    <a href="{% url 'usuarios' %}" class="nav-item {% if 'usuarios' in request.resolver_match.url_name %}active{% endif %}">
-      <span class="icon">◷</span> Usuarios
-    </a>
-    <a href="{% url 'monitor_tickets_activos' %}" class="nav-item {% if request.resolver_match.url_name == 'monitor_tickets_activos' %}active{% endif %}">
-      <span class="icon">◉</span> Tickets Activos
-    </a>
-    <a href="{% url 'historial_tickets' %}" class="nav-item {% if request.resolver_match.url_name == 'historial_tickets' %}active{% endif %}">
-      <span class="icon">◌</span> Historial
-    </a>
-    <a href="{% url 'reporte_analiticas' %}" class="nav-item {% if request.resolver_match.url_name == 'reporte_analiticas' %}active{% endif %}">
-      <span class="icon">◈</span> Analíticas
-    </a>
-    <a href="{% url 'listado_flota' %}" class="nav-item {% if 'flota' in request.resolver_match.url_name or 'vehiculo' in request.resolver_match.url_name %}active{% endif %}">
-      <span class="icon">◧</span> Flota
-    </a>
-  </div>
-  {% endif %}
-
-  <div class="sidebar-bottom">
-    <div class="user-chip">
-      <div class="user-avatar">{{ usuario.nombre.0 }}{{ usuario.apellido.0 }}</div>
-      <div class="user-info">
-        <div class="user-name">{{ usuario.nombre }} {{ usuario.apellido }}</div>
-        <div class="user-role">{{ usuario.id_cargo.nombre }}</div>
-      </div>
-    </div>
-    <a href="{% url 'logout' %}" class="logout-btn">Cerrar sesión</a>
-  </div>
-</aside>
-{% endif %}
-{% endblock %}
-
-<div class="main">
+  {% block sidebar %}
   {% if usuario %}
-  <div class="topbar">
-    <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Menú">☰</button>
-    <span class="topbar-title"><span>{% block breadcrumb %}Inicio{% endblock %}</span></span>
-  </div>
-  {% endif %}
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="{% static 'img/logo_dark.png' %}" alt="Logo Universitario"
+        style="max-width: 100%; height: auto; margin-bottom: 8px;">
+      <div class="wordmark">Sistema de Reserva de Vehículos</div>
+    </div>
 
-  <div class="page-content">
-    {% if messages %}
-    <div class="alerts">
-      {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">
-        {% if 'success' in message.tags %}✓{% elif 'danger' in message.tags %}✕{% elif 'warning' in message.tags %}⚠{% else %}ℹ{% endif %}
-        {{ message }}
-      </div>
-      {% if 'clear_draft' in message.tags %}
-      <script>
-        (function() {
-          const draftFields = ["destino", "hora_inicio", "hora_fin", "cant_pasajeros", "descripcion"];
-          draftFields.forEach(f => localStorage.removeItem('form_' + f));
-        })();
-      </script>
-      {% endif %}
-      {% endfor %}
+    {% if not usuario.id_cargo.nombre|lower == "administrador" or not request.session.es_admin %}
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Menú</div>
+      <a href="{% url 'inicio' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'inicio' %}active{% endif %}">
+        <span class="icon">⬡</span> Inicio
+      </a>
+      <a href="{% url 'historial' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'historial' %}active{% endif %}">
+        <span class="icon">◫</span> Mis Tickets
+      </a>
     </div>
     {% endif %}
 
-    {% block content %}{% endblock %}
-  </div>
-</div>
+    {% if request.session.es_admin %}
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Administración</div>
+      <a href="{% url 'panel_validacion' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'panel_validacion' %}active{% endif %}">
+        <span class="icon">◎</span> Validar Usuarios
+      </a>
+      <a href="{% url 'usuarios' %}"
+        class="nav-item {% if 'usuarios' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="icon">◷</span> Usuarios
+      </a>
+      <a href="{% url 'monitor_tickets_activos' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'monitor_tickets_activos' %}active{% endif %}">
+        <span class="icon">◉</span> Tickets Activos
+      </a>
+      <a href="{% url 'historial_tickets' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'historial_tickets' %}active{% endif %}">
+        <span class="icon">◌</span> Historial
+      </a>
+      <a href="{% url 'reporte_analiticas' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'reporte_analiticas' %}active{% endif %}">
+        <span class="icon">◈</span> Analíticas
+      </a>
+      <a href="{% url 'listado_flota' %}"
+        class="nav-item {% if 'flota' in request.resolver_match.url_name or 'vehiculo' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="icon">◧</span> Flota
+      </a>
+    </div>
+    {% endif %}
 
-{% block extra_js %}{% endblock %}
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const mobileBtn = document.getElementById('mobile-menu-btn');
-    const sidebar = document.querySelector('.sidebar');
-    if (mobileBtn && sidebar) {
-      mobileBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        sidebar.classList.toggle('open');
-      });
-      document.addEventListener('click', function(e) {
-        if (window.innerWidth <= 768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== mobileBtn) {
-          sidebar.classList.remove('open');
-        }
-      });
-    }
-  });
-</script>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Cuenta</div>
+      <a href="{% url 'logout' %}" class="nav-item">
+        <span class="icon">⏻</span> Cerrar sesión
+      </a>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="user-chip">
+        <div class="user-avatar">{{ usuario.nombre.0 }}{{ usuario.apellido.0 }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ usuario.nombre }} {{ usuario.apellido }}</div>
+          <div class="user-role">{{ usuario.id_cargo.nombre }}</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  {% endif %}
+  {% endblock %}
+
+  <div class="main">
+    {% if usuario %}
+    <div class="topbar">
+      <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Menú">☰</button>
+      <span class="topbar-title"><span>{% block breadcrumb %}Inicio{% endblock %}</span></span>
+    </div>
+    {% endif %}
+
+    <div class="page-content">
+      {% if messages %}
+      <div class="alerts">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+          {% if 'success' in message.tags %}✓{% elif 'danger' in message.tags %}✕{% elif 'warning' in message.tags %}⚠{%
+          else %}ℹ{% endif %}
+          {{ message }}
+        </div>
+        {% if 'clear_draft' in message.tags %}
+        <script>
+          (function () {
+            const draftFields = ["destino", "hora_inicio", "hora_fin", "cant_pasajeros", "descripcion"];
+            draftFields.forEach(f => localStorage.removeItem('form_' + f));
+          })();
+        </script>
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </div>
+
+  {% block extra_js %}{% endblock %}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const mobileBtn = document.getElementById('mobile-menu-btn');
+      const sidebar = document.querySelector('.sidebar');
+      if (mobileBtn && sidebar) {
+        mobileBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          sidebar.classList.toggle('open');
+        });
+        document.addEventListener('click', function (e) {
+          if (window.innerWidth <= 768 && sidebar.classList.contains('open') && !sidebar.contains(e.target) && e.target !== mobileBtn) {
+            sidebar.classList.remove('open');
+          }
+        });
+      }
+    });
+  </script>
 </body>
+
 </html>
