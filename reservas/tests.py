@@ -209,3 +209,96 @@ class TestReglasNegocioTickets(TestCase):
         )
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
         self.assertIn("excede la capacidad", res.mensaje)
+
+
+class TestReservasMultiDia(TestCase):
+    def setUp(self):
+        # Create necessary Cargo, Usuario, Vehiculo
+        self.cargo = Cargo.objects.create(nombre=Cargo.USUARIO, prioridad=3)
+        self.usuario = Usuario.objects.create(
+            nombre="User", apellido="Test", correo="test@test.com", id_cargo=self.cargo, valido=True
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            marca="Toyota", modelo="Corolla", cant_pasajeros=4, activo=True
+        )
+
+    def test_get_tickets_del_mes_multi_dia(self):
+        """Prueba que get_tickets_del_mes recupere tickets que se solapan con el mes consultado."""
+        from datetime import datetime
+        from .services import get_tickets_del_mes
+        
+        # Reserva que empieza el mes anterior (Mayo 30) y termina este mes (Junio 2)
+        ticket_anterior = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=datetime(2026, 5, 30, 10, 0),
+            hora_fin=datetime(2026, 6, 2, 18, 0),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Dest",
+            cant_pasajeros=2
+        )
+        
+        # Reserva que está completamente en el mes (Junio 10 al 12)
+        ticket_dentro = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=datetime(2026, 6, 10, 9, 0),
+            hora_fin=datetime(2026, 6, 12, 17, 0),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Dest 2",
+            cant_pasajeros=2
+        )
+        
+        # Reserva que empieza en este mes (Junio 29) y termina el próximo mes (Julio 2)
+        ticket_posterior = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=datetime(2026, 6, 29, 8, 0),
+            hora_fin=datetime(2026, 7, 2, 12, 0),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Dest 3",
+            cant_pasajeros=2
+        )
+        
+        # Obtener tickets de Junio 2026
+        tickets = get_tickets_del_mes(self.vehiculo, 2026, 6)
+        ticket_ids = {t.id for t in tickets}
+        
+        self.assertIn(ticket_anterior.id, ticket_ids)
+        self.assertIn(ticket_dentro.id, ticket_ids)
+        self.assertIn(ticket_posterior.id, ticket_ids)
+
+    def test_get_tickets_del_dia_multi_dia(self):
+        """Prueba que get_tickets_del_dia recupere un ticket en cualquier día del rango reservado."""
+        from datetime import datetime, date
+        from .services import get_tickets_del_dia
+        
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=datetime(2026, 6, 10, 9, 0),
+            hora_fin=datetime(2026, 6, 12, 17, 0),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Dest",
+            cant_pasajeros=2
+        )
+        
+        # Verificar que se recupera en el día de inicio
+        tickets_dia_10 = get_tickets_del_dia(self.vehiculo, date(2026, 6, 10))
+        self.assertIn(ticket, tickets_dia_10)
+        
+        # Verificar que se recupera en el día intermedio
+        tickets_dia_11 = get_tickets_del_dia(self.vehiculo, date(2026, 6, 11))
+        self.assertIn(ticket, tickets_dia_11)
+        
+        # Verificar que se recupera en el día de fin
+        tickets_dia_12 = get_tickets_del_dia(self.vehiculo, date(2026, 6, 12))
+        self.assertIn(ticket, tickets_dia_12)
+        
+        # Verificar que NO se recupera un día antes
+        tickets_dia_9 = get_tickets_del_dia(self.vehiculo, date(2026, 6, 9))
+        self.assertNotIn(ticket, tickets_dia_9)
+        
+        # Verificar que NO se recupera un día después
+        tickets_dia_13 = get_tickets_del_dia(self.vehiculo, date(2026, 6, 13))
+        self.assertNotIn(ticket, tickets_dia_13)

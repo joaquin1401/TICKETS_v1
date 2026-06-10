@@ -356,7 +356,7 @@ def cancelar_ticket_usuario(ticket, usuario):
 
 def get_tickets_del_mes(vehiculo, anio, mes):
     """
-    Obtiene todos los tickets aprobados de un vehículo en un mes específico.
+    Obtiene todos los tickets aprobados de un vehículo que se solapan con un mes específico.
 
     Utilizado en vista de calendario (HU 3.1, 3.2) para marcar días con reservas.
 
@@ -373,17 +373,28 @@ def get_tickets_del_mes(vehiculo, anio, mes):
         - Solo considera tickets APROBADOS.
         - Utiliza filtrado de fechas en la BD para eficiencia.
     """
+    from datetime import date
+    import calendar
+    from django.db.models import Q
+
+    ultimo_dia = calendar.monthrange(anio, mes)[1]
+    fecha_inicio_mes = date(anio, mes, 1)
+    fecha_fin_mes = date(anio, mes, ultimo_dia)
+
     return Ticket.objects.filter(
         id_vehiculo=vehiculo,
         estado=Ticket.ESTADO_APROBADO,
-        hora_inicio__year=anio,
-        hora_inicio__month=mes,
+    ).filter(
+        hora_inicio__date__lte=fecha_fin_mes
+    ).filter(
+        Q(hora_fin__date__gte=fecha_inicio_mes) |
+        Q(hora_fin__isnull=True, hora_inicio__date__gte=fecha_inicio_mes)
     ).select_related("id_usuario")
 
 
 def get_tickets_del_dia(vehiculo, fecha):
     """
-    Obtiene todos los tickets aprobados de un vehículo en una fecha específica.
+    Obtiene todos los tickets aprobados de un vehículo que cubren una fecha específica.
 
     Utilizado en vista de línea de tiempo (HU 3.3) para mostrar ocupación horaria.
 
@@ -396,12 +407,17 @@ def get_tickets_del_dia(vehiculo, fecha):
             con usuario asociado pre-cargado.
 
     Notes:
-        - Filtra por la fecha exacta del campo hora_inicio__date.
+        - Filtra por tickets que cubren la fecha seleccionada.
         - Solo considera tickets APROBADOS.
         - Orden ascendente para mostrar cronológicamente en templates.
     """
+    from django.db.models import Q
     return Ticket.objects.filter(
         id_vehiculo=vehiculo,
         estado=Ticket.ESTADO_APROBADO,
-        hora_inicio__date=fecha,
+    ).filter(
+        hora_inicio__date__lte=fecha
+    ).filter(
+        Q(hora_fin__date__gte=fecha) |
+        Q(hora_fin__isnull=True, hora_inicio__date=fecha)
     ).order_by("hora_inicio").select_related("id_usuario")
