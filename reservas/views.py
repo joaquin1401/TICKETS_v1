@@ -16,7 +16,7 @@ Decoradores de autorización:
 """
 
 import calendar
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, time
 
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
@@ -388,7 +388,15 @@ def inicio(request):
                 form = TicketForm(initial={"id_vehiculo": vehiculo_cal})
 
             tickets_mes = get_tickets_del_mes(vehiculo_cal, anio, mes)
-            dias_con_reservas = {t.hora_inicio.date() for t in tickets_mes}
+            dias_con_reservas = set()
+            for t in tickets_mes:
+                start_date = t.hora_inicio.date()
+                end_date = t.hora_fin.date() if t.hora_fin else start_date
+                curr = start_date
+                while curr <= end_date:
+                    if curr.month == mes and curr.year == anio:
+                        dias_con_reservas.add(curr)
+                    curr += timedelta(days=1)
 
             if dia_str:
                 dia = int(dia_str)
@@ -400,15 +408,32 @@ def inicio(request):
                 # Calculate proportional positioning for the timeline
                 # 1 hour = 60px. Timeline starts at 06:00 (which is top: 0)
                 # Max visual grid ends at 23:00, which is 17 hours * 60px = 1020px height
-                for t in tickets_dia:
-                    start_h = t.hora_inicio.hour
-                    start_m = t.hora_inicio.minute
+                from django.utils import timezone
+                is_tz_aware = timezone.is_aware(timezone.now())
+                
+                naive_start = datetime.combine(fecha_timeline, time.min)
+                naive_end = datetime.combine(fecha_timeline, time.max)
+                
+                if is_tz_aware:
+                    day_start = timezone.make_aware(naive_start)
+                    day_end = timezone.make_aware(naive_end)
+                else:
+                    day_start = naive_start
+                    day_end = naive_end
                     
-                    # Duration
+                for t in tickets_dia:
+                    effective_start = max(t.hora_inicio, day_start)
+                    
                     if t.hora_fin:
-                        duration_mins = int((t.hora_fin - t.hora_inicio).total_seconds() / 60)
+                        effective_end = min(t.hora_fin, day_end)
                     else:
-                        duration_mins = 60 # Default to 1 hour
+                        default_fin = t.hora_inicio + timedelta(hours=2)
+                        effective_end = min(default_fin, day_end)
+                    
+                    start_h = effective_start.hour
+                    start_m = effective_start.minute
+                    
+                    duration_mins = int((effective_end - effective_start).total_seconds() / 60)
                         
                     # Cap start time to 06:00 minimum
                     if start_h < 6:
