@@ -33,11 +33,19 @@
             {% if form.modelo.errors %}<p class="form-error">{{ form.modelo.errors.0 }}</p>{% endif %}
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Capacidad de pasajeros <span style="color:var(--danger);">*</span></label>
-          <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="Ej: 5"
-                 value="{{ form.cant_pasajeros.value|default:'' }}">
-          {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Capacidad <span style="color:var(--danger);">*</span></label>
+            <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="Ej: 5"
+                   value="{{ form.cant_pasajeros.value|default:'' }}">
+            {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kilometraje <span style="color:var(--danger);">*</span></label>
+            <input type="number" step="0.1" name="kilometraje" class="form-control" placeholder="Ej: 1500.5"
+                   value="{{ form.kilometraje.value|default:'0' }}">
+            {% if form.kilometraje.errors %}<p class="form-error">{{ form.kilometraje.errors.0 }}</p>{% endif %}
+          </div>
         </div>
         {% if vehiculo %}
         <div class="form-group">

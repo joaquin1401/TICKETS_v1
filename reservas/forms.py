@@ -165,7 +165,7 @@ class TicketForm(forms.ModelForm):
 
     class Meta:
         model = Ticket
-        fields = ["id_vehiculo", "destino", "cant_pasajeros", "descripcion", "hora_inicio", "hora_fin"]
+        fields = ["id_vehiculo", "destino", "latitud_destino", "longitud_destino", "cant_pasajeros", "descripcion", "hora_inicio", "hora_fin"]
         labels = {
             "id_vehiculo":    "Vehículo",
             "destino":        "Destino",
@@ -176,6 +176,8 @@ class TicketForm(forms.ModelForm):
         }
         widgets = {
             "destino":     forms.TextInput(attrs={"placeholder": "Ej: Sede central Tucumán"}),
+            "latitud_destino": forms.HiddenInput(),
+            "longitud_destino": forms.HiddenInput(),
             "descripcion": forms.Textarea(attrs={"rows": 3, "placeholder": "Motivo del viaje"}),
             "hora_inicio": forms.DateTimeInput(
                 attrs={"type": "datetime-local", "class": "form-control"}, format="%Y-%m-%dT%H:%M"
@@ -333,16 +335,18 @@ class VehiculoForm(forms.ModelForm):
 
     class Meta:
         model = Vehiculo
-        fields = ["marca", "modelo", "cant_pasajeros", "activo"]
+        fields = ["marca", "modelo", "cant_pasajeros", "kilometraje", "activo"]
         labels = {
             "marca":          "Marca",
             "modelo":         "Modelo",
             "cant_pasajeros": "Capacidad de pasajeros",
+            "kilometraje":    "Kilometraje inicial (km)",
             "activo":         "Vehículo activo (disponible para reservas)",
         }
         widgets = {
             "marca":  forms.TextInput(attrs={"placeholder": "Ej: Toyota"}),
             "modelo": forms.TextInput(attrs={"placeholder": "Ej: Hilux 2023"}),
+            "kilometraje": forms.NumberInput(attrs={"step": "0.1"}),
         }
 
 

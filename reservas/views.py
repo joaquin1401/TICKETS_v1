@@ -353,6 +353,8 @@ def inicio(request):
                 destino=cd["destino"],
                 cant_pasajeros=cd["cant_pasajeros"],
                 descripcion=cd.get("descripcion", ""),
+                latitud_destino=cd.get("latitud_destino"),
+                longitud_destino=cd.get("longitud_destino"),
             )
 
             if resultado.exito:
