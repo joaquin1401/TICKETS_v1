@@ -139,6 +139,83 @@
   {% endif %}
 </div>
 
+<!-- ═══════════════════════════════════════════════════════
+      Comportamiento de Usuarios
+     ═══════════════════════════════════════════════════════ -->
+<div class="act-label" style="margin-top:36px;">Comportamiento de Usuarios</div>
+<div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+  
+  <div class="card report-card" style="margin: 0;">
+    <div class="card-header">
+      <span class="card-title">◧ Top Usuarios</span>
+      <span class="badge badge-neutral">con más solicitudes</span>
+    </div>
+    {% if top_usuarios %}
+    <div class="table-wrap">
+      <table class="fleet-table">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Cargo</th>
+            <th class="align-right">Solicitudes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in top_usuarios %}
+          <tr class="{% if forloop.first %}row-leader{% endif %}">
+            <td>
+              <div class="vehicle-name">
+                {% if forloop.first %}<span class="leader-crown" title="Usuario más activo">★</span>{% endif %}
+                <span class="primary">{{ u.id_usuario__nombre }} {{ u.id_usuario__apellido }}</span>
+              </div>
+            </td>
+            <td><span class="badge badge-neutral">{{ u.id_usuario__id_cargo__nombre }}</span></td>
+            <td class="align-right text-mono">{{ u.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 20px;">
+      <p>No hay solicitudes registradas.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card report-card" style="margin: 0;">
+    <div class="card-header">
+      <span class="card-title">◧ Solicitudes por Cargo</span>
+      <span class="badge badge-neutral">distribución</span>
+    </div>
+    {% if solicitudes_cargo %}
+    <div class="table-wrap">
+      <table class="fleet-table">
+        <thead>
+          <tr>
+            <th>Cargo</th>
+            <th class="align-right">Total Solicitudes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in solicitudes_cargo %}
+          <tr>
+            <td><span class="primary">{{ c.id_usuario__id_cargo__nombre }}</span></td>
+            <td class="align-right text-mono">{{ c.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding: 20px;">
+      <p>No hay solicitudes registradas.</p>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
 <!-- Nota de pie para el PDF -->
 <div class="report-footer">
   <span>Sistema de Reserva de Vehículos</span>

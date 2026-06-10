@@ -1293,6 +1293,19 @@ def reporte_analiticas(request):
             "No hay suficientes datos en el período seleccionado para generar insights."
         )
 
+    # ── Comportamiento de Usuarios ───────────────────────────────────────────
+    top_usuarios = tickets_periodo.values(
+        'id_usuario__nombre', 'id_usuario__apellido', 'id_usuario__id_cargo__nombre'
+    ).annotate(
+        total=Count('id')
+    ).order_by('-total')[:5]
+
+    solicitudes_cargo = tickets_periodo.values(
+        'id_usuario__id_cargo__nombre'
+    ).annotate(
+        total=Count('id')
+    ).order_by('-total')
+
     return render(request, "reservas/analiticas.html", {
         "usuario":                   usuario,
         "rango":                     rango,
@@ -1312,6 +1325,8 @@ def reporte_analiticas(request):
         "total_vehiculos_activos":   total_vehiculos_activos,
         "total_vehiculos_inactivos": total_vehiculos_inactivos,
         "insights":                  insights,
+        "top_usuarios":              top_usuarios,
+        "solicitudes_cargo":         solicitudes_cargo,
     })
 
 
@@ -1425,6 +1440,19 @@ def reporte_analiticas_pdf(request):
     ]
     duracion_promedio = round(sum(duraciones) / len(duraciones), 1) if duraciones else 0
 
+    # ── Comportamiento de Usuarios ───────────────────────────────────────────
+    top_usuarios = tickets_periodo.values(
+        'id_usuario__nombre', 'id_usuario__apellido', 'id_usuario__id_cargo__nombre'
+    ).annotate(
+        total=Count('id')
+    ).order_by('-total')[:5]
+
+    solicitudes_cargo = tickets_periodo.values(
+        'id_usuario__id_cargo__nombre'
+    ).annotate(
+        total=Count('id')
+    ).order_by('-total')
+
     context = {
         "usuario":                   usuario,
         "rango":                     rango,
@@ -1444,6 +1472,8 @@ def reporte_analiticas_pdf(request):
         "total_vehiculos_activos":   Vehiculo.objects.filter(activo=True).count(),
         "total_vehiculos_inactivos": Vehiculo.objects.filter(activo=False).count(),
         "fecha_generacion":          f"{hoy.day} de {_MESES_ES[hoy.month]} de {hoy.year}",
+        "top_usuarios":              top_usuarios,
+        "solicitudes_cargo":         solicitudes_cargo,
     }
 
     html_string = render_to_string("reservas/analiticas_pdf.html", context)

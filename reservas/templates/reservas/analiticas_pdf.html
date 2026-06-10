@@ -479,6 +479,67 @@
     </table>
     {% endif %}
 
+    <!-- Acto III: Comportamiento de Usuarios -->
+    <div class="act-label section-title">Comportamiento de Usuarios</div>
+    <div style="display: flex; gap: 20pt; page-break-inside: avoid;">
+    
+      <div style="flex: 1;">
+        <div style="margin-bottom: 8pt;">
+          <span style="font-weight: 500; font-size: 10pt; color: var(--text);">◧ Top Usuarios</span>
+        </div>
+        {% if top_usuarios %}
+        <table>
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Cargo</th>
+              <th class="align-right">Solicitudes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in top_usuarios %}
+            <tr class="{% if forloop.first %}row-leader{% endif %}">
+              <td>
+                <div class="vehicle-name">
+                  {% if forloop.first %}<span class="leader-crown">★</span>{% endif %}
+                  {{ u.id_usuario__nombre }} {{ u.id_usuario__apellido }}
+                </div>
+              </td>
+              <td><span class="badge badge-neutral">{{ u.id_usuario__id_cargo__nombre }}</span></td>
+              <td class="align-right">{{ u.total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    
+      <div style="flex: 1;">
+        <div style="margin-bottom: 8pt;">
+          <span style="font-weight: 500; font-size: 10pt; color: var(--text);">◧ Solicitudes por Cargo</span>
+        </div>
+        {% if solicitudes_cargo %}
+        <table>
+          <thead>
+            <tr>
+              <th>Cargo</th>
+              <th class="align-right">Total Solicitudes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in solicitudes_cargo %}
+            <tr>
+              <td>{{ c.id_usuario__id_cargo__nombre }}</td>
+              <td class="align-right">{{ c.total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    
+    </div>
+
     <!-- Footer -->
     <div class="report-footer">
       <span>Sistema de Reserva de Vehículos — Administrador SEU</span>
