@@ -78,11 +78,21 @@ python manage.py createsuperuser
 
 ### 6. Ejecutar el servidor de desarrollo
 
+Para ejecutar el proyecto localmente junto con el procesador de tareas en segundo plano (necesario para el envío de correos y otras tareas asíncronas), utiliza el comando personalizado `runapp`:
+
+```bash
+python manage.py runapp
+```
+
+*(También puedes especificar una IP y puerto, por ejemplo: `python manage.py runapp 0.0.0.0:8000`).*
+
+Este comando iniciará simultáneamente el servidor web y el worker de `django-q2` (`qcluster`). El proyecto estará disponible en `http://127.0.0.1:8000`.
+
+El comando para correr el proyecto por default es:
 ```bash
 python manage.py runserver
 ```
 
-El proyecto estará disponible en `http://127.0.0.1:8000`.
 
 ## Variables de Entorno
 
