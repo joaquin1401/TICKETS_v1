@@ -76,6 +76,7 @@ urlpatterns = [
     path("admin-panel/usuarios/rechazados/", views.usuarios_rechazados, name="usuarios_rechazados"),
     path("admin-panel/tickets/activos/", views.monitor_tickets_activos, name="monitor_tickets_activos"),
     path("admin-panel/tickets/historial/", views.historial_tickets, name="historial_tickets"),
+    path("admin-panel/tickets/historial/descargar/", views.descargar_historial_csv, name="descargar_historial_csv"),
 
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 6: ABM (Alta, Baja, Modificación) de Flota

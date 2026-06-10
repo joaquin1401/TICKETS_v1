@@ -331,6 +331,12 @@ class FiltroTicketsForm(forms.Form):
         empty_label="Todos los vehículos",
         label="Vehículo",
     )
+    cargo = forms.ModelChoiceField(
+        queryset=Cargo.objects.all(),
+        required=False,
+        empty_label="Todos los cargos",
+        label="Cargo",
+    )
     fecha_inicio = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),

@@ -860,6 +860,7 @@ def historial_tickets(request):
     if form.is_valid():
         busqueda = form.cleaned_data.get("busqueda")
         vehiculo = form.cleaned_data.get("vehiculo")
+        cargo = form.cleaned_data.get("cargo")
         fecha_inicio = form.cleaned_data.get("fecha_inicio")
         fecha_fin = form.cleaned_data.get("fecha_fin")
         
@@ -871,6 +872,8 @@ def historial_tickets(request):
             )
         if vehiculo:
             tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
+        if cargo:
+            tickets_qs = tickets_qs.filter(id_usuario__id_cargo=cargo)
         if fecha_inicio:
             tickets_qs = tickets_qs.filter(hora_inicio__date__gte=fecha_inicio)
         if fecha_fin:
@@ -887,6 +890,72 @@ def historial_tickets(request):
         "usuario": get_usuario_sesion(request),
     })
 
+@login_requerido
+@admin_requerido
+def descargar_historial_csv(request):
+    import csv
+    from django.http import HttpResponse
+    
+    form = FiltroTicketsForm(request.GET or None)
+    tickets_qs = Ticket.objects.filter(
+        Q(estado=Ticket.ESTADO_CANCELADO) | Q(hora_inicio__lt=date.today())
+    ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-hora_inicio")
+
+    if form.is_valid():
+        busqueda = form.cleaned_data.get("busqueda")
+        vehiculo = form.cleaned_data.get("vehiculo")
+        cargo = form.cleaned_data.get("cargo")
+        fecha_inicio = form.cleaned_data.get("fecha_inicio")
+        fecha_fin = form.cleaned_data.get("fecha_fin")
+        
+        if busqueda:
+            tickets_qs = tickets_qs.filter(
+                Q(id_usuario__nombre__icontains=busqueda)
+                | Q(id_usuario__apellido__icontains=busqueda)
+                | Q(destino__icontains=busqueda)
+            )
+        if vehiculo:
+            tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
+        if cargo:
+            tickets_qs = tickets_qs.filter(id_usuario__id_cargo=cargo)
+        if fecha_inicio:
+            tickets_qs = tickets_qs.filter(hora_inicio__date__gte=fecha_inicio)
+        if fecha_fin:
+            tickets_qs = tickets_qs.filter(hora_inicio__date__lte=fecha_fin)
+
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="historial_ticket_{timestamp}.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(['ID', 'Solicitante', 'Cargo', 'Vehiculo', 'Destino', 'Salida', 'Regreso', 'Estado', 'Observacion'])
+
+    from django.utils.timezone import localtime, is_aware
+    for t in tickets_qs:
+        salida = ""
+        if t.hora_inicio:
+            dt = localtime(t.hora_inicio) if is_aware(t.hora_inicio) else t.hora_inicio
+            salida = dt.strftime("%d/%m/%Y %H:%M")
+            
+        regreso = ""
+        if t.hora_fin:
+            dt = localtime(t.hora_fin) if is_aware(t.hora_fin) else t.hora_fin
+            regreso = dt.strftime("%d/%m/%Y %H:%M")
+            
+        writer.writerow([
+            t.pk,
+            t.id_usuario.nombre_completo,
+            t.id_usuario.id_cargo.nombre,
+            f"{t.id_vehiculo.marca} {t.id_vehiculo.modelo}",
+            t.destino,
+            salida,
+            regreso,
+            t.estado,
+            t.observacion
+        ])
+
+    return response
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ÉPICA 6: ABM (ALTA, BAJA, MODIFICACIÓN) DE FLOTA

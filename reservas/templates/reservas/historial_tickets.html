@@ -32,6 +32,18 @@
           {% endfor %}
         </select>
       </div>
+      <div style="min-width:180px;">
+        <label class="form-label">Cargo</label>
+        <select name="cargo" class="form-control">
+          <option value="">Todos los cargos</option>
+          {% for cargo in form.cargo.field.queryset %}
+          <option value="{{ cargo.pk }}"
+            {% if form.cargo.value|stringformat:"s" == cargo.pk|stringformat:"s" %}selected{% endif %}>
+            {{ cargo.nombre }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
       <div style="min-width:130px;">
         <label class="form-label">Desde</label>
         <input type="date" name="fecha_inicio" class="form-control" value="{{ request.GET.fecha_inicio|default:'' }}">
@@ -40,11 +52,12 @@
         <label class="form-label">Hasta</label>
         <input type="date" name="fecha_fin" class="form-control" value="{{ request.GET.fecha_fin|default:'' }}">
       </div>
-      <div class="filters-form-actions">
+      <div class="filters-form-actions" style="display: flex; gap: 10px; width: 100%;">
         <button type="submit" class="btn btn-primary">Filtrar</button>
         {% if request.GET %}
         <a href="{% url 'historial_tickets' %}" class="btn btn-outline">Limpiar</a>
         {% endif %}
+        <a href="{% url 'descargar_historial_csv' %}?{{ request.GET.urlencode }}" class="btn btn-outline" style="margin-left: auto;" title="Descargar con los filtros actuales aplicados">↓ Descargar CSV</a>
       </div>
     </form>
   </div>
