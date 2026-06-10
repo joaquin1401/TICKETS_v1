@@ -58,6 +58,12 @@
   visibility: hidden;
 }
 
+.cal-day:not(.empty):hover {
+  background: var(--surface2);
+  border-color: var(--border);
+  cursor: pointer;
+}
+
 .cal-day.has-reservas {
   background: rgba(85, 139, 186, 0.12);
   color: var(--accent);
