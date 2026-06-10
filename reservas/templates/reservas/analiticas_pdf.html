@@ -444,10 +444,11 @@
         <tr>
           <th>Vehículo</th>
           <th>Estado</th>
+          <th class="align-right">Kilometraje</th>
           <th class="align-right">Reservas</th>
           <th class="align-right">Canceladas</th>
           <th class="align-right">% Cancel.</th>
-          <th>Horas efectivas</th>
+          <th class="align-right">Horas efectivas</th>
         </tr>
       </thead>
       <tbody>
@@ -467,22 +468,11 @@
             <span class="badge badge-neutral">Inactivo</span>
             {% endif %}
           </td>
+          <td class="align-right">{{ sv.vehiculo.kilometraje|floatformat:1 }} km</td>
           <td class="align-right">{{ sv.count_aprobados }}</td>
           <td class="align-right">{{ sv.count_cancelados }}</td>
-          <td class="align-right">
-            <span
-              class="pct-badge {% if sv.tasa_cancelacion > 25 %}pct-high{% elif sv.tasa_cancelacion > 10 %}pct-mid{% else %}pct-low{% endif %}">
-              {{ sv.tasa_cancelacion }}%
-            </span>
-          </td>
-          <td>
-            <div class="bar-row">
-              <div class="bar-track">
-                <div class="bar-fill" style="width:{{ sv.barra_pct }}%;"></div>
-              </div>
-              <span class="bar-label">{{ sv.horas_efectivas }}h</span>
-            </div>
-          </td>
+          <td class="align-right">{{ sv.tasa_cancelacion }}%</td>
+          <td class="align-right">{{ sv.horas_efectivas }}h</td>
         </tr>
         {% endfor %}
       </tbody>

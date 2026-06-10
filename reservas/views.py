@@ -1135,13 +1135,13 @@ def reporte_analiticas(request):
     hoy = timezone.now()
     if rango == "30d":
         desde = hoy - timedelta(days=30)
-        rango_label = "Últimos 30 días"
+        rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
     elif rango == "90d":
         desde = hoy - timedelta(days=90)
-        rango_label = "Últimos 90 días"
+        rango_label = f"Últimos 90 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
     elif rango == "anio":
         desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        rango_label = f"Año {hoy.year}"
+        rango_label = f"Año {hoy.year} ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
     else:
         desde = None
         rango = "todo"
@@ -1342,13 +1342,13 @@ def reporte_analiticas_pdf(request):
     hoy = timezone.now()
     if rango == "30d":
         desde = hoy - timedelta(days=30)
-        rango_label = "Últimos 30 días"
+        rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
     elif rango == "90d":
         desde = hoy - timedelta(days=90)
-        rango_label = "Últimos 90 días"
+        rango_label = f"Últimos 90 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
     elif rango == "anio":
         desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        rango_label = f"Año {hoy.year}"
+        rango_label = f"Año {hoy.year} ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
     else:
         desde = None
         rango = "todo"
