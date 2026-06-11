@@ -17,25 +17,7 @@ from django.utils import timezone
 import math
 from .models import Ticket
 
-def calcular_distancia_haversine(lat1, lon1, lat2, lon2):
-    """
-    Calcula la distancia en kilómetros entre dos puntos geográficos usando
-    la fórmula de Haversine.
-    """
-    R = 6371.0 # Radio de la Tierra en kilómetros
 
-    lat1_rad = math.radians(lat1)
-    lon1_rad = math.radians(lon1)
-    lat2_rad = math.radians(lat2)
-    lon2_rad = math.radians(lon2)
-
-    dlat = lat2_rad - lat1_rad
-    dlon = lon2_rad - lon1_rad
-
-    a = math.sin(dlat / 2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2)**2
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-    return R * c
 
 # ══════════════════════════════════════════════
 # HU 4.1 — Detección de Colisiones
@@ -238,24 +220,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin)
     )
 
-    # ── Calculo de distancia y kilometraje ──────────────────────────────────────────
-    lat_destino = kwargs.get("latitud_destino")
-    lon_destino = kwargs.get("longitud_destino")
-    distancia_total = 0.0
 
-    if lat_destino is not None and lon_destino is not None:
-        try:
-            lat_destino = float(lat_destino)
-            lon_destino = float(lon_destino)
-            # Coordenadas base de la universidad (UTN FRRe, Resistencia)
-            lat_uni = -27.4478
-            lon_uni = -58.9863
-            distancia_ida = calcular_distancia_haversine(lat_uni, lon_uni, lat_destino, lon_destino)
-            # Ida y vuelta
-            distancia_total = round(distancia_ida * 2, 2)
-            kwargs["distancia_km"] = distancia_total
-        except (ValueError, TypeError):
-            pass
 
     # ── Caso 1: Sin conflictos ──────────────────────────────────────────────────────
     if not tickets_conflicto:
@@ -267,10 +232,6 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             estado=Ticket.ESTADO_APROBADO,
             **kwargs,
         )
-        if distancia_total > 0:
-            vehiculo.kilometraje += distancia_total
-            vehiculo.save(update_fields=["kilometraje"])
-
         return ResultadoCreacion(
             estado=ResultadoCreacion.OK,
             ticket=ticket,
@@ -344,9 +305,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         **kwargs,
     )
 
-    if distancia_total > 0:
-        vehiculo.kilometraje += distancia_total
-        vehiculo.save(update_fields=["kilometraje"])
+
 
     nombres_cancelados = ", ".join(
         t.id_usuario.nombre_completo for t in tickets_cancelados

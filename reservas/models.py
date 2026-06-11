@@ -197,10 +197,6 @@ class Vehiculo(models.Model):
         default=False,
         help_text="True = solo puede ser reservado por el Decano"
     )
-    kilometraje = models.FloatField(
-        default=0.0,
-        help_text="Kilometraje total recorrido"
-    )
 
     class Meta:
         verbose_name = "Vehículo"
@@ -271,15 +267,6 @@ class Ticket(models.Model):
         Vehiculo, on_delete=models.PROTECT, related_name="tickets"
     )
     destino = models.CharField(max_length=255)
-    latitud_destino = models.FloatField(
-        null=True, blank=True, help_text="Latitud del destino seleccionada en el mapa"
-    )
-    longitud_destino = models.FloatField(
-        null=True, blank=True, help_text="Longitud del destino seleccionada en el mapa"
-    )
-    distancia_km = models.FloatField(
-        default=0.0, help_text="Distancia del viaje calculada desde la universidad al destino"
-    )
     cant_pasajeros = models.PositiveIntegerField()
     descripcion = models.TextField(blank=True)
     hora_inicio = models.DateTimeField()
