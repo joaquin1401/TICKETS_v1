@@ -49,7 +49,7 @@
       </a>
       <a href="{% url 'usuarios' %}"
         class="nav-item {% if 'usuarios' in request.resolver_match.url_name %}active{% endif %}">
-        <span class="icon">◷</span> Usuarios
+        <span class="icon">◷</span> Usuarios Activos
       </a>
       <a href="{% url 'monitor_tickets_activos' %}"
         class="nav-item {% if request.resolver_match.url_name == 'monitor_tickets_activos' %}active{% endif %}">
@@ -57,7 +57,7 @@
       </a>
       <a href="{% url 'historial_tickets' %}"
         class="nav-item {% if request.resolver_match.url_name == 'historial_tickets' %}active{% endif %}">
-        <span class="icon">◌</span> Historial
+        <span class="icon">◌</span> Historial de Tickets
       </a>
       <a href="{% url 'reporte_analiticas' %}"
         class="nav-item {% if request.resolver_match.url_name == 'reporte_analiticas' %}active{% endif %}">
