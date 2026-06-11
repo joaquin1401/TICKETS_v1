@@ -672,6 +672,38 @@ def panel_validacion(request):
             usuario_objetivo.valido = False
             usuario_objetivo.rechazado = True
             usuario_objetivo.save(update_fields=["valido", "rechazado"])
+            
+            from django_q.tasks import async_task
+            from django.conf import settings
+            from django.template.loader import render_to_string
+            import logging
+            
+            try:
+                asunto = "Sistema de Reserva de Vehículos — Solicitud rechazada"
+                mensaje = ( # default por si falla el html 
+                    f"Hola {usuario_objetivo.nombre},\n\n"
+                    "Te informamos que tu solicitud para acceder al Sistema de Reserva de Vehículos "
+                    "ha sido rechazada por un administrador.\n\n"
+                    "Si creés que esto es un error, por favor contactate con el administrador del sistema.\n\n"
+                    "— Sistema de Reserva de Vehículos"
+                )
+                html_message = render_to_string(
+                    "reservas/emails/account_rejected.html",
+                    {"usuario": usuario_objetivo}
+                )
+                async_task(
+                    "reservas.tasks.enviar_correo_async",
+                    subject=asunto,
+                    message=mensaje,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[usuario_objetivo.correo],
+                    html_message=html_message,
+                    fail_silently=True,
+                )
+            except Exception as exc:
+                logger = logging.getLogger(__name__)
+                logger.error("Error al enviar correo de rechazo a %s: %s", usuario_objetivo.correo, exc)
+
             messages.warning(request, f"{usuario_objetivo.nombre_completo} fue rechazado.")
 
         return redirect("panel_validacion")
