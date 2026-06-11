@@ -1,0 +1,12 @@
+{% extends "reservas/emails/base_email.html" %}
+
+{% block title %}Solicitud Rechazada{% endblock %}
+
+{% block content %}
+    <h1>Solicitud de Cuenta Rechazada</h1>
+    <p>Hola {{ usuario.nombre }},</p>
+    <p>Te informamos que tu solicitud para acceder al <strong>Sistema de Reserva de Vehículos</strong> ha sido rechazada por un administrador.</p>
+    <p>Si creés que esto es un error, por favor contactate con el administrador del sistema para obtener más información.</p>
+    <br>
+    <p>— Sistema de Reserva de Vehículos</p>
+{% endblock %}

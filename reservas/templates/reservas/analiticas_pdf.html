@@ -444,7 +444,7 @@
         <tr>
           <th>Vehículo</th>
           <th>Estado</th>
-          <th class="align-right">Kilometraje</th>
+
           <th class="align-right">Reservas</th>
           <th class="align-right">Canceladas</th>
           <th class="align-right">% Cancel.</th>
@@ -468,7 +468,7 @@
             <span class="badge badge-neutral">Inactivo</span>
             {% endif %}
           </td>
-          <td class="align-right">{{ sv.vehiculo.kilometraje|floatformat:1 }} km</td>
+
           <td class="align-right">{{ sv.count_aprobados }}</td>
           <td class="align-right">{{ sv.count_cancelados }}</td>
           <td class="align-right">{{ sv.tasa_cancelacion }}%</td>

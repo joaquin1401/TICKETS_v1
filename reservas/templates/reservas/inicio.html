@@ -76,8 +76,6 @@
             <button type="button" class="btn btn-outline" id="openMapBtn" title="Elegir en el mapa" style="padding: 0 12px;">📍</button>
           </div>
           {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
-          {{ form.latitud_destino }}
-          {{ form.longitud_destino }}
         </div>
         <div class="form-row">
           <div class="form-group">
@@ -120,8 +118,8 @@
             <button type="button" class="close-modal" id="closeMapBtn">&times;</button>
           </div>
           <div id="map"></div>
-          <div style="margin-top: 12px; padding: 10px; background: var(--bg-color, #f8f9fa); border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.9rem;">
-            <strong>Destino:</strong> <span id="modalAddressDisplay" style="color: var(--primary); font-weight: 500;">Buscando ubicación...</span>
+          <div style="margin-top: 12px; padding: 10px; background: var(--bg-color, #f8f9fa); color: #000; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.9rem;">
+            <strong>Destino:</strong> <span id="modalAddressDisplay" style="font-weight: 500;">Buscando ubicación...</span>
           </div>
           <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px; margin-bottom: 0;">Hacé clic o arrastrá el marcador para autocompletar la dirección de destino.</p>
         </div>
@@ -129,38 +127,20 @@
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
       <script>
         // Leaflet Map Initialization
-        const latInput = document.querySelector('input[name="latitud_destino"]');
-        const lngInput = document.querySelector('input[name="longitud_destino"]');
-        
-        let initialLat = latInput.value ? parseFloat(latInput.value) : -27.4478;
-        let initialLng = lngInput.value ? parseFloat(lngInput.value) : -58.9863;
+        let currentLat = -27.4478; // Coordenadas UTN Resistencia por defecto
+        let currentLng = -58.9863;
 
-        const map = L.map('map').setView([initialLat, initialLng], 13);
+        const map = L.map('map').setView([currentLat, currentLng], 13);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors, © CARTO'
         }).addTo(map);
 
-        const marker = L.marker([initialLat, initialLng], {draggable: true}).addTo(map);
-
-        // No seteamos los hidden inputs por defecto a menos que se use el mapa.
-        // Esto permite que el backend sepa cuándo geocodificar manualmente.
-
+        const marker = L.marker([currentLat, currentLng], {draggable: true}).addTo(map);
         const destinoInput = document.getElementById('destinoInput');
-
-        // Si el usuario escribe a mano, borramos las coordenadas para forzar la validación en el backend
-        destinoInput.addEventListener('input', function(e) {
-            // Evitamos borrar si el input fue despachado por nuestro script de reverseGeocode
-            if (e.isTrusted) {
-                latInput.value = '';
-                lngInput.value = '';
-            }
-        });
 
         async function reverseGeocode(lat, lng) {
             try {
-                // Agregar User-Agent como header no es posible en fetch standard a OSM (CORS), pero Nominatim requiere un User-Agent.
-                // Como alternativa, podemos poner un contact en query parameter o usar el endpoint sin headers.
                 const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
                 const data = await response.json();
                 if (data && data.display_name) {
@@ -191,8 +171,8 @@
         }
 
         function updateCoordinates(lat, lng) {
-            latInput.value = lat;
-            lngInput.value = lng;
+            currentLat = lat;
+            currentLng = lng;
             reverseGeocode(lat, lng);
         }
 
@@ -228,8 +208,6 @@
                 mapModal.style.display = 'none';
             }
         });
-
-        // Existing form scripts
         const vehiculoSelect = document.querySelector('select[name="id_vehiculo"]');
         const pasajerosInput = document.getElementById('pasajerosInput');
         const exclusiveWarning = document.getElementById('exclusiveWarning');
