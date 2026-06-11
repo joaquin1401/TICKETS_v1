@@ -103,8 +103,7 @@
       <div class="alerts">
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }}">
-          {% if 'success' in message.tags %}✓{% elif 'danger' in message.tags %}✕{% elif 'warning' in message.tags %}⚠{%
-          else %}ℹ{% endif %}
+          {% if 'success' in message.tags %}✓{% elif 'error' in message.tags or 'danger' in message.tags %}✕{% elif 'warning' in message.tags %}⚠{% else %}ℹ{% endif %}
           {{ message }}
         </div>
         {% if 'clear_draft' in message.tags %}
