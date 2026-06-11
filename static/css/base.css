@@ -143,6 +143,7 @@ body {
 }
 .topbar {
   height: 52px;
+  flex-shrink: 0;
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
