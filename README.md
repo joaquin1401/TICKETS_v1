@@ -133,7 +133,13 @@ Para facilitar el desarrollo, el proyecto incluye un archivo de datos iniciales 
 
 Para desplegar esta aplicación en un entorno de producción (como Render, Heroku, VPS o similar), debes tener en cuenta los siguientes puntos críticos:
 
-### 1. Variables de Entorno Adicionales
+### 1. Variables de Entorno Fundamentales y Adicionales
+Asegúrate de configurar correctamente las variables de entorno principales para producción:
+
+- `DJANGO_DEBUG`: **Debe** ser `False`.
+- `ALLOWED_HOSTS`: Lista de dominios permitidos (ej. `tu-dominio.onrender.com`).
+- `CSRF_TRUSTED_ORIGINS`: URLs confiables para peticiones POST (ej. `https://tu-dominio.onrender.com`).
+
 Además de la base de datos, debes configurar las credenciales de correo electrónico para que el sistema pueda enviar notificaciones y recuperar contraseñas:
 
 - `EMAIL_HOST`: Servidor SMTP (ej. `smtp.gmail.com`).
@@ -143,10 +149,10 @@ Además de la base de datos, debes configurar las credenciales de correo electr�
 - `EMAIL_HOST_PASSWORD`: Contraseña de aplicación de tu proveedor de correo.
 
 ### 2. Servidor Web (Gunicorn)
-No uses `manage.py runserver` en producción. Utiliza un servidor WSGI como `gunicorn`:
+No uses `manage.py runserver` en producción. Utiliza un servidor WSGI como `gunicorn`.
+El comando de inicio (Start Command) para el servicio web debería ser:
 
 ```bash
-pip install gunicorn
 gunicorn config.wsgi:application --bind 0.0.0.0:8000
 ```
 
@@ -159,11 +165,11 @@ En tu plataforma de despliegue, debes configurar un proceso adicional (tipo *Wor
 python manage.py qcluster
 ```
 
-*(En un VPS tradicional, puedes usar `systemd` o `supervisor` para mantener este proceso vivo. En plataformas como Render, puedes crear un nuevo servicio de tipo "Background Worker" apuntando al mismo repositorio y ejecutar ese comando).*
+*Ejemplo en Render:* Debes crear un **Background Worker** separado de tu **Web Service**. Ambos deben apuntar al mismo repositorio y compartir las mismas variables de entorno (especialmente la Base de Datos). El comando de inicio para este worker es `python manage.py qcluster`.
 
 ### 4. Archivos Estáticos
-En producción, asegúrate de recolectar los archivos estáticos durante el proceso de build:
+En producción, asegúrate de recolectar los archivos estáticos durante el proceso de build (Build Command). Por ejemplo:
 
 ```bash
-python manage.py collectstatic --noinput
+pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
 ```
