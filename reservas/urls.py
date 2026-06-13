@@ -54,7 +54,10 @@ urlpatterns = [
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 8: Gestión de Choferes
     # ═══════════════════════════════════════════════════════════════════════════════
-    path("chofer/dashboard/", views.chofer_dashboard, name="chofer_dashboard"),
+        path("chofer/dashboard/", views.chofer_dashboard, name="chofer_dashboard"),
+    path("chofer/disponibles/", views.chofer_disponibles, name="chofer_disponibles"),
+    path("chofer/en-curso/", views.chofer_en_curso, name="chofer_en_curso"),
+    path("chofer/finalizados/", views.chofer_finalizados, name="chofer_finalizados"),
     path("tickets/<int:ticket_id>/aceptar/", views.aceptar_ticket, name="aceptar_ticket"),
     path("tickets/<int:ticket_id>/finalizar/", views.finalizar_ticket, name="finalizar_ticket"),
 

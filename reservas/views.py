@@ -653,44 +653,76 @@ def cancelar_ticket(request, ticket_id):
 # ÉPICA 8: GESTIÓN DE CHOFERES
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @login_requerido
 @chofer_requerido
 def chofer_dashboard(request):
-    """
-    Vista principal para el chofer.
-    Muestra tickets aprobados sin conductor, y sus propios tickets en curso o finalizados.
-    """
+    return redirect("chofer_disponibles")
+
+@login_requerido
+@chofer_requerido
+def chofer_disponibles(request):
     usuario = get_usuario_sesion(request)
-    
     from django.utils import timezone
+    
     tickets_disponibles_qs = Ticket.objects.filter(
         estado=Ticket.ESTADO_APROBADO, 
         conductor__isnull=True,
         hora_inicio__gte=timezone.now()
     ).select_related('id_vehiculo').order_by('hora_inicio')
-
     page_obj, pagination_query = paginate_queryset(request, tickets_disponibles_qs)
+    
+    context = {
+        "usuario": usuario,
+        "tickets_disponibles": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "count_en_curso": Ticket.objects.filter(estado=Ticket.ESTADO_EN_CURSO, conductor=usuario).count(),
+        "count_disponibles": tickets_disponibles_qs.count(),
+        "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count()
+    }
+    return render(request, "reservas/chofer_disponibles.html", context)
 
-    # Tickets en curso asignados a este chofer
+@login_requerido
+@chofer_requerido
+def chofer_en_curso(request):
+    usuario = get_usuario_sesion(request)
+    from django.utils import timezone
+    
     tickets_en_curso = Ticket.objects.filter(
         estado=Ticket.ESTADO_EN_CURSO,
         conductor=usuario
     ).select_related('id_vehiculo').order_by('hora_inicio')
+    
+    context = {
+        "usuario": usuario,
+        "tickets_en_curso": tickets_en_curso,
+        "count_en_curso": tickets_en_curso.count(),
+        "count_disponibles": Ticket.objects.filter(estado=Ticket.ESTADO_APROBADO, conductor__isnull=True, hora_inicio__gte=timezone.now()).count(),
+        "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count()
+    }
+    return render(request, "reservas/chofer_en_curso.html", context)
 
-    # Historial de tickets finalizados por este chofer
+@login_requerido
+@chofer_requerido
+def chofer_finalizados(request):
+    usuario = get_usuario_sesion(request)
+    from django.utils import timezone
+    
     tickets_finalizados = Ticket.objects.filter(
         estado=Ticket.ESTADO_FINALIZADO,
         conductor=usuario
     ).select_related('id_vehiculo').order_by('-hora_inicio')[:20]
-
-    return render(request, "reservas/chofer_dashboard.html", {
+    
+    context = {
         "usuario": usuario,
-        "tickets_disponibles": page_obj.object_list,
-        "tickets_en_curso": tickets_en_curso,
         "tickets_finalizados": tickets_finalizados,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-    })
+        "count_en_curso": Ticket.objects.filter(estado=Ticket.ESTADO_EN_CURSO, conductor=usuario).count(),
+        "count_disponibles": Ticket.objects.filter(estado=Ticket.ESTADO_APROBADO, conductor__isnull=True, hora_inicio__gte=timezone.now()).count(),
+        "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count()
+    }
+    return render(request, "reservas/chofer_finalizados.html", context)
+
 
 @login_requerido
 def aceptar_ticket(request, ticket_id):
@@ -725,7 +757,7 @@ def aceptar_ticket(request, ticket_id):
 
     if request.session.get("es_admin"):
         return redirect("monitor_tickets_activos")
-    return redirect("chofer_dashboard")
+    return redirect("chofer_en_curso")
 
 @login_requerido
 def finalizar_ticket(request, ticket_id):
@@ -778,7 +810,7 @@ def finalizar_ticket(request, ticket_id):
 
     if request.session.get("es_admin"):
         return redirect("monitor_tickets_activos")
-    return redirect("chofer_dashboard")
+    return redirect("chofer_finalizados")
 
 
 
