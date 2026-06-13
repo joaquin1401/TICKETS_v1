@@ -59,6 +59,10 @@
         class="nav-item {% if 'usuarios' in request.resolver_match.url_name %}active{% endif %}">
         <span class="icon">◷</span> Usuarios Activos
       </a>
+      <a href="{% url 'chofer_dashboard' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'chofer_dashboard' %}active{% endif %}">
+        <span class="icon">⬡</span> Panel de Chofer
+      </a>
       <a href="{% url 'monitor_tickets_activos' %}"
         class="nav-item {% if request.resolver_match.url_name == 'monitor_tickets_activos' %}active{% endif %}">
         <span class="icon">◉</span> Tickets Activos

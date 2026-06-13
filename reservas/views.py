@@ -150,7 +150,7 @@ def chofer_requerido(view_func):
     """
     def wrapper(request, *args, **kwargs):
         usuario = get_usuario_sesion(request)
-        if not usuario or usuario.id_cargo.nombre != Cargo.CHOFER:
+        if not usuario or (usuario.id_cargo.nombre != Cargo.CHOFER and not request.session.get("es_admin")):
             messages.error(request, "No tenés permisos para acceder a esta sección exclusiva para choferes.")
             return redirect("inicio")
         return view_func(request, *args, **kwargs)
