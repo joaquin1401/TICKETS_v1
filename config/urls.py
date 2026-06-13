@@ -6,3 +6,4 @@ urlpatterns = [
     # Esta línea deriva todo el tráfico hacia tu app "reservas"
     path('', include('reservas.urls')), 
 ]
+handler404 = 'reservas.views.custom_404'

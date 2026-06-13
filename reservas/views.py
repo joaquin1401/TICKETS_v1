@@ -170,6 +170,13 @@ def sin_chofer_requerido(view_func):
     wrapper.__name__ = view_func.__name__
     return wrapper
 
+def custom_404(request, exception=None):
+    """
+    Manejador personalizado para el error 404.
+    Muestra una página indicando que la ruta no existe.
+    """
+    return render(request, "reservas/404.html", status=404)
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ÉPICA 1: AUTENTICACIÓN
 # ══════════════════════════════════════════════════════════════════════════════

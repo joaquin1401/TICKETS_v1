@@ -1,0 +1,20 @@
+{% extends "reservas/base.html" %}
+
+{% block title %}Página no encontrada (404) — Sistema de Reserva de Vehículos{% endblock %}
+
+{% block body_class %}no-sidebar{% endblock %}
+
+{% block content %}
+<div
+    style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center;">
+    <div style="font-size: 72px; margin-bottom: 16px;">404</div>
+    <h1 style="margin-bottom: 16px; font-size: 32px;">¡Uy! Esa página no existe.</h1>
+    <p style="color: var(--text-muted); font-size: 18px; max-width: 500px; margin-bottom: 32px;">
+        Lo sentimos, parece que la ruta a la que intentaste acceder se movió, cambió de nombre o simplemente no existe
+        en el sistema.
+    </p>
+    <a href="{% url 'inicio' %}" class="btn btn-primary btn-lg" style="padding: 12px 32px; font-size: 16px;">
+        Volver al Inicio Seguro
+    </a>
+</div>
+{% endblock %}
