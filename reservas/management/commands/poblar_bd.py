@@ -77,6 +77,10 @@ class Command(BaseCommand):
         4. Mostrar resumen de datos creados
         """
         
+        import sys
+        if hasattr(sys.stdout, 'reconfigure'):
+            sys.stdout.reconfigure(encoding='utf-8')
+            
         self.stdout.write(self.style.WARNING("🔄 Iniciando poblamiento de base de datos...\n"))
 
         if options['clean']:
@@ -569,6 +573,20 @@ class Command(BaseCommand):
             "Actividad de extensión",
         ]
         
+        # Simular kilometraje calculado y variables reales
+        kilometraje = round(random.uniform(5.0, 150.0), 2)
+        kilometraje_real = None
+        hora_inicio_real = None
+        hora_fin_real = None
+        
+        if estado == Ticket.ESTADO_FINALIZADO:
+            kilometraje_real = round(kilometraje * random.uniform(0.9, 1.1), 2)
+            hora_inicio_real = hora_inicio + timedelta(minutes=random.randint(-15, 30))
+            if hora_fin:
+                hora_fin_real = hora_fin + timedelta(minutes=random.randint(-20, 60))
+            else:
+                hora_fin_real = hora_inicio_real + timedelta(hours=duracion_horas if duracion_horas else 2)
+        
         ticket, creado = Ticket.objects.get_or_create(
             id_usuario=usuario,
             id_vehiculo=vehiculo,
@@ -581,6 +599,10 @@ class Command(BaseCommand):
                 'estado': estado,
                 'observacion': "",
                 'conductor': conductor,
+                'kilometraje': kilometraje,
+                'kilometraje_real': kilometraje_real,
+                'hora_inicio_real': hora_inicio_real,
+                'hora_fin_real': hora_fin_real,
             }
         )
         
