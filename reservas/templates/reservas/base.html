@@ -34,7 +34,7 @@
         <span class="icon">⬡</span> Panel de Chofer
       </a>
     </div>
-    {% elif not request.session.es_admin %}
+    {% else %}
     <div class="sidebar-section">
       <div class="sidebar-section-label">Menú</div>
       <a href="{% url 'inicio' %}"
