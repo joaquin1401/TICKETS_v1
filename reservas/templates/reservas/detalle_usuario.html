@@ -10,11 +10,13 @@
   </div>
   <div style="display: flex; gap: 8px;">
     {% if usuario_detalle.valido %}
-    <form method="post" style="display:inline;" onsubmit="return confirm('¿Seguro que querés desactivar a este usuario?');">
-      {% csrf_token %}
-      <input type="hidden" name="accion" value="desactivar">
-      <button type="submit" class="btn btn-danger">Desactivar</button>
-    </form>
+      {% if usuario_detalle.id_cargo.prioridad != 0 %}
+      <form method="post" style="display:inline;" onsubmit="return confirm('¿Seguro que querés desactivar a este usuario?');">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="desactivar">
+        <button type="submit" class="btn btn-danger">Desactivar</button>
+      </form>
+      {% endif %}
     {% else %}
     <span class="badge badge-danger" style="display:flex;align-items:center;">Usuario Desactivado</span>
     {% endif %}

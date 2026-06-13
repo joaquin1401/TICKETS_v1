@@ -920,10 +920,13 @@ def detalle_usuario(request, usuario_id):
     if request.method == "POST":
         accion = request.POST.get("accion")
         if accion == "desactivar":
-            usuario_detalle.valido = False
-            usuario_detalle.rechazado = True
-            usuario_detalle.save(update_fields=["valido", "rechazado"])
-            messages.success(request, f"El usuario {usuario_detalle.nombre_completo} ha sido desactivado.")
+            if usuario_detalle.id_cargo.prioridad == 0:
+                messages.error(request, "No podés desactivar a un Administrador SEU.")
+            else:
+                usuario_detalle.valido = False
+                usuario_detalle.rechazado = True
+                usuario_detalle.save(update_fields=["valido", "rechazado"])
+                messages.success(request, f"El usuario {usuario_detalle.nombre_completo} ha sido desactivado.")
             return redirect("usuarios")
 
     tickets_qs = Ticket.objects.filter(
