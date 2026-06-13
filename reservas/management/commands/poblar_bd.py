@@ -145,10 +145,11 @@ class Command(BaseCommand):
         self.stdout.write("\n📋 Creando cargos...")
         
         cargos_config = [
-            ("SEU", 0),
+            (Cargo.ADMIN_SEU, 0),
             (Cargo.DECANO, 1),
             (Cargo.SECRETARIO, 2),
             (Cargo.USUARIO, 3),
+            (Cargo.CHOFER, 4),
         ]
         
         cargos = {}
@@ -178,7 +179,7 @@ class Command(BaseCommand):
         # LISTA DE USUARIOS PREDEFINIDOS PARA EDITAR
         usuarios_config = [
             # Administrador SEU
-            {'nombre': 'Denise', 'apellido': 'Mur', 'correo': 'admin@universidad.edu', 'cargo': 'SEU', 'valido': True, 'rechazado': False},
+            {'nombre': 'Denise', 'apellido': 'Mur', 'correo': 'admin@universidad.edu', 'cargo': Cargo.ADMIN_SEU, 'valido': True, 'rechazado': False},
             
             # Decanos
             {'nombre': 'Dorotea', 'apellido': 'Lucena', 'correo': 'decano_aprobado@universidad.edu', 'cargo': Cargo.DECANO, 'valido': True, 'rechazado': False},
@@ -194,7 +195,28 @@ class Command(BaseCommand):
             {'nombre': 'Nydia', 'apellido': 'Pereira', 'correo': 'usuario_aprobado@universidad.edu', 'cargo': Cargo.USUARIO, 'valido': True, 'rechazado': False},
             {'nombre': 'Jaime', 'apellido': 'Ferrera', 'correo': 'usuario_pendiente@universidad.edu', 'cargo': Cargo.USUARIO, 'valido': False, 'rechazado': False},
             {'nombre': 'Wilfredo', 'apellido': 'Iglesia', 'correo': 'usuario_rechazado@universidad.edu', 'cargo': Cargo.USUARIO, 'valido': False, 'rechazado': True},
+
+            # Choferes
+            {'nombre': 'Carlos', 'apellido': 'Piloto', 'correo': 'chofer1@universidad.edu', 'cargo': Cargo.CHOFER, 'valido': True, 'rechazado': False},
+            {'nombre': 'Miguel', 'apellido': 'Rueda', 'correo': 'chofer2@universidad.edu', 'cargo': Cargo.CHOFER, 'valido': True, 'rechazado': False},
         ]
+        
+        nombres = ["Ana", "Juan", "Pedro", "Maria", "Luis", "Elena", "Sofía", "Carlos", "Javier", "Lucía", "Diego", "Marta", "Pablo", "Laura", "Andrés", "Paula", "Fernando", "Raquel"]
+        apellidos = ["Gómez", "López", "García", "Fernández", "Pérez", "Rodríguez", "Sánchez", "Martínez", "González", "Romero", "Navarro", "Torres", "Ruiz", "Díaz", "Vargas", "Ríos", "Molina"]
+        
+        # Generar 20 usuarios adicionales al azar para llegar a >20
+        for i in range(25):
+            nombre = random.choice(nombres)
+            apellido = random.choice(apellidos)
+            cargo_rand = random.choice([Cargo.USUARIO, Cargo.USUARIO, Cargo.USUARIO, Cargo.SECRETARIO, Cargo.DECANO])
+            usuarios_config.append({
+                'nombre': nombre,
+                'apellido': apellido,
+                'correo': f'user_{i}_{nombre.lower()}_{apellido.lower()}@universidad.edu',
+                'cargo': cargo_rand,
+                'valido': True,
+                'rechazado': False
+            })
         
         usuarios_aprobados = []
         contadores = {'aprobados': 0, 'pendientes': 0, 'rechazados': 0}
@@ -236,7 +258,7 @@ class Command(BaseCommand):
                 contadores['pendientes'] += 1
                 
             simbolo = "✓" if config['valido'] else ("✗" if config['rechazado'] else "⏳")
-            if cargo_nombre == 'SEU': simbolo = "⭐"
+            if cargo_nombre == Cargo.ADMIN_SEU: simbolo = "⭐"
             
             self.stdout.write(f"  {simbolo} {usuario.nombre_completo} ({cargo_nombre}) - {estado_str} [{usuario.correo}]")
             
@@ -483,9 +505,38 @@ class Command(BaseCommand):
             contador_creados += 1
             self.stdout.write(f"    ✓ {ticket_sin_fin.destino} - SIN HORA FIN")
         
+        # ESCENARIO 8: Relleno masivo hasta llegar a 100 tickets
+        self.stdout.write(f"\n  📈 Escenario 8: Generación masiva (hasta >100 tickets)...")
+        choferes = [u for u in usuarios if u.id_cargo.nombre == Cargo.CHOFER]
+        tickets_faltantes = 100 - contador_creados
+        for i in range(max(0, tickets_faltantes + 5)):  # Asegurar más de 100
+            es_en_curso = random.random() < 0.1
+            es_finalizado = random.random() < 0.3 and not es_en_curso
+            
+            estado_ticket = Ticket.ESTADO_APROBADO
+            conductor_asignado = None
+            if es_en_curso and choferes:
+                estado_ticket = Ticket.ESTADO_EN_CURSO
+                conductor_asignado = random.choice(choferes)
+            elif es_finalizado and choferes:
+                estado_ticket = Ticket.ESTADO_FINALIZADO
+                conductor_asignado = random.choice(choferes)
+                
+            ticket = self._crear_reserva(
+                usuario=random.choice(usuarios),
+                vehiculo=random.choice(vehiculos),
+                hora_inicio=ahora + timedelta(days=random.randint(-40, 40), hours=random.randint(-12, 12)),
+                duracion_horas=random.randint(2, 8),
+                estado=estado_ticket,
+                descripcion="Reserva masiva generada automáticamente",
+                conductor=conductor_asignado
+            )
+            if ticket:
+                contador_creados += 1
+                
         self.stdout.write(f"\n  📊 Total reservas creadas: {contador_creados}")
 
-    def _crear_reserva(self, usuario, vehiculo, hora_inicio, duracion_horas, estado, descripcion):
+    def _crear_reserva(self, usuario, vehiculo, hora_inicio, duracion_horas, estado, descripcion, conductor=None):
         """
         Helper para crear una reserva/ticket.
         
@@ -529,6 +580,7 @@ class Command(BaseCommand):
                 'hora_fin': hora_fin,
                 'estado': estado,
                 'observacion': "",
+                'conductor': conductor,
             }
         )
         
