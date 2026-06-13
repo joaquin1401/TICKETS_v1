@@ -93,7 +93,7 @@
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
           <td>
             {{ t.destino }}
-            {% if t.kilometraje > 0 %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ t.kilometraje }} km</div>{% endif %}
+            {% if t.kilometraje > 0 or t.kilometraje_real %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{% if t.kilometraje > 0 %}Est: {{ t.kilometraje }} km{% endif %}{% if t.kilometraje > 0 and t.kilometraje_real %} | {% endif %}{% if t.kilometraje_real %}Real: <span style="font-weight:600;color:var(--text);">{{ t.kilometraje_real }} km</span>{% endif %}</div>{% endif %}
           </td>
           <td class="text-mono">{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
           <td>

@@ -103,7 +103,7 @@
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
           <td>
             {{ t.destino }}
-            {% if t.kilometraje > 0 %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ t.kilometraje }} km</div>{% endif %}
+            {% if t.kilometraje > 0 or t.kilometraje_real %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{% if t.kilometraje > 0 %}Est: {{ t.kilometraje }} km{% endif %}{% if t.kilometraje > 0 and t.kilometraje_real %} | {% endif %}{% if t.kilometraje_real %}Real: <span style="font-weight:600;color:var(--text);">{{ t.kilometraje_real }} km</span>{% endif %}</div>{% endif %}
           </td>
           <td class="text-mono">{{ t.hora_inicio|date:"d/m H:i" }}</td>
           <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
@@ -117,8 +117,9 @@
                   <button type="submit" class="btn btn-primary btn-sm">Asignarme</button>
                 </form>
               {% elif t.estado == 'en_curso' and t.conductor.pk == request.session.usuario_id %}
-                <form method="post" action="{% url 'finalizar_ticket' t.pk %}" style="display:inline;">
+                <form method="post" action="{% url 'finalizar_ticket' t.pk %}" style="display:flex; align-items:center; gap:4px;">
                   {% csrf_token %}
+                  <input type="number" step="0.01" min="0.01" name="kilometraje_real" required placeholder="Km" title="Kilometraje Real" style="width: 60px; font-size: 11px; padding: 4px;">
                   <button type="submit" class="btn btn-success btn-sm">Finalizar</button>
                 </form>
               {% endif %}

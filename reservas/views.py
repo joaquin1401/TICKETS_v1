@@ -740,9 +740,20 @@ def finalizar_ticket(request, ticket_id):
 
     if ticket.conductor == usuario or request.session.get("es_admin"):
         if ticket.estado == Ticket.ESTADO_EN_CURSO:
+            km_real_str = request.POST.get("kilometraje_real", "").replace(',', '.')
+            if not km_real_str:
+                messages.error(request, "Debes ingresar el kilometraje real para finalizar el ticket.")
+                return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+            
+            try:
+                ticket.kilometraje_real = float(km_real_str)
+            except ValueError:
+                messages.error(request, "Kilometraje real inválido.")
+                return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+                
             ticket.estado = Ticket.ESTADO_FINALIZADO
-            ticket.save(update_fields=['estado'])
-            messages.success(request, f"El ticket #{ticket.pk} ha sido finalizado.")
+            ticket.save(update_fields=['estado', 'kilometraje_real'])
+            messages.success(request, f"El ticket #{ticket.pk} ha sido finalizado con {ticket.kilometraje_real} km.")
         else:
             messages.error(request, "El ticket no está en curso.")
     else:

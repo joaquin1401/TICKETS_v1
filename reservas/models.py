@@ -281,6 +281,10 @@ class Ticket(models.Model):
         max_digits=10, decimal_places=2, default=0.0,
         help_text="Distancia en kilómetros desde UTN FRRE al destino"
     )
+    kilometraje_real = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Distancia real recorrida reportada por el chofer al finalizar"
+    )
     cant_pasajeros = models.PositiveIntegerField()
     descripcion = models.TextField(blank=True)
     hora_inicio = models.DateTimeField()
