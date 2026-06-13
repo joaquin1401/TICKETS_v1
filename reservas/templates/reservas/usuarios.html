@@ -8,7 +8,10 @@
     <h1>Usuarios</h1>
     <p class="sub">Empleados con acceso activo</p>
   </div>
-  <a href="{% url 'panel_validacion' %}" class="btn btn-outline">Pendientes →</a>
+  <div style="display: flex; gap: 8px;">
+    <a href="{% url 'admin_crear_usuario' %}" class="btn btn-primary">Crear Usuario</a>
+    <a href="{% url 'panel_validacion' %}" class="btn btn-outline">Pendientes →</a>
+  </div>
 </div>
 
 <div class="card" style="margin-bottom:16px;">

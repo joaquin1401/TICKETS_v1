@@ -1,0 +1,123 @@
+{% extends "reservas/base.html" %}
+{% block title %}Panel de Chofer — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}Panel de Chofer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Panel de Chofer</h1>
+    <p class="sub">Bienvenido, {{ usuario.nombre_completo }}. Aquí puedes gestionar tus viajes.</p>
+  </div>
+</div>
+
+
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Viajes en curso</div>
+    <div class="stat-value" style="color:var(--success);">{{ tickets_en_curso|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Viajes disponibles</div>
+    <div class="stat-value" style="color:var(--primary);">{{ tickets_disponibles|length }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Viajes finalizados</div>
+    <div class="stat-value neutral">{{ tickets_finalizados|length }}</div>
+  </div>
+</div>
+
+<h2 style="font-size: 18px; margin-top: 32px; margin-bottom: 16px;">◉ Mis Viajes en Curso</h2>
+{% if tickets_en_curso %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
+  {% for t in tickets_en_curso %}
+  <div class="card" style="display: flex; flex-direction: column;">
+    <div class="card-header" style="justify-content: space-between;">
+      <span class="text-mono text-muted">#{{ t.pk }}</span>
+      <span class="badge badge-success">En Curso</span>
+    </div>
+    <div class="card-body" style="flex: 1; padding: 16px;">
+      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">{{ t.destino }}</h3>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Pasajeros:</strong> {{ t.cant_pasajeros }}</p>
+    </div>
+    <div style="border-top: 1px solid var(--border); padding: 16px; background: var(--surface2); border-radius: 0 0 10px 10px;">
+      <form method="post" action="{% url 'finalizar_ticket' t.pk %}" style="margin: 0;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success" style="width: 100%;">Finalizar Viaje</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card" style="margin-bottom: 24px;">
+  <div class="empty-state">
+    <div class="icon">◌</div>
+    <p>No tienes viajes en curso actualmente.</p>
+  </div>
+</div>
+{% endif %}
+
+<h2 style="font-size: 18px; margin-top: 32px; margin-bottom: 16px;">◉ Viajes Disponibles</h2>
+{% if tickets_disponibles %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+  {% for t in tickets_disponibles %}
+  <div class="card" style="display: flex; flex-direction: column;">
+    <div class="card-header" style="justify-content: space-between;">
+      <span class="text-mono text-muted">#{{ t.pk }}</span>
+      <span class="badge badge-primary">Para Asignar</span>
+    </div>
+    <div class="card-body" style="flex: 1; padding: 16px;">
+      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">{{ t.destino }}</h3>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Pasajeros:</strong> {{ t.cant_pasajeros }}</p>
+    </div>
+    <div style="border-top: 1px solid var(--border); padding: 16px; background: var(--surface2); border-radius: 0 0 10px 10px;">
+      <form method="post" action="{% url 'aceptar_ticket' t.pk %}" style="margin: 0;">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Aceptar Viaje</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% include "reservas/_pagination.html" %}
+{% else %}
+<div class="card" style="margin-bottom: 24px;">
+  <div class="empty-state">
+    <div class="icon">◌</div>
+    <p>No hay viajes pendientes de asignar.</p>
+  </div>
+</div>
+{% endif %}
+
+<h2 style="font-size: 18px; margin-top: 48px; margin-bottom: 16px;">◷ Últimos Viajes Finalizados</h2>
+{% if tickets_finalizados %}
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
+  {% for t in tickets_finalizados %}
+  <div class="card" style="display: flex; flex-direction: column; opacity: 0.85;">
+    <div class="card-header" style="justify-content: space-between;">
+      <span class="text-mono text-muted">#{{ t.pk }}</span>
+      <span class="badge badge-neutral">Finalizado</span>
+    </div>
+    <div class="card-body" style="flex: 1; padding: 16px;">
+      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">{{ t.destino }}</h3>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Pasajeros:</strong> {{ t.cant_pasajeros }}</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card" style="margin-bottom: 24px;">
+  <div class="empty-state">
+    <div class="icon">◌</div>
+    <p>No hay viajes finalizados en tu historial.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "reservas/base.html" %}
+{% block title %}Crear Usuario — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}<a href="{% url 'usuarios' %}">Usuarios</a> / Crear Nuevo{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Crear Nuevo Usuario</h1>
+    <p class="sub">Registrar un usuario validado directamente (incluyendo Choferes y Administradores)</p>
+  </div>
+  <a href="{% url 'usuarios' %}" class="btn btn-outline">← Volver a usuarios</a>
+</div>
+
+<div style="max-width:520px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">◧ Nuevo usuario</span>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nombre <span style="color:var(--danger);">*</span></label>
+            <input type="text" name="nombre" class="form-control" placeholder="Ej: Juan"
+                   value="{{ form.nombre.value|default:'' }}">
+            {% if form.nombre.errors %}<p class="form-error">{{ form.nombre.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Apellido <span style="color:var(--danger);">*</span></label>
+            <input type="text" name="apellido" class="form-control" placeholder="Ej: Pérez"
+                   value="{{ form.apellido.value|default:'' }}">
+            {% if form.apellido.errors %}<p class="form-error">{{ form.apellido.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="width: 100%;">
+            <label class="form-label">Correo electrónico <span style="color:var(--danger);">*</span></label>
+            <input type="email" name="correo" class="form-control" placeholder="correo@empresa.com"
+                   value="{{ form.correo.value|default:'' }}">
+            {% if form.correo.errors %}<p class="form-error">{{ form.correo.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="width: 100%;">
+            <label class="form-label">Cargo <span style="color:var(--danger);">*</span></label>
+            <select name="id_cargo" class="form-control">
+              <option value="">---------</option>
+              {% for cargo in form.id_cargo.field.queryset %}
+              <option value="{{ cargo.pk }}" {% if form.id_cargo.value|stringformat:"s" == cargo.pk|stringformat:"s" %}selected{% endif %}>
+                {{ cargo.nombre }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.id_cargo.errors %}<p class="form-error">{{ form.id_cargo.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Contraseña <span style="color:var(--danger);">*</span></label>
+            <input type="password" name="contrasena" class="form-control" placeholder="Contraseña">
+            {% if form.contrasena.errors %}<p class="form-error">{{ form.contrasena.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Confirmar Contraseña <span style="color:var(--danger);">*</span></label>
+            <input type="password" name="confirmar_contrasena" class="form-control" placeholder="Confirmar contraseña">
+            {% if form.confirmar_contrasena.errors %}<p class="form-error">{{ form.confirmar_contrasena.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <p class="form-error" style="margin-bottom:12px;">{{ form.non_field_errors.0 }}</p>
+        {% endif %}
+
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span style="color:var(--danger);">*</span> Campos requeridos</p>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button type="submit" class="btn btn-primary btn-lg">Crear Usuario</button>
+          <a href="{% url 'usuarios' %}" class="btn btn-outline btn-lg">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

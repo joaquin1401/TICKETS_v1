@@ -26,7 +26,15 @@
       <div class="wordmark">Sistema de Reserva de Vehículos</div>
     </div>
 
-    {% if not usuario.id_cargo.nombre|lower == "administrador" or not request.session.es_admin %}
+    {% if usuario.id_cargo.nombre|lower == "chofer" %}
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Menú de Viajes</div>
+      <a href="{% url 'chofer_dashboard' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'chofer_dashboard' %}active{% endif %}">
+        <span class="icon">⬡</span> Panel de Chofer
+      </a>
+    </div>
+    {% elif not request.session.es_admin %}
     <div class="sidebar-section">
       <div class="sidebar-section-label">Menú</div>
       <a href="{% url 'inicio' %}"

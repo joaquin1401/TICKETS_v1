@@ -35,12 +35,14 @@ class Cargo(models.Model):
     DECANO = "Decano"
     SECRETARIO = "Secretario"
     USUARIO = "Usuario"
+    CHOFER = "Chofer"
     ADMIN_SEU = "Administrador SEU"
 
     CARGOS_CHOICES = [
         (DECANO, "Decano"),
         (SECRETARIO, "Secretario"),
         (USUARIO, "Usuario"),
+        (CHOFER, "Chofer"),
         (ADMIN_SEU, "Administrador SEU"),
     ]
 
@@ -253,11 +255,15 @@ class Ticket(models.Model):
     ESTADO_PENDIENTE = "pendiente"
     ESTADO_APROBADO = "aprobado"
     ESTADO_CANCELADO = "cancelado"
+    ESTADO_EN_CURSO = "en_curso"
+    ESTADO_FINALIZADO = "finalizado"
 
     ESTADOS = [
         (ESTADO_PENDIENTE, "Pendiente"),
         (ESTADO_APROBADO, "Aprobado"),
         (ESTADO_CANCELADO, "Cancelado"),
+        (ESTADO_EN_CURSO, "En Curso"),
+        (ESTADO_FINALIZADO, "Finalizado"),
     ]
 
     id_usuario = models.ForeignKey(
@@ -265,6 +271,10 @@ class Ticket(models.Model):
     )
     id_vehiculo = models.ForeignKey(
         Vehiculo, on_delete=models.PROTECT, related_name="tickets"
+    )
+    conductor = models.ForeignKey(
+        Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets_conducidos",
+        help_text="Chofer asignado al viaje"
     )
     destino = models.CharField(max_length=255)
     cant_pasajeros = models.PositiveIntegerField()

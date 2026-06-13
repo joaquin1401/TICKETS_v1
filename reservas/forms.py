@@ -117,6 +117,28 @@ class RegistroForm(forms.ModelForm):
         return usuario
 
 
+class AdminCrearUsuarioForm(RegistroForm):
+    """
+    Formulario para que el administrador cree usuarios directamente (validados).
+    Permite asignar cualquier cargo, incluyendo Administrador.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # El administrador puede asignar cualquier cargo
+        self.fields["id_cargo"].queryset = Cargo.objects.all()
+
+    def save(self, commit=True):
+        usuario = super(RegistroForm, self).save(commit=False)
+        usuario.set_password(self.cleaned_data["contrasena"])
+        # Los usuarios creados por el admin nacen válidos y verificados
+        usuario.valido = True
+        usuario.rechazado = False
+        usuario.correo_verificado = True
+        if commit:
+            usuario.save()
+        return usuario
+
+
 class LoginForm(forms.Form):
     """
     Formulario para inicio de sesión (HU 1.2).

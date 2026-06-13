@@ -28,6 +28,7 @@ from .forms import (
     RegistroForm, LoginForm, TicketForm, VehiculoSelectorForm,
     FiltroUsuariosForm, FiltroTicketsForm, VehiculoForm,
     VerificacionCodigoForm,          # [NUEVO] formulario de código de 6 dígitos
+    AdminCrearUsuarioForm,           # Formulario para admin
 )
 from .email_verification import (    # [NUEVO] servicio de verificación de correo
     crear_verificacion,
@@ -142,6 +143,32 @@ def admin_requerido(view_func):
     wrapper.__name__ = view_func.__name__
     return wrapper
 
+
+def chofer_requerido(view_func):
+    """
+    Decorador que redirige si el usuario no es Chofer.
+    """
+    def wrapper(request, *args, **kwargs):
+        usuario = get_usuario_sesion(request)
+        if not usuario or usuario.id_cargo.nombre != Cargo.CHOFER:
+            messages.error(request, "No tenés permisos para acceder a esta sección exclusiva para choferes.")
+            return redirect("inicio")
+        return view_func(request, *args, **kwargs)
+    wrapper.__name__ = view_func.__name__
+    return wrapper
+
+def sin_chofer_requerido(view_func):
+    """
+    Decorador que evita que los Choferes accedan a vistas de usuarios normales.
+    Si es chofer, lo redirige a su dashboard.
+    """
+    def wrapper(request, *args, **kwargs):
+        usuario = get_usuario_sesion(request)
+        if usuario and usuario.id_cargo.nombre == Cargo.CHOFER:
+            return redirect("chofer_dashboard")
+        return view_func(request, *args, **kwargs)
+    wrapper.__name__ = view_func.__name__
+    return wrapper
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ÉPICA 1: AUTENTICACIÓN
@@ -296,6 +323,8 @@ def login_view(request):
             # Establecer sesión
             request.session["usuario_id"] = usuario.pk
             request.session["es_admin"] = (usuario.id_cargo.prioridad == 0)
+            if usuario.id_cargo.nombre == Cargo.CHOFER:
+                return redirect("chofer_dashboard")
             return redirect("inicio")
     else:
         form = LoginForm()
@@ -331,6 +360,7 @@ def logout_view(request):
 
 
 @login_requerido
+@sin_chofer_requerido
 def inicio(request):
     """
     Vista de inicio principal del usuario (HU 2.1).
@@ -489,6 +519,7 @@ def inicio(request):
 
 
 @login_requerido
+@sin_chofer_requerido
 def historial(request):
     """
     Vista del historial de tickets del usuario (HU 2.2).
@@ -542,6 +573,7 @@ def historial(request):
 
 
 @login_requerido
+@sin_chofer_requerido
 def detalle_ticket(request, ticket_id):
     """
     Vista de detalle de un ticket específico (HU 2.3).
@@ -583,6 +615,7 @@ def detalle_ticket(request, ticket_id):
 
 
 @login_requerido
+@sin_chofer_requerido
 def cancelar_ticket(request, ticket_id):
     """
     Vista para que un usuario cancele su propio ticket (HU 2.4).
@@ -606,6 +639,110 @@ def cancelar_ticket(request, ticket_id):
         messages.error(request, mensaje)
         
     return redirect("detalle_ticket", ticket_id=ticket.pk)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ÉPICA 8: GESTIÓN DE CHOFERES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_requerido
+@chofer_requerido
+def chofer_dashboard(request):
+    """
+    Vista principal para el chofer.
+    Muestra tickets aprobados sin conductor, y sus propios tickets en curso o finalizados.
+    """
+    usuario = get_usuario_sesion(request)
+    
+    from django.utils import timezone
+    tickets_disponibles_qs = Ticket.objects.filter(
+        estado=Ticket.ESTADO_APROBADO, 
+        conductor__isnull=True,
+        hora_inicio__gte=timezone.now()
+    ).select_related('id_vehiculo').order_by('hora_inicio')
+
+    page_obj, pagination_query = paginate_queryset(request, tickets_disponibles_qs)
+
+    # Tickets en curso asignados a este chofer
+    tickets_en_curso = Ticket.objects.filter(
+        estado=Ticket.ESTADO_EN_CURSO,
+        conductor=usuario
+    ).select_related('id_vehiculo').order_by('hora_inicio')
+
+    # Historial de tickets finalizados por este chofer
+    tickets_finalizados = Ticket.objects.filter(
+        estado=Ticket.ESTADO_FINALIZADO,
+        conductor=usuario
+    ).select_related('id_vehiculo').order_by('-hora_inicio')[:20]
+
+    return render(request, "reservas/chofer_dashboard.html", {
+        "usuario": usuario,
+        "tickets_disponibles": page_obj.object_list,
+        "tickets_en_curso": tickets_en_curso,
+        "tickets_finalizados": tickets_finalizados,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+    })
+
+@login_requerido
+def aceptar_ticket(request, ticket_id):
+    """
+    Permite a un chofer o admin asignarse como conductor a un ticket.
+    """
+    if request.method != "POST":
+        return redirect("inicio")
+
+    usuario = get_usuario_sesion(request)
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+
+    # Validar permisos (debe ser chofer o admin)
+    if usuario.id_cargo.nombre != Cargo.CHOFER and not request.session.get("es_admin"):
+        messages.error(request, "No tenés permisos para aceptar este ticket.")
+        return redirect("inicio")
+
+    # Validar que el chofer no tenga otro viaje a la misma hora
+    if Ticket.objects.filter(conductor=usuario, estado=Ticket.ESTADO_EN_CURSO, hora_inicio=ticket.hora_inicio).exclude(pk=ticket.pk).exists():
+        messages.error(request, "No podés aceptar este viaje porque ya tenés otro asignado con la misma hora de salida.")
+        if request.session.get("es_admin"):
+            return redirect("monitor_tickets_activos")
+        return redirect("chofer_dashboard")
+
+    if ticket.estado == Ticket.ESTADO_APROBADO and ticket.conductor is None:
+        ticket.conductor = usuario
+        ticket.estado = Ticket.ESTADO_EN_CURSO
+        ticket.save(update_fields=['conductor', 'estado'])
+        messages.success(request, f"Te has asignado como conductor del ticket #{ticket.pk}.")
+    else:
+        messages.error(request, "El ticket no está disponible para asignación.")
+
+    if request.session.get("es_admin"):
+        return redirect("monitor_tickets_activos")
+    return redirect("chofer_dashboard")
+
+@login_requerido
+def finalizar_ticket(request, ticket_id):
+    """
+    Permite al conductor de un ticket finalizarlo.
+    """
+    if request.method != "POST":
+        return redirect("inicio")
+
+    usuario = get_usuario_sesion(request)
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+
+    if ticket.conductor == usuario or request.session.get("es_admin"):
+        if ticket.estado == Ticket.ESTADO_EN_CURSO:
+            ticket.estado = Ticket.ESTADO_FINALIZADO
+            ticket.save(update_fields=['estado'])
+            messages.success(request, f"El ticket #{ticket.pk} ha sido finalizado.")
+        else:
+            messages.error(request, "El ticket no está en curso.")
+    else:
+        messages.error(request, "No tenés permisos para finalizar este ticket.")
+
+    if request.session.get("es_admin"):
+        return redirect("monitor_tickets_activos")
+    return redirect("chofer_dashboard")
 
 
 
@@ -764,6 +901,27 @@ def usuarios(request):
         "usuario": get_usuario_sesion(request),
     })
 
+@login_requerido
+@admin_requerido
+def admin_crear_usuario(request):
+    """
+    Vista para que un administrador pueda crear usuarios directamente.
+    Los usuarios creados nacen validados.
+    """
+    if request.method == "POST":
+        form = AdminCrearUsuarioForm(request.POST)
+        if form.is_valid():
+            usuario = form.save()
+            messages.success(request, f"Usuario {usuario.nombre_completo} creado exitosamente.")
+            return redirect("usuarios")
+    else:
+        form = AdminCrearUsuarioForm()
+    
+    return render(request, "reservas/admin_crear_usuario.html", {
+        "form": form,
+        "usuario": get_usuario_sesion(request),
+    })
+
 
 @login_requerido
 @admin_requerido
@@ -821,7 +979,7 @@ def monitor_tickets_activos(request):
     """
     form = FiltroTicketsForm(request.GET or None)
     tickets_qs = Ticket.objects.filter(
-        estado=Ticket.ESTADO_APROBADO,
+        estado__in=[Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO],
         hora_inicio__gte=date.today(),
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("hora_inicio")
 

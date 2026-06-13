@@ -105,7 +105,22 @@
           <td class="text-mono">{{ t.hora_inicio|date:"d/m H:i" }}</td>
           <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{{ t.cant_pasajeros }}</td>
-          <td><a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
+          <td style="display: flex; gap: 5px;">
+            <a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a>
+            {% if request.session.es_admin %}
+              {% if t.estado == 'aprobado' and not t.conductor %}
+                <form method="post" action="{% url 'aceptar_ticket' t.pk %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-primary btn-sm">Asignarme</button>
+                </form>
+              {% elif t.estado == 'en_curso' and t.conductor.pk == request.session.usuario_id %}
+                <form method="post" action="{% url 'finalizar_ticket' t.pk %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-success btn-sm">Finalizar</button>
+                </form>
+              {% endif %}
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>

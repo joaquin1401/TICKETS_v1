@@ -52,6 +52,13 @@ urlpatterns = [
     path("tickets/<int:ticket_id>/cancelar/", views.cancelar_ticket, name="cancelar_ticket"),
 
     # ═══════════════════════════════════════════════════════════════════════════════
+    # Épica 8: Gestión de Choferes
+    # ═══════════════════════════════════════════════════════════════════════════════
+    path("chofer/dashboard/", views.chofer_dashboard, name="chofer_dashboard"),
+    path("tickets/<int:ticket_id>/aceptar/", views.aceptar_ticket, name="aceptar_ticket"),
+    path("tickets/<int:ticket_id>/finalizar/", views.finalizar_ticket, name="finalizar_ticket"),
+
+    # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 3: Calendario e Interactividad
     # ═══════════════════════════════════════════════════════════════════════════════
     # HU 3.1: Selector de vehículo
@@ -73,6 +80,7 @@ urlpatterns = [
     
     path("admin-panel/validacion/", views.panel_validacion, name="panel_validacion"),
     path("admin-panel/usuarios/", views.usuarios, name="usuarios"),
+    path("admin-panel/usuarios/crear/", views.admin_crear_usuario, name="admin_crear_usuario"),
     path("admin-panel/usuarios/rechazados/", views.usuarios_rechazados, name="usuarios_rechazados"),
     path("admin-panel/tickets/activos/", views.monitor_tickets_activos, name="monitor_tickets_activos"),
     path("admin-panel/tickets/historial/", views.historial_tickets, name="historial_tickets"),
