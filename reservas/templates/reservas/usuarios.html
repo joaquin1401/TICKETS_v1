@@ -59,6 +59,7 @@
           <th>Correo</th>
           <th>Cargo</th>
           <th>Prioridad</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -69,12 +70,13 @@
               <div style="width:28px;height:28px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-dim);flex-shrink:0;">
                 {{ u.nombre.0 }}{{ u.apellido.0 }}
               </div>
-              <span class="primary">{{ u.nombre }} {{ u.apellido }}</span>
+              <a href="{% url 'detalle_usuario' u.pk %}" class="primary" style="text-decoration:none;">{{ u.nombre }} {{ u.apellido }}</a>
             </div>
           </td>
           <td class="text-mono" style="font-size:12px;">{{ u.correo }}</td>
           <td><span class="badge badge-warning">{{ u.id_cargo.nombre }}</span></td>
           <td class="text-mono text-muted">{{ u.id_cargo.prioridad }}</td>
+          <td><a href="{% url 'detalle_usuario' u.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
         </tr>
         {% endfor %}
       </tbody>

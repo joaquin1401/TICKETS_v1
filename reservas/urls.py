@@ -80,6 +80,7 @@ urlpatterns = [
     
     path("admin-panel/validacion/", views.panel_validacion, name="panel_validacion"),
     path("admin-panel/usuarios/", views.usuarios, name="usuarios"),
+    path("admin-panel/usuarios/<int:usuario_id>/", views.detalle_usuario, name="detalle_usuario"),
     path("admin-panel/usuarios/crear/", views.admin_crear_usuario, name="admin_crear_usuario"),
     path("admin-panel/usuarios/rechazados/", views.usuarios_rechazados, name="usuarios_rechazados"),
     path("admin-panel/tickets/activos/", views.monitor_tickets_activos, name="monitor_tickets_activos"),

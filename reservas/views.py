@@ -910,6 +910,40 @@ def usuarios(request):
 
 @login_requerido
 @admin_requerido
+def detalle_usuario(request, usuario_id):
+    """
+    Vista de detalle de un usuario y su historial de tickets.
+    Permite a los administradores (SEU) desactivar la cuenta del usuario.
+    """
+    usuario_detalle = get_object_or_404(Usuario, pk=usuario_id)
+
+    if request.method == "POST":
+        accion = request.POST.get("accion")
+        if accion == "desactivar":
+            usuario_detalle.valido = False
+            usuario_detalle.rechazado = True
+            usuario_detalle.save(update_fields=["valido", "rechazado"])
+            messages.success(request, f"El usuario {usuario_detalle.nombre_completo} ha sido desactivado.")
+            return redirect("usuarios")
+
+    tickets_qs = Ticket.objects.filter(
+        id_usuario=usuario_detalle
+    ).select_related("id_vehiculo").order_by("-hora_inicio")
+    
+    page_obj, pagination_query = paginate_queryset(request, tickets_qs)
+
+    return render(request, "reservas/detalle_usuario.html", {
+        "usuario_detalle": usuario_detalle,
+        "tickets": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "total_tickets": page_obj.paginator.count,
+        "usuario": get_usuario_sesion(request),
+    })
+
+
+@login_requerido
+@admin_requerido
 def admin_crear_usuario(request):
     """
     Vista para que un administrador pueda crear usuarios directamente.

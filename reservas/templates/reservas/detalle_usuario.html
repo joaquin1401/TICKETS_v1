@@ -1,0 +1,72 @@
+{% extends "reservas/base.html" %}
+{% block title %}Detalle de Usuario — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}<a href="{% url 'usuarios' %}">Usuarios</a> / {{ usuario_detalle.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ usuario_detalle.nombre_completo }}</h1>
+    <p class="sub">{{ usuario_detalle.correo }} — <span class="badge badge-warning">{{ usuario_detalle.id_cargo.nombre }}</span></p>
+  </div>
+  <div style="display: flex; gap: 8px;">
+    {% if usuario_detalle.valido %}
+    <form method="post" style="display:inline;" onsubmit="return confirm('¿Seguro que querés desactivar a este usuario?');">
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="desactivar">
+      <button type="submit" class="btn btn-danger">Desactivar</button>
+    </form>
+    {% else %}
+    <span class="badge badge-danger" style="display:flex;align-items:center;">Usuario Desactivado</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span class="card-title">◫ Historial de Tickets</span>
+    <span class="badge badge-neutral">{{ total_tickets }} total</span>
+  </div>
+  <div class="table-wrap">
+    {% if tickets %}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Destino</th>
+          <th>Vehículo</th>
+          <th>Salida</th>
+          <th>Regreso</th>
+          <th>Pasajeros</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td><span class="text-mono text-muted">#{{ t.pk }}</span></td>
+          <td><span class="primary">{{ t.destino }}</span></td>
+          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
+          <td class="text-mono">{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
+          <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>{{ t.cant_pasajeros }}</td>
+          <td>
+            <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">
+              {{ t.estado }}
+            </span>
+          </td>
+          <td><a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="icon">◌</div>
+      <p>Este usuario no tiene tickets registrados.</p>
+    </div>
+    {% endif %}
+  </div>
+  {% include "reservas/_pagination.html" %}
+</div>
+{% endblock %}
