@@ -277,6 +277,10 @@ class Ticket(models.Model):
         help_text="Chofer asignado al viaje"
     )
     destino = models.CharField(max_length=255)
+    kilometraje = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.0,
+        help_text="Distancia en kilómetros desde UTN FRRE al destino"
+    )
     cant_pasajeros = models.PositiveIntegerField()
     descripcion = models.TextField(blank=True)
     hora_inicio = models.DateTimeField()

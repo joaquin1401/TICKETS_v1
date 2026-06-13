@@ -58,6 +58,9 @@ urlpatterns = [
     path("tickets/<int:ticket_id>/aceptar/", views.aceptar_ticket, name="aceptar_ticket"),
     path("tickets/<int:ticket_id>/finalizar/", views.finalizar_ticket, name="finalizar_ticket"),
 
+    # API auxiliar
+    path("api/calcular-distancia/", views.api_calcular_distancia, name="api_calcular_distancia"),
+
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 3: Calendario e Interactividad
     # ═══════════════════════════════════════════════════════════════════════════════

@@ -74,7 +74,10 @@
         {% for t in tickets %}
         <tr>
           <td><span class="text-mono text-muted">#{{ t.pk }}</span></td>
-          <td><span class="primary">{{ t.destino }}</span></td>
+          <td>
+            <span class="primary">{{ t.destino }}</span>
+            {% if t.kilometraje > 0 %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ t.kilometraje }} km</div>{% endif %}
+          </td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
           <td class="text-mono">{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
           <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>

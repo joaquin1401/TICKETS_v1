@@ -75,6 +75,7 @@
               value="{{ form.destino.value|default:'' }}">
             <button type="button" class="btn btn-outline" id="openMapBtn" title="Elegir en el mapa" style="padding: 0 12px;">📍</button>
           </div>
+          <div id="distanciaHelper" style="font-size: 12px; margin-top: 6px; display: none; color: var(--text-muted); font-weight: 500;"></div>
           {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
         </div>
         <div class="form-row">
@@ -264,6 +265,45 @@
           // Limpiamos si queremos que la prox vez esté vacío
           // formInputs.forEach(input => localStorage.removeItem('form_' + input.name));
         });
+
+        // Autocompletado de distancia
+        let timeoutId = null;
+        const distanciaHelper = document.getElementById('distanciaHelper');
+
+        function calcularDistanciaEnVivo() {
+            const dest = destinoInput.value.trim();
+            if (!dest) {
+                distanciaHelper.style.display = 'none';
+                return;
+            }
+            distanciaHelper.innerText = 'Calculando distancia...';
+            distanciaHelper.style.display = 'block';
+            distanciaHelper.style.color = 'var(--text-muted)';
+            
+            fetch(`/api/calcular-distancia/?q=${encodeURIComponent(dest)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.kilometraje > 0) {
+                        distanciaHelper.innerText = `Distancia calculada: ${data.kilometraje} km (aprox)`;
+                        distanciaHelper.style.color = 'var(--success)';
+                    } else {
+                        distanciaHelper.innerText = 'No se pudo calcular la distancia (destino genérico).';
+                        distanciaHelper.style.color = 'var(--warning)';
+                    }
+                })
+                .catch(e => {
+                    distanciaHelper.style.display = 'none';
+                });
+        }
+
+        destinoInput.addEventListener('input', function() {
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(calcularDistanciaEnVivo, 1000); // 1s debounce
+        });
+        
+        if (destinoInput.value) {
+            calcularDistanciaEnVivo();
+        }
 
         // Recargar con el vehículo seleccionado
         vehiculoSelect.addEventListener('change', function () {

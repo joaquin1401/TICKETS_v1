@@ -101,7 +101,10 @@
           <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
           <td><span class="badge badge-warning">{{ t.id_usuario.id_cargo.nombre }}</span></td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
-          <td>{{ t.destino }}</td>
+          <td>
+            {{ t.destino }}
+            {% if t.kilometraje > 0 %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{{ t.kilometraje }} km</div>{% endif %}
+          </td>
           <td class="text-mono">{{ t.hora_inicio|date:"d/m H:i" }}</td>
           <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{{ t.cant_pasajeros }}</td>

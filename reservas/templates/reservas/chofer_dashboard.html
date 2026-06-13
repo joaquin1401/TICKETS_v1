@@ -37,7 +37,10 @@
       <span class="badge badge-success">En Curso</span>
     </div>
     <div class="card-body" style="flex: 1; padding: 16px;">
-      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">{{ t.destino }}</h3>
+      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">
+        {{ t.destino }}
+        {% if t.kilometraje > 0 %}<span style="font-size:12px;font-weight:normal;color:var(--text-muted);margin-left:8px;">({{ t.kilometraje }} km)</span>{% endif %}
+      </h3>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Pasajeros:</strong> {{ t.cant_pasajeros }}</p>
@@ -70,7 +73,10 @@
       <span class="badge badge-primary">Para Asignar</span>
     </div>
     <div class="card-body" style="flex: 1; padding: 16px;">
-      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">{{ t.destino }}</h3>
+      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">
+        {{ t.destino }}
+        {% if t.kilometraje > 0 %}<span style="font-size:12px;font-weight:normal;color:var(--text-muted);margin-left:8px;">({{ t.kilometraje }} km)</span>{% endif %}
+      </h3>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Pasajeros:</strong> {{ t.cant_pasajeros }}</p>
@@ -104,7 +110,10 @@
       <span class="badge badge-neutral">Finalizado</span>
     </div>
     <div class="card-body" style="flex: 1; padding: 16px;">
-      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">{{ t.destino }}</h3>
+      <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">
+        {{ t.destino }}
+        {% if t.kilometraje > 0 %}<span style="font-size:12px;font-weight:normal;color:var(--text-muted);margin-left:8px;">({{ t.kilometraje }} km)</span>{% endif %}
+      </h3>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Pasajeros:</strong> {{ t.cant_pasajeros }}</p>

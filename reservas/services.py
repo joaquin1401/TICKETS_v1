@@ -15,7 +15,57 @@ Conceptos clave:
 from django.db import transaction
 from django.utils import timezone
 import math
+import requests
+import logging
 from .models import Ticket
+
+logger = logging.getLogger(__name__)
+
+def calcular_distancia_osrm(destino):
+    """
+    Calcula la distancia en kilómetros desde UTN FRRE hasta el destino usando OSRM.
+    Devuelve 0.0 si ocurre algún error o si el destino no es geocodificable.
+    """
+    if not destino:
+        return 0.0
+
+    # Coordenadas de UTN FRRE
+    lat_origen = -27.4511
+    lon_origen = -58.9786
+
+    try:
+        # 1. Geocodificar el destino con Nominatim
+        headers = {'User-Agent': 'UTN_FRRE_Reserva_Vehiculos/1.0'}
+        resp_geocode = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={'q': destino, 'format': 'json', 'limit': 1},
+            headers=headers,
+            timeout=3
+        )
+        if resp_geocode.status_code != 200 or not resp_geocode.json():
+            return 0.0
+        
+        datos_destino = resp_geocode.json()[0]
+        lat_destino = float(datos_destino['lat'])
+        lon_destino = float(datos_destino['lon'])
+
+        # 2. Calcular la ruta con OSRM
+        url_osrm = f"http://router.project-osrm.org/route/v1/driving/{lon_origen},{lat_origen};{lon_destino},{lat_destino}?overview=false"
+        resp_osrm = requests.get(url_osrm, timeout=3)
+        
+        if resp_osrm.status_code != 200:
+            return 0.0
+            
+        data_osrm = resp_osrm.json()
+        if data_osrm.get("code") != "Ok" or not data_osrm.get("routes"):
+            return 0.0
+            
+        distancia_metros = data_osrm["routes"][0]["distance"]
+        return round(distancia_metros / 1000.0, 2)
+        
+    except Exception as e:
+        logger.warning(f"Error calculando distancia a {destino}: {e}")
+        return 0.0
 
 
 
@@ -220,7 +270,9 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin)
     )
 
-
+    # ── Calcular kilometraje automáticamente ──────────────────────────────────────────
+    destino = kwargs.get("destino", "")
+    kilometraje = calcular_distancia_osrm(destino)
 
     # ── Caso 1: Sin conflictos ──────────────────────────────────────────────────────
     if not tickets_conflicto:
@@ -230,6 +282,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             hora_inicio=hora_inicio,
             hora_fin=hora_fin,
             estado=Ticket.ESTADO_APROBADO,
+            kilometraje=kilometraje,
             **kwargs,
         )
         return ResultadoCreacion(
@@ -302,6 +355,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         hora_inicio=hora_inicio,
         hora_fin=hora_fin,
         estado=Ticket.ESTADO_APROBADO,
+        kilometraje=kilometraje,
         **kwargs,
     )
 

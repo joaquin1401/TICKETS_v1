@@ -21,6 +21,7 @@ from datetime import date, timedelta, datetime, time
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.http import JsonResponse
 from django.db.models import Q
 
 from .models import Usuario, Vehiculo, Ticket, Cargo
@@ -1995,3 +1996,17 @@ def nueva_contrasena(request):
         form = NuevaContrasenaForm()
 
     return render(request, "reservas/nueva_contrasena.html", {"form": form})
+
+
+@login_requerido
+def api_calcular_distancia(request):
+    """
+    API endpoint para calcular la distancia desde UTN FRRE al destino dado.
+    """
+    from .services import calcular_distancia_osrm
+    destino = request.GET.get("q", "")
+    if not destino:
+        return JsonResponse({"kilometraje": 0.0})
+        
+    km = calcular_distancia_osrm(destino)
+    return JsonResponse({"kilometraje": km})

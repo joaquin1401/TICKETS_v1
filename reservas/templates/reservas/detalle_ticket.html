@@ -39,7 +39,12 @@
     <div class="card-body">
       <div class="detail-field">
         <div class="detail-field-label">Destino</div>
-        <div class="detail-field-value large">{{ ticket.destino }}</div>
+        <div class="detail-field-value large">
+          {{ ticket.destino }}
+          {% if ticket.kilometraje > 0 %}
+          <span style="font-size: 14px; font-weight: 500; color: var(--text-dim); margin-left: 8px;">({{ ticket.kilometraje }} km)</span>
+          {% endif %}
+        </div>
       </div>
       <div class="form-row">
         <div class="detail-field">
