@@ -741,19 +741,36 @@ def finalizar_ticket(request, ticket_id):
     if ticket.conductor == usuario or request.session.get("es_admin"):
         if ticket.estado == Ticket.ESTADO_EN_CURSO:
             km_real_str = request.POST.get("kilometraje_real", "").replace(',', '.')
-            if not km_real_str:
-                messages.error(request, "Debes ingresar el kilometraje real para finalizar el ticket.")
+            hora_inicio_real_str = request.POST.get("hora_inicio_real")
+            hora_fin_real_str = request.POST.get("hora_fin_real")
+
+            if not km_real_str or not hora_inicio_real_str or not hora_fin_real_str:
+                messages.error(request, "Debes ingresar todos los datos reales (km y horarios) para finalizar.")
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+            
+            from django.utils.dateparse import parse_datetime
+            from django.utils.timezone import make_aware, is_naive
             
             try:
                 ticket.kilometraje_real = float(km_real_str)
-            except ValueError:
-                messages.error(request, "Kilometraje real inválido.")
+                
+                dt_inicio = parse_datetime(hora_inicio_real_str)
+                if dt_inicio and is_naive(dt_inicio):
+                    dt_inicio = make_aware(dt_inicio)
+                ticket.hora_inicio_real = dt_inicio
+                
+                dt_fin = parse_datetime(hora_fin_real_str)
+                if dt_fin and is_naive(dt_fin):
+                    dt_fin = make_aware(dt_fin)
+                ticket.hora_fin_real = dt_fin
+                
+            except (ValueError, TypeError):
+                messages.error(request, "Datos reales inválidos.")
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
                 
             ticket.estado = Ticket.ESTADO_FINALIZADO
-            ticket.save(update_fields=['estado', 'kilometraje_real'])
-            messages.success(request, f"El ticket #{ticket.pk} ha sido finalizado con {ticket.kilometraje_real} km.")
+            ticket.save(update_fields=['estado', 'kilometraje_real', 'hora_inicio_real', 'hora_fin_real'])
+            messages.success(request, f"El ticket #{ticket.pk} ha sido finalizado.")
         else:
             messages.error(request, "El ticket no está en curso.")
     else:

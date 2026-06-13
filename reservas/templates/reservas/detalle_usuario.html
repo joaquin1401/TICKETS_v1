@@ -52,8 +52,14 @@
             {% if t.kilometraje > 0 or t.kilometraje_real %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{% if t.kilometraje > 0 %}Est: {{ t.kilometraje }} km{% endif %}{% if t.kilometraje > 0 and t.kilometraje_real %} | {% endif %}{% if t.kilometraje_real %}Real: <span style="font-weight:600;color:var(--text);">{{ t.kilometraje_real }} km</span>{% endif %}</div>{% endif %}
           </td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
-          <td class="text-mono">{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
-          <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="text-mono">
+            <div>{{ t.hora_inicio|date:"d/m/Y H:i" }}</div>
+            {% if t.hora_inicio_real %}<div style="color:var(--text);font-weight:600;font-size:11px;margin-top:2px;">R: {{ t.hora_inicio_real|date:"d/m/Y H:i" }}</div>{% endif %}
+          </td>
+          <td class="text-mono">
+            <div>{% if t.hora_fin %}{{ t.hora_fin|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</div>
+            {% if t.hora_fin_real %}<div style="color:var(--text);font-weight:600;font-size:11px;margin-top:2px;">R: {{ t.hora_fin_real|date:"d/m/Y H:i" }}</div>{% endif %}
+          </td>
           <td>{{ t.cant_pasajeros }}</td>
           <td>
             <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">

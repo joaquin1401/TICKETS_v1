@@ -50,15 +50,27 @@
       </div>
       <div class="form-row">
         <div class="detail-field">
-          <div class="detail-field-label">Fecha y hora de salida</div>
-          <div class="detail-field-value text-mono">{{ ticket.hora_inicio|date:"d/m/Y" }} — {{ ticket.hora_inicio|date:"H:i" }}hs</div>
+        <div class="detail-field-label">Salida</div>
+        <div class="detail-field-value text-mono">
+          Prog: {{ ticket.hora_inicio|date:"d/m/Y H:i" }}
+          {% if ticket.hora_inicio_real %}
+          <br><span style="color:var(--text);font-weight:600;">Real: {{ ticket.hora_inicio_real|date:"d/m/Y H:i" }}</span>
+          {% endif %}
         </div>
-        <div class="detail-field">
-          <div class="detail-field-label">Regreso estimado</div>
-          <div class="detail-field-value text-mono">
-            {% if ticket.hora_fin %}{{ ticket.hora_fin|date:"d/m/Y" }} — {{ ticket.hora_fin|date:"H:i" }}hs{% else %}<span class="text-muted">No especificado</span>{% endif %}
-          </div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-field-label">Llegada</div>
+        <div class="detail-field-value text-mono">
+          {% if ticket.hora_fin %}
+            Prog: {{ ticket.hora_fin|date:"d/m/Y H:i" }}
+          {% else %}
+            Prog: <span class="text-muted">—</span>
+          {% endif %}
+          {% if ticket.hora_fin_real %}
+          <br><span style="color:var(--text);font-weight:600;">Real: {{ ticket.hora_fin_real|date:"d/m/Y H:i" }}</span>
+          {% endif %}
         </div>
+      </div>
       </div>
       <div class="form-row">
         <div class="detail-field">

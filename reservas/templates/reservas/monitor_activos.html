@@ -105,8 +105,14 @@
             {{ t.destino }}
             {% if t.kilometraje > 0 or t.kilometraje_real %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{% if t.kilometraje > 0 %}Est: {{ t.kilometraje }} km{% endif %}{% if t.kilometraje > 0 and t.kilometraje_real %} | {% endif %}{% if t.kilometraje_real %}Real: <span style="font-weight:600;color:var(--text);">{{ t.kilometraje_real }} km</span>{% endif %}</div>{% endif %}
           </td>
-          <td class="text-mono">{{ t.hora_inicio|date:"d/m H:i" }}</td>
-          <td class="text-mono">{% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td class="text-mono">
+            <div>{{ t.hora_inicio|date:"d/m H:i" }}</div>
+            {% if t.hora_inicio_real %}<div style="color:var(--text);font-weight:600;font-size:11px;margin-top:2px;">R: {{ t.hora_inicio_real|date:"d/m H:i" }}</div>{% endif %}
+          </td>
+          <td class="text-mono">
+            <div>{% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</div>
+            {% if t.hora_fin_real %}<div style="color:var(--text);font-weight:600;font-size:11px;margin-top:2px;">R: {{ t.hora_fin_real|date:"d/m H:i" }}</div>{% endif %}
+          </td>
           <td>{{ t.cant_pasajeros }}</td>
           <td style="display: flex; gap: 5px;">
             <a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a>
@@ -117,10 +123,12 @@
                   <button type="submit" class="btn btn-primary btn-sm">Asignarme</button>
                 </form>
               {% elif t.estado == 'en_curso' and t.conductor.pk == request.session.usuario_id %}
-                <form method="post" action="{% url 'finalizar_ticket' t.pk %}" style="display:flex; align-items:center; gap:4px;">
+                <form method="post" action="{% url 'finalizar_ticket' t.pk %}" style="display:flex; flex-direction:column; gap:4px; max-width: 140px;">
                   {% csrf_token %}
-                  <input type="number" step="0.01" min="0.01" name="kilometraje_real" required placeholder="Km" title="Kilometraje Real" style="width: 60px; font-size: 11px; padding: 4px;">
-                  <button type="submit" class="btn btn-success btn-sm">Finalizar</button>
+                  <input type="number" step="0.01" min="0.01" name="kilometraje_real" required placeholder="Km Reales" title="Kilometraje Real" style="font-size: 11px; padding: 4px;">
+                  <input type="datetime-local" name="hora_inicio_real" required value="{{ t.hora_inicio|date:'Y-m-d\TH:i' }}" title="Salida Real" style="font-size: 11px; padding: 2px;">
+                  <input type="datetime-local" name="hora_fin_real" required title="Llegada Real" style="font-size: 11px; padding: 2px;">
+                  <button type="submit" class="btn btn-success btn-sm" style="width:100%;">Finalizar</button>
                 </form>
               {% endif %}
             {% endif %}

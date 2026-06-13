@@ -288,10 +288,12 @@ class Ticket(models.Model):
     cant_pasajeros = models.PositiveIntegerField()
     descripcion = models.TextField(blank=True)
     hora_inicio = models.DateTimeField()
+    hora_inicio_real = models.DateTimeField(null=True, blank=True)
     hora_fin = models.DateTimeField(
         null=True, blank=True,
         help_text="Opcional: hora estimada de regreso"
     )
+    hora_fin_real = models.DateTimeField(null=True, blank=True)
     estado = models.CharField(
         max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE
     )
