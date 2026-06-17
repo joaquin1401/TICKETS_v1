@@ -91,8 +91,10 @@
           <th>Distancia Est.</th>
           <th>Km Inicio</th>
           <th>Km Fin</th>
-          <th>Salida</th>
-          <th>Regreso</th>
+          <th>Salida Est.</th>
+          <th>Salida Real</th>
+          <th>Regreso Est.</th>
+          <th>Regreso Real</th>
           <th>Pasajeros</th>
           <th></th>
         </tr>
@@ -115,12 +117,16 @@
             {% if t.kilometraje_fin %}{{ t.kilometraje_fin }} km{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td class="text-mono">
-            <div>{{ t.hora_inicio|date:"d/m H:i" }}</div>
-            {% if t.hora_inicio_real %}<div style="color:var(--text);font-weight:600;font-size:11px;margin-top:2px;">R: {{ t.hora_inicio_real|date:"d/m H:i" }}</div>{% endif %}
+            {{ t.hora_inicio|date:"d/m H:i" }}
           </td>
           <td class="text-mono">
-            <div>{% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</div>
-            {% if t.hora_fin_real %}<div style="color:var(--text);font-weight:600;font-size:11px;margin-top:2px;">R: {{ t.hora_fin_real|date:"d/m H:i" }}</div>{% endif %}
+            {% if t.hora_inicio_real %}{{ t.hora_inicio_real|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-mono">
+            {% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-mono">
+            {% if t.hora_fin_real %}{{ t.hora_fin_real|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td>{{ t.cant_pasajeros }}</td>
           <td>
