@@ -20,4 +20,5 @@ requests==2.34.2
 urllib3==2.7.0
 weasyprint==69.0
 django-q2==1.7.6
-gunicornmatplotlib==3.11.0
+gunicorn
+matplotlib==3.11.0

@@ -1915,7 +1915,7 @@ def reporte_analiticas_pdf(request):
         'id_usuario__nombre', 'id_usuario__apellido', 'id_usuario__id_cargo__nombre'
     ).annotate(
         total=Count('id')
-    ).order_by('-total')[:5]
+    ).order_by('-total')[:10]
 
     solicitudes_cargo = tickets_periodo.values(
         'id_usuario__id_cargo__nombre'

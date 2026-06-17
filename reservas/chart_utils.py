@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 COLOR_PRIMARIO = '#38bdf8'
-COLOR_TEXTO = '#475569'
+COLOR_TEXTO = '#cbd5e1'
 
 def get_base64_image(fig):
     buf = io.BytesIO()
@@ -21,17 +21,17 @@ def generar_grafico_barras_horizontal(labels, data, formato_valores="{}"):
     labels = list(reversed(labels))
     data = list(reversed(data))
     
-    fig, ax = plt.subplots(figsize=(6, len(labels) * 0.5 + 1))
+    fig, ax = plt.subplots(figsize=(6, len(labels) * 0.28 + 0.4))
     
-    bars = ax.barh(labels, data, color=COLOR_PRIMARIO, height=0.6)
+    bars = ax.barh(labels, data, color=COLOR_PRIMARIO, height=0.4)
     
-    # Remover bordes
+    # Remover bordes arriba y derecha, dejar abajo e izquierda
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['bottom'].set_visible(False)
-    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_color(COLOR_TEXTO)
+    ax.spines['left'].set_color(COLOR_TEXTO)
     
-    ax.xaxis.set_visible(False) # ocultar el eje X
+    ax.tick_params(axis='x', colors=COLOR_TEXTO, labelsize=9)
     ax.tick_params(axis='y', which='both', length=0, labelsize=10, colors=COLOR_TEXTO)
     
     # Agregar etiquetas de datos
@@ -58,17 +58,18 @@ def generar_grafico_torta(labels, data):
     
     wedges, texts, autotexts = ax.pie(
         f_data, 
-        labels=f_labels, 
         colors=colores, 
-        autopct='%1.0f', # En matplotlib autopct formatea el label
+        autopct='%1.0f', 
         startangle=90, 
-        textprops=dict(color=COLOR_TEXTO, fontsize=10, fontweight='bold')
+        textprops=dict(color='white', fontsize=10, fontweight='bold')
     )
     
     # Formatear el autotext para mostrar el valor absoluto en vez de porcentaje
     for i, autotext in enumerate(autotexts):
         autotext.set_text(str(f_data[i]))
         autotext.set_color('white')
+        
+    ax.legend(wedges, f_labels, loc="center left", bbox_to_anchor=(1, 0.5), frameon=False, labelcolor=COLOR_TEXTO)
     
     plt.tight_layout()
     return get_base64_image(fig)
