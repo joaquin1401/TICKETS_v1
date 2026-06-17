@@ -1009,11 +1009,15 @@ def usuarios(request):
         busqueda = form.cleaned_data.get("busqueda")
         cargo = form.cleaned_data.get("cargo")
         if busqueda:
-            usuarios = usuarios.filter(
-                Q(nombre__icontains=busqueda)
-                | Q(apellido__icontains=busqueda)
-                | Q(correo__icontains=busqueda)
-            )
+            q_objects = Q()
+            for palabra in busqueda.split():
+                q_objects.add(
+                    Q(nombre__icontains=palabra)
+                    | Q(apellido__icontains=palabra)
+                    | Q(correo__icontains=palabra),
+                    Q.AND
+                )
+            usuarios = usuarios.filter(q_objects)
         if cargo:
             usuarios = usuarios.filter(id_cargo=cargo)
 
