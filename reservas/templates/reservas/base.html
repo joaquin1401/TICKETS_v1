@@ -29,14 +29,11 @@
     {% if usuario.id_cargo.nombre|lower == "chofer" %}
     <div class="sidebar-section">
       <div class="sidebar-section-label">Menú de Viajes</div>
-      <a href="{% url 'chofer_disponibles' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_disponibles' %}active{% endif %}">
-        <span class="icon">◎</span> Viajes Disponibles
-      </a>
-      <a href="{% url 'chofer_en_curso' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_en_curso' %}active{% endif %}">
-        <span class="icon">◉</span> Viajes en Curso
+      <a href="{% url 'chofer_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_dashboard' %}active{% endif %}">
+        <span class="icon">◉</span> Panel de Chofer
       </a>
       <a href="{% url 'chofer_finalizados' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_finalizados' %}active{% endif %}">
-        <span class="icon">◌</span> Viajes Finalizados
+        <span class="icon">◌</span> Historial
       </a>
     </div>
     {% else %}
@@ -64,14 +61,11 @@
         class="nav-item {% if 'usuarios' in request.resolver_match.url_name %}active{% endif %}">
         <span class="icon">◷</span> Usuarios Activos
       </a>
-      <a href="{% url 'chofer_disponibles' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_disponibles' %}active{% endif %}">
-        <span class="icon">◎</span> Viajes Disponibles (Chofer)
-      </a>
-      <a href="{% url 'chofer_en_curso' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_en_curso' %}active{% endif %}">
-        <span class="icon">◉</span> Viajes en Curso (Chofer)
+      <a href="{% url 'chofer_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_dashboard' %}active{% endif %}">
+        <span class="icon">◉</span> Panel Chofer
       </a>
       <a href="{% url 'chofer_finalizados' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_finalizados' %}active{% endif %}">
-        <span class="icon">◌</span> Viajes Finalizados (Chofer)
+        <span class="icon">◌</span> Historial Chofer
       </a>
       <a href="{% url 'monitor_tickets_activos' %}"
         class="nav-item {% if request.resolver_match.url_name == 'monitor_tickets_activos' %}active{% endif %}">

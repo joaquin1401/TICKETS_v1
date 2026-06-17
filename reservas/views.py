@@ -657,74 +657,105 @@ def cancelar_ticket(request, ticket_id):
 @login_requerido
 @chofer_requerido
 def chofer_dashboard(request):
-    return redirect("chofer_disponibles")
+    """
+    Panel principal del chofer. Muestra en una sola pantalla:
+      - Viajes en curso (asignados y activos)
+      - Viajes de hoy (fecha de inicio = hoy, aún no iniciados)
+      - Viajes futuros (aprobados sin conductor, con inicio después de hoy)
+    """
+    usuario = get_usuario_sesion(request)
+    from datetime import date
+
+    hoy = date.today()
+
+    # Viajes en curso: asignados a este chofer con estado en_curso
+    tickets_en_curso = (
+        Ticket.objects
+        .filter(estado=Ticket.ESTADO_EN_CURSO, conductor=usuario)
+        .select_related('id_vehiculo')
+        .order_by('hora_inicio')
+    )
+
+    # Viajes de hoy: aprobados, sin conductor, con hora_inicio en el día de hoy
+    tickets_hoy = (
+        Ticket.objects
+        .filter(
+            estado=Ticket.ESTADO_APROBADO,
+            conductor__isnull=True,
+            hora_inicio__date=hoy,
+        )
+        .select_related('id_vehiculo')
+        .order_by('hora_inicio')
+    )
+
+    # Viajes futuros: aprobados, sin conductor, con hora_inicio después de hoy
+    tickets_futuros_qs = (
+        Ticket.objects
+        .filter(
+            estado=Ticket.ESTADO_APROBADO,
+            conductor__isnull=True,
+            hora_inicio__date__gt=hoy,
+        )
+        .select_related('id_vehiculo')
+        .order_by('hora_inicio')
+    )
+    page_obj, pagination_query = paginate_queryset(request, tickets_futuros_qs)
+
+    context = {
+        "usuario": usuario,
+        "tickets_en_curso": tickets_en_curso,
+        "tickets_hoy": tickets_hoy,
+        "tickets_futuros": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "count_en_curso": tickets_en_curso.count(),
+        "count_hoy": tickets_hoy.count(),
+        "count_futuros": tickets_futuros_qs.count(),
+        "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count(),
+    }
+    return render(request, "reservas/chofer_dashboard.html", context)
+
 
 @login_requerido
 @chofer_requerido
 def chofer_disponibles(request):
-    usuario = get_usuario_sesion(request)
-    from django.utils import timezone
-    
-    tickets_disponibles_qs = Ticket.objects.filter(
-        estado=Ticket.ESTADO_APROBADO, 
-        conductor__isnull=True,
-        hora_inicio__gte=timezone.now()
-    ).select_related('id_vehiculo').order_by('hora_inicio')
-    page_obj, pagination_query = paginate_queryset(request, tickets_disponibles_qs)
-    
-    context = {
-        "usuario": usuario,
-        "tickets_disponibles": page_obj.object_list,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "count_en_curso": Ticket.objects.filter(estado=Ticket.ESTADO_EN_CURSO, conductor=usuario).count(),
-        "count_disponibles": tickets_disponibles_qs.count(),
-        "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count()
-    }
-    return render(request, "reservas/chofer_disponibles.html", context)
+    """Redirige al dashboard principal (compatibilidad con links existentes)."""
+    return redirect("chofer_dashboard")
+
 
 @login_requerido
 @chofer_requerido
 def chofer_en_curso(request):
-    usuario = get_usuario_sesion(request)
-    from django.utils import timezone
-    
-    tickets_en_curso = Ticket.objects.filter(
-        estado=Ticket.ESTADO_EN_CURSO,
-        conductor=usuario
-    ).select_related('id_vehiculo').order_by('hora_inicio')
-    
-    context = {
-        "usuario": usuario,
-        "tickets_en_curso": tickets_en_curso,
-        "count_en_curso": tickets_en_curso.count(),
-        "count_disponibles": Ticket.objects.filter(estado=Ticket.ESTADO_APROBADO, conductor__isnull=True, hora_inicio__gte=timezone.now()).count(),
-        "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count()
-    }
-    return render(request, "reservas/chofer_en_curso.html", context)
+    """Redirige al dashboard principal."""
+    return redirect("chofer_dashboard")
+
 
 @login_requerido
 @chofer_requerido
 def chofer_finalizados(request):
     usuario = get_usuario_sesion(request)
     from django.utils import timezone
-    
-    tickets_finalizados = Ticket.objects.filter(
-        estado=Ticket.ESTADO_FINALIZADO,
-        conductor=usuario
-    ).select_related('id_vehiculo').order_by('-hora_inicio')[:20]
-    
+
+    tickets_finalizados_qs = (
+        Ticket.objects
+        .filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario)
+        .select_related('id_vehiculo')
+        .order_by('-hora_inicio')
+    )
+    page_obj, pagination_query = paginate_queryset(request, tickets_finalizados_qs)
+
     context = {
         "usuario": usuario,
-        "tickets_finalizados": tickets_finalizados,
-        "count_en_curso": Ticket.objects.filter(estado=Ticket.ESTADO_EN_CURSO, conductor=usuario).count(),
-        "count_disponibles": Ticket.objects.filter(estado=Ticket.ESTADO_APROBADO, conductor__isnull=True, hora_inicio__gte=timezone.now()).count(),
-        "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count()
+        "tickets_finalizados": page_obj.object_list,
+        "page_obj": page_obj,
+        "pagination_query": pagination_query,
+        "count_finalizados": tickets_finalizados_qs.count(),
     }
     return render(request, "reservas/chofer_finalizados.html", context)
 
 
 @login_requerido
+@chofer_requerido
 def aceptar_ticket(request, ticket_id):
     """
     Permite a un chofer o admin asignarse como conductor a un ticket.
@@ -734,11 +765,6 @@ def aceptar_ticket(request, ticket_id):
 
     usuario = get_usuario_sesion(request)
     ticket = get_object_or_404(Ticket, pk=ticket_id)
-
-    # Validar permisos (debe ser chofer o admin)
-    if usuario.id_cargo.nombre != Cargo.CHOFER and not request.session.get("es_admin"):
-        messages.error(request, "No tenés permisos para aceptar este ticket.")
-        return redirect("inicio")
 
     # Validar que el chofer no tenga otro viaje a la misma hora
     if Ticket.objects.filter(conductor=usuario, estado=Ticket.ESTADO_EN_CURSO, hora_inicio=ticket.hora_inicio).exclude(pk=ticket.pk).exists():
@@ -757,9 +783,10 @@ def aceptar_ticket(request, ticket_id):
 
     if request.session.get("es_admin"):
         return redirect("monitor_tickets_activos")
-    return redirect("chofer_en_curso")
+    return redirect("chofer_dashboard")
 
 @login_requerido
+@chofer_requerido
 def finalizar_ticket(request, ticket_id):
     """
     Permite al conductor de un ticket finalizarlo.
