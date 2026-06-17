@@ -794,10 +794,21 @@ def aceptar_ticket(request, ticket_id):
         return redirect("chofer_dashboard")
 
     if ticket.estado == Ticket.ESTADO_APROBADO and ticket.conductor is None:
+        km_inicio_str = request.POST.get("kilometraje_inicio", "").replace(',', '.')
+        if not km_inicio_str:
+            messages.error(request, "Debes ingresar el kilometraje de inicio para comenzar el viaje.")
+            return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+        
+        try:
+            ticket.kilometraje_inicio = float(km_inicio_str)
+        except ValueError:
+            messages.error(request, "El kilometraje de inicio ingresado no es válido.")
+            return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+
         ticket.conductor = usuario
         ticket.estado = Ticket.ESTADO_EN_CURSO
-        ticket.save(update_fields=['conductor', 'estado'])
-        messages.success(request, f"Te has asignado como conductor del ticket #{ticket.pk}.")
+        ticket.save(update_fields=['conductor', 'estado', 'kilometraje_inicio'])
+        messages.success(request, f"Te has asignado como conductor del ticket #{ticket.pk} y comenzaste el viaje.")
     else:
         messages.error(request, "El ticket no está disponible para asignación.")
 
@@ -819,11 +830,11 @@ def finalizar_ticket(request, ticket_id):
 
     if ticket.conductor == usuario or request.session.get("es_admin"):
         if ticket.estado == Ticket.ESTADO_EN_CURSO:
-            km_real_str = request.POST.get("kilometraje_real", "").replace(',', '.')
+            km_fin_str = request.POST.get("kilometraje_fin", "").replace(',', '.')
             hora_inicio_real_str = request.POST.get("hora_inicio_real")
             hora_fin_real_str = request.POST.get("hora_fin_real")
 
-            if not km_real_str or not hora_inicio_real_str or not hora_fin_real_str:
+            if not km_fin_str or not hora_inicio_real_str or not hora_fin_real_str:
                 messages.error(request, "Debes ingresar todos los datos reales (km y horarios) para finalizar.")
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
             
@@ -831,7 +842,7 @@ def finalizar_ticket(request, ticket_id):
             from django.utils.timezone import make_aware, is_naive
             
             try:
-                ticket.kilometraje_real = float(km_real_str)
+                ticket.kilometraje_fin = float(km_fin_str)
                 
                 dt_inicio = parse_datetime(hora_inicio_real_str)
                 if dt_inicio and is_naive(dt_inicio):
@@ -848,7 +859,7 @@ def finalizar_ticket(request, ticket_id):
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
                 
             ticket.estado = Ticket.ESTADO_FINALIZADO
-            ticket.save(update_fields=['estado', 'kilometraje_real', 'hora_inicio_real', 'hora_fin_real'])
+            ticket.save(update_fields=['estado', 'kilometraje_fin', 'hora_inicio_real', 'hora_fin_real'])
             messages.success(request, f"El ticket #{ticket.pk} ha sido finalizado.")
         else:
             messages.error(request, "El ticket no está en curso.")
@@ -2173,7 +2184,7 @@ def api_calcular_distancia(request):
     from .services import calcular_distancia_osrm
     destino = request.GET.get("q", "")
     if not destino:
-        return JsonResponse({"kilometraje": 0.0})
+        return JsonResponse({"distancia_est": 0.0})
         
     km = calcular_distancia_osrm(destino)
-    return JsonResponse({"kilometraje": km})
+    return JsonResponse({"distancia_est": km})

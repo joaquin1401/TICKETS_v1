@@ -37,7 +37,7 @@
     <div class="card-body" style="flex: 1; padding: 16px;">
       <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">
         {{ t.destino }}
-        {% if t.kilometraje > 0 or t.kilometraje_real %}<span style="font-size:12px;font-weight:normal;color:var(--text-muted);margin-left:8px;">({% if t.kilometraje > 0 %}Est: {{ t.kilometraje }} km{% endif %}{% if t.kilometraje > 0 and t.kilometraje_real %} | {% endif %}{% if t.kilometraje_real %}Real: <strong style="color:var(--text);">{{ t.kilometraje_real }} km</strong>{% endif %})</span>{% endif %}
+        {% if t.distancia_est > 0 or t.kilometraje_inicio %}<span style="font-size:12px;font-weight:normal;color:var(--text-muted);margin-left:8px;">({% if t.distancia_est > 0 %}Est: {{ t.distancia_est }} km{% endif %}{% if t.distancia_est > 0 and t.kilometraje_inicio %} | {% endif %}{% if t.kilometraje_inicio %}Inicio: <strong style="color:var(--text);">{{ t.kilometraje_inicio }} km</strong>{% endif %})</span>{% endif %}
       </h3>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
@@ -50,9 +50,9 @@
         {% csrf_token %}
         <div style="margin-bottom: 12px; display: grid; grid-template-columns: 1fr; gap: 12px;">
           <div>
-            <label class="form-label" style="font-size: 12px;">Kilometraje Real (km)</label>
-            <input type="number" step="0.01" min="0.01" name="kilometraje_real" class="form-control" required
-              placeholder="Ej: 15.5" style="padding: 6px 10px; font-size: 14px;">
+            <label class="form-label" style="font-size: 12px;">Kilometraje Fin (km)</label>
+            <input type="number" step="0.01" min="0" name="kilometraje_fin" class="form-control" required
+              placeholder="Ej: 15050.5" style="padding: 6px 10px; font-size: 14px;">
           </div>
           <div>
             <label class="form-label" style="font-size: 12px;">Hora de Salida</label>
@@ -95,7 +95,7 @@
         {{ t.destino }}
       </h3>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
-      {% if t.kilometraje > 0 %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Kilometraje Est.:</strong> {{ t.kilometraje }} km</p>{% endif %}
+      {% if t.distancia_est > 0 %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Distancia Est.:</strong> {{ t.distancia_est }} km</p>{% endif %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
       {% if t.hora_fin %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Llegada est.:</strong> {{ t.hora_fin|date:"d/m/Y H:i" }}</p>{% endif %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Pasajeros:</strong> {{ t.cant_pasajeros }}</p>
@@ -104,6 +104,10 @@
       style="border-top: 1px solid var(--border); padding: 16px; background: var(--surface2); border-radius: 0 0 10px 10px;">
       <form method="post" action="{% url 'aceptar_ticket' t.pk %}" style="margin: 0;">
         {% csrf_token %}
+        <div style="margin-bottom: 12px;">
+          <label class="form-label" style="font-size: 12px;">Kilometraje de Inicio (odómetro)</label>
+          <input type="number" step="0.01" min="0" name="kilometraje_inicio" class="form-control" required placeholder="Ej: 15000" style="padding: 6px 10px; font-size: 14px;">
+        </div>
         <button type="submit" class="btn btn-success" style="width: 100%;">Comenzar Viaje</button>
       </form>
     </div>
@@ -134,7 +138,7 @@
         {{ t.destino }}
       </h3>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
-      {% if t.kilometraje > 0 %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Kilometraje Est.:</strong> {{ t.kilometraje }} km</p>{% endif %}
+      {% if t.distancia_est > 0 %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Distancia Est.:</strong> {{ t.distancia_est }} km</p>{% endif %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
       {% if t.hora_fin %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Llegada est.:</strong> {{ t.hora_fin|date:"d/m/Y H:i" }}</p>{% endif %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Pasajeros:</strong> {{ t.cant_pasajeros }}</p>

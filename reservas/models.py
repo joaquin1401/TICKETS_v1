@@ -277,13 +277,17 @@ class Ticket(models.Model):
         help_text="Chofer asignado al viaje"
     )
     destino = models.CharField(max_length=255)
-    kilometraje = models.DecimalField(
+    distancia_est = models.DecimalField(
         max_digits=10, decimal_places=2, default=0.0,
-        help_text="Distancia en kilómetros desde UTN FRRE al destino"
+        help_text="Distancia estimada por el sistema"
     )
-    kilometraje_real = models.DecimalField(
+    kilometraje_inicio = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
-        help_text="Distancia real recorrida reportada por el chofer al finalizar"
+        help_text="Kilometraje (odómetro) del vehículo al comenzar el viaje"
+    )
+    kilometraje_fin = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Kilometraje (odómetro) del vehículo al finalizar el viaje"
     )
     cant_pasajeros = models.PositiveIntegerField()
     descripcion = models.TextField(blank=True)

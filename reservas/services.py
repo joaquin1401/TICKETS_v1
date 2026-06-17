@@ -272,7 +272,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
 
     # ── Calcular kilometraje automáticamente ──────────────────────────────────────────
     destino = kwargs.get("destino", "")
-    kilometraje = calcular_distancia_osrm(destino)
+    distancia_est = calcular_distancia_osrm(destino)
 
     # ── Caso 1: Sin conflictos ──────────────────────────────────────────────────────
     if not tickets_conflicto:
@@ -282,7 +282,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             hora_inicio=hora_inicio,
             hora_fin=hora_fin,
             estado=Ticket.ESTADO_APROBADO,
-            kilometraje=kilometraje,
+            distancia_est=distancia_est,
             **kwargs,
         )
         return ResultadoCreacion(
@@ -355,7 +355,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         hora_inicio=hora_inicio,
         hora_fin=hora_fin,
         estado=Ticket.ESTADO_APROBADO,
-        kilometraje=kilometraje,
+        distancia_est=distancia_est,
         **kwargs,
     )
 

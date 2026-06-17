@@ -574,18 +574,23 @@ class Command(BaseCommand):
         ]
         
         # Simular kilometraje calculado y variables reales
-        kilometraje = round(random.uniform(5.0, 150.0), 2)
-        kilometraje_real = None
+        distancia_est = round(random.uniform(5.0, 150.0), 2)
+        kilometraje_inicio = None
+        kilometraje_fin = None
         hora_inicio_real = None
         hora_fin_real = None
         
         if estado == Ticket.ESTADO_FINALIZADO:
-            kilometraje_real = round(kilometraje * random.uniform(0.9, 1.1), 2)
+            kilometraje_inicio = round(random.uniform(10000.0, 150000.0), 2)
+            kilometraje_fin = round(kilometraje_inicio + (distancia_est * random.uniform(0.9, 1.1)), 2)
             hora_inicio_real = hora_inicio + timedelta(minutes=random.randint(-15, 30))
             if hora_fin:
                 hora_fin_real = hora_fin + timedelta(minutes=random.randint(-20, 60))
             else:
                 hora_fin_real = hora_inicio_real + timedelta(hours=duracion_horas if duracion_horas else 2)
+        elif estado == Ticket.ESTADO_EN_CURSO:
+            kilometraje_inicio = round(random.uniform(10000.0, 150000.0), 2)
+            hora_inicio_real = hora_inicio + timedelta(minutes=random.randint(-15, 30))
         
         ticket, creado = Ticket.objects.get_or_create(
             id_usuario=usuario,
@@ -599,8 +604,9 @@ class Command(BaseCommand):
                 'estado': estado,
                 'observacion': "",
                 'conductor': conductor,
-                'kilometraje': kilometraje,
-                'kilometraje_real': kilometraje_real,
+                'distancia_est': distancia_est,
+                'kilometraje_inicio': kilometraje_inicio,
+                'kilometraje_fin': kilometraje_fin,
                 'hora_inicio_real': hora_inicio_real,
                 'hora_fin_real': hora_fin_real,
             }

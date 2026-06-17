@@ -88,8 +88,9 @@
           <th>Cargo</th>
           <th>Vehículo</th>
           <th>Destino</th>
-          <th>Km Est.</th>
-          <th>Km Real</th>
+          <th>Distancia Est.</th>
+          <th>Km Inicio</th>
+          <th>Km Fin</th>
           <th>Salida</th>
           <th>Regreso</th>
           <th>Pasajeros</th>
@@ -105,10 +106,13 @@
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
           <td>{{ t.destino }}</td>
           <td>
-            {% if t.kilometraje > 0 %}{{ t.kilometraje }} km{% else %}<span class="text-muted">—</span>{% endif %}
+            {% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td>
-            {% if t.kilometraje_real %}{{ t.kilometraje_real }} km{% else %}<span class="text-muted">—</span>{% endif %}
+            {% if t.kilometraje_inicio %}{{ t.kilometraje_inicio }} km{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if t.kilometraje_fin %}{{ t.kilometraje_fin }} km{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td class="text-mono">
             <div>{{ t.hora_inicio|date:"d/m H:i" }}</div>
