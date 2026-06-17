@@ -255,16 +255,19 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
     # ── Reglas Temporales: Max 2 meses, Min 3 días ──────────────────────────────────
     from datetime import timedelta
     ahora = timezone.now()
-    if hora_inicio > ahora + timedelta(days=60):
-        return ResultadoCreacion(
-            estado=ResultadoCreacion.BLOQUEADO,
-            mensaje="No se pueden realizar reservas con más de 2 meses (60 días) de antelación."
-        )
-    if hora_inicio < ahora + timedelta(days=3):
-        return ResultadoCreacion(
-            estado=ResultadoCreacion.BLOQUEADO,
-            mensaje="Debe reservar con al menos 3 días de anticipación."
-        )
+    es_admin = usuario.id_cargo.prioridad == 0
+    
+    if not es_admin:
+        if hora_inicio > ahora + timedelta(days=60):
+            return ResultadoCreacion(
+                estado=ResultadoCreacion.BLOQUEADO,
+                mensaje="No se pueden realizar reservas con más de 2 meses (60 días) de antelación."
+            )
+        if hora_inicio < ahora + timedelta(days=3):
+            return ResultadoCreacion(
+                estado=ResultadoCreacion.BLOQUEADO,
+                mensaje="Debe reservar con al menos 3 días de anticipación."
+            )
 
     tickets_conflicto = list(
         obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin)
@@ -273,6 +276,16 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
     # ── Calcular kilometraje automáticamente ──────────────────────────────────────────
     destino = kwargs.get("destino", "")
     distancia_est = calcular_distancia_osrm(destino)
+    
+    estado_inicial = Ticket.ESTADO_APROBADO
+    if es_admin and hora_inicio < ahora:
+        estado_inicial = Ticket.ESTADO_FINALIZADO
+        # Cargar variables de finalización para consistencia del reporte
+        kwargs['hora_inicio_real'] = hora_inicio
+        if hora_fin:
+            kwargs['hora_fin_real'] = hora_fin
+        kwargs['kilometraje_inicio'] = 0.0
+        kwargs['kilometraje_fin'] = distancia_est
 
     # ── Caso 1: Sin conflictos ──────────────────────────────────────────────────────
     if not tickets_conflicto:
@@ -281,7 +294,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             id_vehiculo=vehiculo,
             hora_inicio=hora_inicio,
             hora_fin=hora_fin,
-            estado=Ticket.ESTADO_APROBADO,
+            estado=estado_inicial,
             distancia_est=distancia_est,
             **kwargs,
         )
@@ -354,7 +367,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         id_vehiculo=vehiculo,
         hora_inicio=hora_inicio,
         hora_fin=hora_fin,
-        estado=Ticket.ESTADO_APROBADO,
+        estado=estado_inicial,
         distancia_est=distancia_est,
         **kwargs,
     )

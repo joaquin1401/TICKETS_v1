@@ -222,6 +222,7 @@ class TicketForm(forms.ModelForm):
         - Establece formatos de entrada para datetime.
         - hora_fin es opcional (required=False).
         """
+        self.es_admin = kwargs.pop('es_admin', False)
         super().__init__(*args, **kwargs)
         # Solo mostrar vehículos activos
         self.fields["id_vehiculo"].queryset = Vehiculo.objects.filter(activo=True)
@@ -249,14 +250,15 @@ class TicketForm(forms.ModelForm):
         ahora = timezone.now()
 
         if hora_inicio:
-            if hora_inicio <= ahora:
-                raise ValidationError("La hora de inicio debe ser en el futuro.")
-            
-            if hora_inicio > ahora + timedelta(days=60):
-                self.add_error("hora_inicio", "No se pueden realizar reservas con más de 2 meses (60 días) de antelación.")
+            if not self.es_admin:
+                if hora_inicio <= ahora:
+                    raise ValidationError("La hora de inicio debe ser en el futuro.")
                 
-            if hora_inicio < ahora + timedelta(days=3):
-                self.add_error("hora_inicio", "Debe reservar con al menos 3 días de anticipación.")
+                if hora_inicio > ahora + timedelta(days=60):
+                    self.add_error("hora_inicio", "No se pueden realizar reservas con más de 2 meses (60 días) de antelación.")
+                    
+                if hora_inicio < ahora + timedelta(days=3):
+                    self.add_error("hora_inicio", "Debe reservar con al menos 3 días de anticipación.")
 
         if hora_inicio and hora_fin:
             if hora_fin <= hora_inicio:
