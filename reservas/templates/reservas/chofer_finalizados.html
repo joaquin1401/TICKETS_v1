@@ -29,7 +29,7 @@
       <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">
         {{ t.destino }}
       </h3>
-      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</p>
       {% if t.distancia_est > 0 %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Distancia Est.:</strong> {{ t.distancia_est }} km</p>
       {% endif %}

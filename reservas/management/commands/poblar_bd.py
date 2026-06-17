@@ -310,6 +310,7 @@ class Command(BaseCommand):
                 defaults={
                     'cant_pasajeros': config['cant_pasajeros'],
                     'activo': config['activo'],
+                    'patente': config.get('placa'),
                 }
             )
             

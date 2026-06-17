@@ -46,6 +46,7 @@
           <td class="text-mono text-muted">{{ v.pk }}</td>
           <td><span class="primary">{{ v.marca }}</span></td>
           <td>{{ v.modelo }}</td>
+          <td><span class="badge badge-neutral">{{ v.patente|default:'S/P' }}</span></td>
           <td>{{ v.cant_pasajeros }} pasajeros</td>
 
           <td>
@@ -95,6 +96,7 @@
           <td class="text-mono text-muted">{{ v.pk }}</td>
           <td><span class="primary">{{ v.marca }}</span></td>
           <td>{{ v.modelo }}</td>
+          <td><span class="badge badge-neutral">{{ v.patente|default:'S/P' }}</span></td>
           <td>{{ v.cant_pasajeros }} pasajeros</td>
 
           <td>

@@ -100,7 +100,7 @@
           <td>
             {% if t.kilometraje_fin %}{{ t.kilometraje_fin }} km{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
-          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
+          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</td>
           <td>{% if t.conductor %}{{ t.conductor.nombre_completo }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
           <td>

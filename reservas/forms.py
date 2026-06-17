@@ -421,10 +421,11 @@ class VehiculoForm(forms.ModelForm):
 
     class Meta:
         model = Vehiculo
-        fields = ["marca", "modelo", "cant_pasajeros", "activo", "exclusivo_decanato"]
+        fields = ["marca", "modelo", "patente", "cant_pasajeros", "activo", "exclusivo_decanato"]
         labels = {
             "marca":          "Marca",
             "modelo":         "Modelo",
+            "patente":        "Patente (Dominio)",
             "cant_pasajeros": "Capacidad de pasajeros",
             "activo":         "Vehículo activo (disponible para reservas)",
             "exclusivo_decanato": "Exclusivo del Decano",
@@ -432,6 +433,7 @@ class VehiculoForm(forms.ModelForm):
         widgets = {
             "marca":  forms.TextInput(attrs={"placeholder": "Ej: Toyota"}),
             "modelo": forms.TextInput(attrs={"placeholder": "Ej: Hilux 2023"}),
+            "patente": forms.TextInput(attrs={"placeholder": "Ej: AB 123 CD"}),
         }
 
 

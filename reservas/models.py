@@ -190,6 +190,7 @@ class Vehiculo(models.Model):
 
     marca = models.CharField(max_length=100)
     modelo = models.CharField(max_length=100)
+    patente = models.CharField(max_length=20, unique=True, null=True, blank=True)
     cant_pasajeros = models.PositiveIntegerField()
     activo = models.BooleanField(
         default=True,
@@ -205,7 +206,8 @@ class Vehiculo(models.Model):
         verbose_name_plural = "Vehículos"
 
     def __str__(self):
-        return f"{self.marca} {self.modelo} ({self.cant_pasajeros} pasajeros)"
+        patente_str = f" {self.patente}" if self.patente else ""
+        return f"{self.marca} {self.modelo}{patente_str} ({self.cant_pasajeros} pasajeros)"
 
 
 class Ticket(models.Model):

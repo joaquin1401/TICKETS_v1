@@ -106,7 +106,7 @@
           <td class="text-mono text-muted">#{{ t.pk }}</td>
           <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
           <td><span class="badge badge-warning">{{ t.id_usuario.id_cargo.nombre }}</span></td>
-          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
+          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</td>
           <td>{{ t.destino }}</td>
           <td>
             {% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}
