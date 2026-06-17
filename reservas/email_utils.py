@@ -57,4 +57,13 @@ def send_templated_email(subject, template_name, context, to_email, from_email=N
     msg = EmailMultiAlternatives(subject=subject, body=txt or "", from_email=from_email, to=[to_email])
     if html:
         msg.attach_alternative(html, "text/html")
-    msg.send(fail_silently=False)
+    try:
+        msg.send(fail_silently=False)
+    except ValueError as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error de formato de correo (posibles caracteres no ASCII) al enviar a {to_email}: {e}")
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error inesperado enviando correo a {to_email}: {e}")
