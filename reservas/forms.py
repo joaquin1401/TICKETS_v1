@@ -145,23 +145,43 @@ class AdminEditarUsuarioForm(forms.ModelForm):
     """
     class Meta:
         model = Usuario
-        fields = ["nombre", "apellido", "correo", "id_cargo"]
+        fields = ["nombre", "apellido", "correo", "id_cargo", "valido"]
         labels = {
             "nombre": "Nombre",
             "apellido": "Apellido",
             "correo": "Correo electrónico",
             "id_cargo": "Cargo",
+            "valido": "Usuario activo (válido)",
         }
         widgets = {
             "nombre":   forms.TextInput(attrs={"placeholder": "Nombre", "class": "form-control"}),
             "apellido": forms.TextInput(attrs={"placeholder": "Apellido", "class": "form-control"}),
             "correo":   forms.EmailInput(attrs={"placeholder": "correo@empresa.com", "class": "form-control"}),
             "id_cargo": forms.Select(attrs={"class": "form-control"}),
+            "valido": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["id_cargo"].queryset = Cargo.objects.all()
+
+    def clean_valido(self):
+        valido = self.cleaned_data.get("valido")
+        # Si se intenta desactivar y el usuario es Administrador SEU
+        if not valido and self.instance.pk and self.instance.id_cargo.prioridad == 0:
+            raise ValidationError("No podés desactivar a un Administrador SEU.")
+        return valido
+
+    def save(self, commit=True):
+        usuario = super().save(commit=False)
+        # Sincronizamos el campo rechazado con valido para que no vuelva al estado pendiente
+        if not usuario.valido:
+            usuario.rechazado = True
+        else:
+            usuario.rechazado = False
+        if commit:
+            usuario.save()
+        return usuario
 
 class LoginForm(forms.Form):
     """
