@@ -83,6 +83,9 @@
         <tr>
           <th>#</th>
           <th>Destino</th>
+          <th>Distancia Est.</th>
+          <th>Km Inicio</th>
+          <th>Km Fin</th>
           <th>Vehículo</th>
           <th>Salida Est.</th>
           <th>Salida Real</th>
@@ -97,9 +100,15 @@
         {% for t in tickets %}
         <tr>
           <td><span class="text-mono text-muted">#{{ t.pk }}</span></td>
+          <td><span class="primary">{{ t.destino }}</span></td>
           <td>
-            <span class="primary">{{ t.destino }}</span>
-            {% if t.distancia_est > 0 or t.kilometraje_inicio or t.kilometraje_fin %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{% if t.distancia_est > 0 %}Est: {{ t.distancia_est }} km{% endif %}{% if t.distancia_est > 0 and t.kilometraje_inicio %} | {% endif %}{% if t.kilometraje_inicio %}Inicio: <span style="font-weight:600;color:var(--text);">{{ t.kilometraje_inicio }} km</span>{% endif %}{% if t.kilometraje_inicio and t.kilometraje_fin %} | {% endif %}{% if t.kilometraje_fin %}Fin: <span style="font-weight:600;color:var(--text);">{{ t.kilometraje_fin }} km</span>{% endif %}</div>{% endif %}
+            {% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if t.kilometraje_inicio %}{{ t.kilometraje_inicio }} km{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if t.kilometraje_fin %}{{ t.kilometraje_fin }} km{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
           <td class="text-mono">
