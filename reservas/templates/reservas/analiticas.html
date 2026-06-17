@@ -98,9 +98,15 @@
       <span class="card-title">◧ Top 10 Usuarios</span>
       <span class="badge badge-neutral">con más solicitudes</span>
     </div>
-    <div style="padding: 20px;">
-      <canvas id="topUsuariosChart"></canvas>
+    {% if chart_top_usuarios %}
+    <div style="padding: 20px; text-align: center;">
+      <img src="{{ chart_top_usuarios }}" alt="Top Usuarios" style="max-width: 100%; height: auto;">
     </div>
+    {% else %}
+    <div class="empty-state" style="padding: 20px;">
+      <p>No hay solicitudes registradas.</p>
+    </div>
+    {% endif %}
   </div>
 
   <div class="card report-card" style="margin: 0;">
@@ -108,9 +114,15 @@
       <span class="card-title">◧ Solicitudes por Cargo</span>
       <span class="badge badge-neutral">distribución</span>
     </div>
-    <div style="padding: 20px;">
-      <canvas id="cargosChart"></canvas>
+    {% if chart_cargos %}
+    <div style="padding: 20px; max-width: 500px; margin: 0 auto; text-align: center;">
+      <img src="{{ chart_cargos }}" alt="Cargos" style="max-width: 100%; height: auto;">
     </div>
+    {% else %}
+    <div class="empty-state" style="padding: 20px;">
+      <p>No hay solicitudes registradas.</p>
+    </div>
+    {% endif %}
   </div>
 
 </div>
@@ -125,18 +137,30 @@
     <div class="card-header">
       <span class="card-title">◧ Vehículos vs Solicitudes</span>
     </div>
-    <div style="padding: 20px;">
-      <canvas id="vehiculosSolicitudesChart"></canvas>
+    {% if chart_vehiculos_sol %}
+    <div style="padding: 20px; text-align: center;">
+      <img src="{{ chart_vehiculos_sol }}" alt="Vehículos vs Solicitudes" style="max-width: 100%; height: auto;">
     </div>
+    {% else %}
+    <div class="empty-state" style="padding: 20px;">
+      <p>No hay datos.</p>
+    </div>
+    {% endif %}
   </div>
 
   <div class="card report-card" style="margin: 0;">
     <div class="card-header">
       <span class="card-title">◧ Vehículos vs Kilómetros</span>
     </div>
-    <div style="padding: 20px;">
-      <canvas id="vehiculosKmChart"></canvas>
+    {% if chart_vehiculos_km %}
+    <div style="padding: 20px; text-align: center;">
+      <img src="{{ chart_vehiculos_km }}" alt="Vehículos vs Km" style="max-width: 100%; height: auto;">
     </div>
+    {% else %}
+    <div class="empty-state" style="padding: 20px;">
+      <p>No hay datos.</p>
+    </div>
+    {% endif %}
   </div>
 
 </div>
@@ -151,104 +175,7 @@
 
 {% endblock %}
 {% block extra_js %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-<script>
-  Chart.register(ChartDataLabels);
-  
-  const commonOptions = {
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      datalabels: {
-        color: '#fff',
-        font: { weight: 'bold' },
-        anchor: 'end',
-        align: 'left',
-        formatter: Math.round
-      }
-    }
-  };
 
-  const topUsuariosData = {{ top_usuarios_json|safe }};
-  new Chart(document.getElementById('topUsuariosChart'), {
-    type: 'bar',
-    data: {
-      labels: topUsuariosData.labels,
-      datasets: [{
-        data: topUsuariosData.data,
-        backgroundColor: '#4ade80',
-        borderRadius: 4
-      }]
-    },
-    options: {
-      ...commonOptions,
-      indexAxis: 'y',
-    }
-  });
 
-  const cargosData = {{ solicitudes_cargo_json|safe }};
-  new Chart(document.getElementById('cargosChart'), {
-    type: 'pie',
-    data: {
-      labels: cargosData.labels,
-      datasets: [{
-        data: cargosData.data,
-        backgroundColor: ['#4ade80', '#38bdf8', '#fbbf24', '#f87171', '#a78bfa']
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'right' },
-        datalabels: {
-          color: '#fff',
-          font: { weight: 'bold' },
-          formatter: Math.round
-        }
-      }
-    }
-  });
 
-  const vehiculosSolData = {{ vehiculos_solicitudes_json|safe }};
-  new Chart(document.getElementById('vehiculosSolicitudesChart'), {
-    type: 'bar',
-    data: {
-      labels: vehiculosSolData.labels,
-      datasets: [{
-        data: vehiculosSolData.data,
-        backgroundColor: '#38bdf8',
-        borderRadius: 4
-      }]
-    },
-    options: {
-      ...commonOptions,
-      indexAxis: 'y',
-    }
-  });
-
-  const vehiculosKmData = {{ vehiculos_km_json|safe }};
-  new Chart(document.getElementById('vehiculosKmChart'), {
-    type: 'bar',
-    data: {
-      labels: vehiculosKmData.labels,
-      datasets: [{
-        data: vehiculosKmData.data,
-        backgroundColor: '#a78bfa',
-        borderRadius: 4
-      }]
-    },
-    options: {
-      ...commonOptions,
-      indexAxis: 'y',
-      plugins: {
-        ...commonOptions.plugins,
-        datalabels: {
-          ...commonOptions.plugins.datalabels,
-          formatter: function(value) { return value + ' km'; }
-        }
-      }
-    }
-  });
-</script>
 {% endblock %}

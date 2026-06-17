@@ -1553,6 +1553,8 @@ def reporte_analiticas(request):
     """
     from django.db.models import Count, Sum
     import json
+    from .chart_utils import generar_grafico_barras_horizontal, generar_grafico_torta
+
     from django.db.models.functions import TruncMonth
     from django.utils import timezone
     from datetime import timedelta
@@ -1730,43 +1732,41 @@ def reporte_analiticas(request):
         total=Count('id')
     ).order_by('-total')[:10]
 
-    top_usuarios_json = json.dumps({
-        "labels": [f"{u['id_usuario__nombre']} {u['id_usuario__apellido']}" for u in top_usuarios],
-        "data": [u['total'] for u in top_usuarios]
-    })
-
     solicitudes_cargo = tickets_periodo.values(
         'id_usuario__id_cargo__nombre'
     ).annotate(
         total=Count('id')
     ).order_by('-total')
 
-    solicitudes_cargo_json = json.dumps({
-        "labels": [c['id_usuario__id_cargo__nombre'] for c in solicitudes_cargo],
-        "data": [c['total'] for c in solicitudes_cargo]
-    })
-
     vehiculos_solicitudes = tickets_periodo.values(
-        'id_vehiculo__marca', 'id_vehiculo__modelo'
+        'id_vehiculo__marca', 'id_vehiculo__modelo', 'id_vehiculo__patente'
     ).annotate(
         total=Count('id')
     ).order_by('-total')
 
-    vehiculos_solicitudes_json = json.dumps({
-        "labels": [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']}" for v in vehiculos_solicitudes],
-        "data": [v['total'] for v in vehiculos_solicitudes]
-    })
-
     vehiculos_km = tickets_periodo.filter(distancia_real__isnull=False).values(
-        'id_vehiculo__marca', 'id_vehiculo__modelo'
+        'id_vehiculo__marca', 'id_vehiculo__modelo', 'id_vehiculo__patente'
     ).annotate(
         total_km=Sum('distancia_real')
     ).order_by('-total_km')
 
-    vehiculos_km_json = json.dumps({
-        "labels": [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']}" for v in vehiculos_km],
-        "data": [float(v['total_km']) for v in vehiculos_km]
-    })
+    # Gráficos con Matplotlib
+    l_top = [f"{u['id_usuario__nombre']} {u['id_usuario__apellido']}" for u in top_usuarios]
+    d_top = [u['total'] for u in top_usuarios]
+    chart_top_usuarios = generar_grafico_barras_horizontal(l_top, d_top)
+
+    l_cargos = [c['id_usuario__id_cargo__nombre'] for c in solicitudes_cargo]
+    d_cargos = [c['total'] for c in solicitudes_cargo]
+    chart_cargos = generar_grafico_torta(l_cargos, d_cargos)
+
+    l_veh_sol = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente'] or ''}".strip() for v in vehiculos_solicitudes]
+    d_veh_sol = [v['total'] for v in vehiculos_solicitudes]
+    chart_vehiculos_sol = generar_grafico_barras_horizontal(l_veh_sol, d_veh_sol)
+
+    l_veh_km = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente'] or ''}".strip() for v in vehiculos_km]
+    d_veh_km = [float(v['total_km']) for v in vehiculos_km]
+    chart_vehiculos_km = generar_grafico_barras_horizontal(l_veh_km, d_veh_km, "{} km")
+
 
 
     return render(request, "reservas/analiticas.html", {
@@ -1790,10 +1790,10 @@ def reporte_analiticas(request):
         "insights":                  insights,
         "top_usuarios":              top_usuarios,
         "solicitudes_cargo":         solicitudes_cargo,
-        "top_usuarios_json":         top_usuarios_json,
-        "solicitudes_cargo_json":    solicitudes_cargo_json,
-        "vehiculos_solicitudes_json": vehiculos_solicitudes_json,
-        "vehiculos_km_json":         vehiculos_km_json,
+        "chart_top_usuarios":        chart_top_usuarios,
+        "chart_cargos":              chart_cargos,
+        "chart_vehiculos_sol":       chart_vehiculos_sol,
+        "chart_vehiculos_km":        chart_vehiculos_km,
     })
 
 
@@ -1817,6 +1817,9 @@ def reporte_analiticas_pdf(request):
     from django.db.models.functions import TruncMonth
     from datetime import timedelta
     from weasyprint import HTML
+    from django.db.models import Sum
+    from .chart_utils import generar_grafico_barras_horizontal, generar_grafico_torta
+    
 
     usuario = get_usuario_sesion(request)
     rango = request.GET.get("rango", "30d")
@@ -1920,6 +1923,35 @@ def reporte_analiticas_pdf(request):
         total=Count('id')
     ).order_by('-total')
 
+    vehiculos_solicitudes = tickets_periodo.values(
+        'id_vehiculo__marca', 'id_vehiculo__modelo', 'id_vehiculo__patente'
+    ).annotate(
+        total=Count('id')
+    ).order_by('-total')
+
+    vehiculos_km = tickets_periodo.filter(distancia_real__isnull=False).values(
+        'id_vehiculo__marca', 'id_vehiculo__modelo', 'id_vehiculo__patente'
+    ).annotate(
+        total_km=Sum('distancia_real')
+    ).order_by('-total_km')
+
+    # Gráficos con Matplotlib
+    l_top = [f"{u['id_usuario__nombre']} {u['id_usuario__apellido']}" for u in top_usuarios]
+    d_top = [u['total'] for u in top_usuarios]
+    chart_top_usuarios = generar_grafico_barras_horizontal(l_top, d_top)
+
+    l_cargos = [c['id_usuario__id_cargo__nombre'] for c in solicitudes_cargo]
+    d_cargos = [c['total'] for c in solicitudes_cargo]
+    chart_cargos = generar_grafico_torta(l_cargos, d_cargos)
+
+    l_veh_sol = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente'] or ''}".strip() for v in vehiculos_solicitudes]
+    d_veh_sol = [v['total'] for v in vehiculos_solicitudes]
+    chart_vehiculos_sol = generar_grafico_barras_horizontal(l_veh_sol, d_veh_sol)
+
+    l_veh_km = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente'] or ''}".strip() for v in vehiculos_km]
+    d_veh_km = [float(v['total_km']) for v in vehiculos_km]
+    chart_vehiculos_km = generar_grafico_barras_horizontal(l_veh_km, d_veh_km, "{} km")
+
     context = {
         "usuario":                   usuario,
         "rango":                     rango,
@@ -1941,6 +1973,10 @@ def reporte_analiticas_pdf(request):
         "fecha_generacion":          f"{hoy.day} de {_MESES_ES[hoy.month]} de {hoy.year}",
         "top_usuarios":              top_usuarios,
         "solicitudes_cargo":         solicitudes_cargo,
+        "chart_top_usuarios":        chart_top_usuarios,
+        "chart_cargos":              chart_cargos,
+        "chart_vehiculos_sol":       chart_vehiculos_sol,
+        "chart_vehiculos_km":        chart_vehiculos_km,
     }
 
     html_string = render_to_string("reservas/analiticas_pdf.html", context)
