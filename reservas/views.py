@@ -29,7 +29,7 @@ from .forms import (
     RegistroForm, LoginForm, TicketForm, VehiculoSelectorForm,
     FiltroUsuariosForm, FiltroTicketsForm, VehiculoForm,
     VerificacionCodigoForm,          # [NUEVO] formulario de código de 6 dígitos
-    AdminCrearUsuarioForm,           # Formulario para admin
+    AdminCrearUsuarioForm, AdminEditarUsuarioForm,           # Formulario para admin
 )
 from .email_verification import (    # [NUEVO] servicio de verificación de correo
     crear_verificacion,
@@ -1033,10 +1033,10 @@ def usuarios(request):
 def detalle_usuario(request, usuario_id):
     """
     Vista de detalle de un usuario y su historial de tickets.
-    Permite a los administradores (SEU) desactivar la cuenta del usuario.
+    Permite a los administradores (SEU) desactivar la cuenta o editar los datos del usuario.
     """
     usuario_detalle = get_object_or_404(Usuario, pk=usuario_id)
-
+    
     if request.method == "POST":
         accion = request.POST.get("accion")
         if accion == "desactivar":
@@ -1048,6 +1048,16 @@ def detalle_usuario(request, usuario_id):
                 usuario_detalle.save(update_fields=["valido", "rechazado"])
                 messages.success(request, f"El usuario {usuario_detalle.nombre_completo} ha sido desactivado.")
             return redirect("usuarios")
+        elif accion == "editar":
+            form = AdminEditarUsuarioForm(request.POST, instance=usuario_detalle)
+            if form.is_valid():
+                form.save()
+                messages.success(request, f"Los datos de {usuario_detalle.nombre_completo} han sido actualizados.")
+                return redirect("detalle_usuario", usuario_id=usuario_detalle.pk)
+            else:
+                messages.error(request, "Hubo un error al actualizar los datos. Revisá el formulario.")
+    else:
+        form = AdminEditarUsuarioForm(instance=usuario_detalle)
 
     tickets_qs = Ticket.objects.filter(
         id_usuario=usuario_detalle
@@ -1057,6 +1067,7 @@ def detalle_usuario(request, usuario_id):
 
     return render(request, "reservas/detalle_usuario.html", {
         "usuario_detalle": usuario_detalle,
+        "form": form,
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
         "pagination_query": pagination_query,

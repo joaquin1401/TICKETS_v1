@@ -139,6 +139,30 @@ class AdminCrearUsuarioForm(RegistroForm):
         return usuario
 
 
+class AdminEditarUsuarioForm(forms.ModelForm):
+    """
+    Formulario para que el administrador edite datos de un usuario existente.
+    """
+    class Meta:
+        model = Usuario
+        fields = ["nombre", "apellido", "correo", "id_cargo"]
+        labels = {
+            "nombre": "Nombre",
+            "apellido": "Apellido",
+            "correo": "Correo electrónico",
+            "id_cargo": "Cargo",
+        }
+        widgets = {
+            "nombre":   forms.TextInput(attrs={"placeholder": "Nombre", "class": "form-control"}),
+            "apellido": forms.TextInput(attrs={"placeholder": "Apellido", "class": "form-control"}),
+            "correo":   forms.EmailInput(attrs={"placeholder": "correo@empresa.com", "class": "form-control"}),
+            "id_cargo": forms.Select(attrs={"class": "form-control"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["id_cargo"].queryset = Cargo.objects.all()
+
 class LoginForm(forms.Form):
     """
     Formulario para inicio de sesión (HU 1.2).
