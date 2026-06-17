@@ -281,6 +281,10 @@ class Ticket(models.Model):
         max_digits=10, decimal_places=2, default=0.0,
         help_text="Distancia estimada por el sistema"
     )
+    distancia_real = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Distancia real recorrida (calculada automáticamente)"
+    )
     kilometraje_inicio = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
         help_text="Kilometraje (odómetro) del vehículo al comenzar el viaje"
@@ -314,6 +318,13 @@ class Ticket(models.Model):
 
     def __str__(self):
         return f"Ticket #{self.pk} - {self.id_usuario} -> {self.destino} ({self.estado})"
+
+    def save(self, *args, **kwargs):
+        if self.kilometraje_inicio is not None and self.kilometraje_fin is not None:
+            self.distancia_real = self.kilometraje_fin - self.kilometraje_inicio
+        else:
+            self.distancia_real = None
+        super().save(*args, **kwargs)
 
 
 class NotificationLog(models.Model):

@@ -85,6 +85,7 @@
           <th>Conductor</th>
           <th>Destino</th>
           <th>Distancia Est.</th>
+          <th>Distancia Real</th>
           <th>Km Inicio</th>
           <th>Km Fin</th>
           <th>Salida Est.</th>
@@ -102,6 +103,7 @@
           <td>{% if t.conductor %}{{ t.conductor.nombre_completo }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td><span class="primary">{{ t.destino }}</span></td>
           <td>{% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}</td>
+          <td>{% if t.distancia_real %}{{ t.distancia_real }} km{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{% if t.kilometraje_inicio %}{{ t.kilometraje_inicio }} km{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{% if t.kilometraje_fin %}{{ t.kilometraje_fin }} km{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td class="text-mono">{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
