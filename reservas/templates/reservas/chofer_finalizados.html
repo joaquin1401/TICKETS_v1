@@ -30,8 +30,11 @@
         {{ t.destino }}
       </h3>
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</p>
-      {% if t.kilometraje > 0 or t.kilometraje_real %}
-      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Kilometraje:</strong> {% if t.kilometraje > 0 %}Est. {{ t.kilometraje }} km{% endif %}{% if t.kilometraje > 0 and t.kilometraje_real %} | {% endif %}{% if t.kilometraje_real %}Real: {{ t.kilometraje_real }} km{% endif %}</p>
+      {% if t.kilometraje > 0 %}
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Kilometraje Est.:</strong> {{ t.kilometraje }} km</p>
+      {% endif %}
+      {% if t.kilometraje_real %}
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Kilometraje Real:</strong> {{ t.kilometraje_real }} km</p>
       {% endif %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Hora de Salida:</strong>
         {% if t.hora_inicio_real %}{{ t.hora_inicio_real|date:"d/m/Y H:i" }}{% else %}{{ t.hora_inicio|date:"d/m/Y H:i" }}{% endif %}

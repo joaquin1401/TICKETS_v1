@@ -88,6 +88,8 @@
           <th>Cargo</th>
           <th>Vehículo</th>
           <th>Destino</th>
+          <th>Km Est.</th>
+          <th>Km Real</th>
           <th>Salida</th>
           <th>Regreso</th>
           <th>Pasajeros</th>
@@ -101,9 +103,12 @@
           <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
           <td><span class="badge badge-warning">{{ t.id_usuario.id_cargo.nombre }}</span></td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
+          <td>{{ t.destino }}</td>
           <td>
-            {{ t.destino }}
-            {% if t.kilometraje > 0 or t.kilometraje_real %}<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">{% if t.kilometraje > 0 %}Est: {{ t.kilometraje }} km{% endif %}{% if t.kilometraje > 0 and t.kilometraje_real %} | {% endif %}{% if t.kilometraje_real %}Real: <span style="font-weight:600;color:var(--text);">{{ t.kilometraje_real }} km</span>{% endif %}</div>{% endif %}
+            {% if t.kilometraje > 0 %}{{ t.kilometraje }} km{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>
+            {% if t.kilometraje_real %}{{ t.kilometraje_real }} km{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td class="text-mono">
             <div>{{ t.hora_inicio|date:"d/m H:i" }}</div>

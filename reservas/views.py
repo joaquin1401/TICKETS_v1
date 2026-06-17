@@ -550,17 +550,37 @@ def historial(request):
     ).select_related("id_vehiculo").order_by("-hora_inicio")
 
     if form.is_valid():
+        from django.db.models.functions import Lower
+
         busqueda = form.cleaned_data.get("busqueda")
+        conductor = form.cleaned_data.get("conductor")
         vehiculo = form.cleaned_data.get("vehiculo")
         fecha_inicio = form.cleaned_data.get("fecha_inicio")
         fecha_fin = form.cleaned_data.get("fecha_fin")
         
+        tickets_qs = tickets_qs.annotate(
+            busq_nombre=Lower('id_usuario__nombre'),
+            busq_apellido=Lower('id_usuario__apellido'),
+            busq_destino=Lower('destino'),
+            cond_nombre=Lower('conductor__nombre'),
+            cond_apellido=Lower('conductor__apellido')
+        )
+        
         if busqueda:
-            tickets_qs = tickets_qs.filter(
-                Q(id_usuario__nombre__icontains=busqueda)
-                | Q(id_usuario__apellido__icontains=busqueda)
-                | Q(destino__icontains=busqueda)
-            )
+            busqueda_lower = busqueda.lower()
+            for palabra in busqueda_lower.split():
+                tickets_qs = tickets_qs.filter(
+                    Q(busq_nombre__icontains=palabra)
+                    | Q(busq_apellido__icontains=palabra)
+                    | Q(busq_destino__icontains=palabra)
+                )
+        if conductor:
+            conductor_lower = conductor.lower()
+            for palabra in conductor_lower.split():
+                tickets_qs = tickets_qs.filter(
+                    Q(cond_nombre__icontains=palabra)
+                    | Q(cond_apellido__icontains=palabra)
+                )
         if vehiculo:
             tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
         if fecha_inicio:
@@ -1116,18 +1136,38 @@ def monitor_tickets_activos(request):
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("hora_inicio")
 
     if form.is_valid():
+        from django.db.models.functions import Lower
+
         busqueda = form.cleaned_data.get("busqueda")
+        conductor = form.cleaned_data.get("conductor")
         vehiculo = form.cleaned_data.get("vehiculo")
         cargo = form.cleaned_data.get("cargo")
         fecha_inicio = form.cleaned_data.get("fecha_inicio")
         fecha_fin = form.cleaned_data.get("fecha_fin")
         
+        tickets_qs = tickets_qs.annotate(
+            busq_nombre=Lower('id_usuario__nombre'),
+            busq_apellido=Lower('id_usuario__apellido'),
+            busq_destino=Lower('destino'),
+            cond_nombre=Lower('conductor__nombre'),
+            cond_apellido=Lower('conductor__apellido')
+        )
+        
         if busqueda:
-            tickets_qs = tickets_qs.filter(
-                Q(id_usuario__nombre__icontains=busqueda)
-                | Q(id_usuario__apellido__icontains=busqueda)
-                | Q(destino__icontains=busqueda)
-            )
+            busqueda_lower = busqueda.lower()
+            for palabra in busqueda_lower.split():
+                tickets_qs = tickets_qs.filter(
+                    Q(busq_nombre__icontains=palabra)
+                    | Q(busq_apellido__icontains=palabra)
+                    | Q(busq_destino__icontains=palabra)
+                )
+        if conductor:
+            conductor_lower = conductor.lower()
+            for palabra in conductor_lower.split():
+                tickets_qs = tickets_qs.filter(
+                    Q(cond_nombre__icontains=palabra)
+                    | Q(cond_apellido__icontains=palabra)
+                )
         if vehiculo:
             tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
         if cargo:
@@ -1182,18 +1222,38 @@ def historial_tickets(request):
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-hora_inicio")
 
     if form.is_valid():
+        from django.db.models.functions import Lower
+        
         busqueda = form.cleaned_data.get("busqueda")
+        conductor = form.cleaned_data.get("conductor")
         vehiculo = form.cleaned_data.get("vehiculo")
         cargo = form.cleaned_data.get("cargo")
         fecha_inicio = form.cleaned_data.get("fecha_inicio")
         fecha_fin = form.cleaned_data.get("fecha_fin")
         
+        tickets_qs = tickets_qs.annotate(
+            busq_nombre=Lower('id_usuario__nombre'),
+            busq_apellido=Lower('id_usuario__apellido'),
+            busq_destino=Lower('destino'),
+            cond_nombre=Lower('conductor__nombre'),
+            cond_apellido=Lower('conductor__apellido')
+        )
+        
         if busqueda:
-            tickets_qs = tickets_qs.filter(
-                Q(id_usuario__nombre__icontains=busqueda)
-                | Q(id_usuario__apellido__icontains=busqueda)
-                | Q(destino__icontains=busqueda)
-            )
+            busqueda_lower = busqueda.lower()
+            for palabra in busqueda_lower.split():
+                tickets_qs = tickets_qs.filter(
+                    Q(busq_nombre__icontains=palabra)
+                    | Q(busq_apellido__icontains=palabra)
+                    | Q(busq_destino__icontains=palabra)
+                )
+        if conductor:
+            conductor_lower = conductor.lower()
+            for palabra in conductor_lower.split():
+                tickets_qs = tickets_qs.filter(
+                    Q(cond_nombre__icontains=palabra)
+                    | Q(cond_apellido__icontains=palabra)
+                )
         if vehiculo:
             tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
         if cargo:
@@ -1226,18 +1286,38 @@ def descargar_historial_csv(request):
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-hora_inicio")
 
     if form.is_valid():
+        from django.db.models.functions import Lower
+
         busqueda = form.cleaned_data.get("busqueda")
+        conductor = form.cleaned_data.get("conductor")
         vehiculo = form.cleaned_data.get("vehiculo")
         cargo = form.cleaned_data.get("cargo")
         fecha_inicio = form.cleaned_data.get("fecha_inicio")
         fecha_fin = form.cleaned_data.get("fecha_fin")
         
+        tickets_qs = tickets_qs.annotate(
+            busq_nombre=Lower('id_usuario__nombre'),
+            busq_apellido=Lower('id_usuario__apellido'),
+            busq_destino=Lower('destino'),
+            cond_nombre=Lower('conductor__nombre'),
+            cond_apellido=Lower('conductor__apellido')
+        )
+        
         if busqueda:
-            tickets_qs = tickets_qs.filter(
-                Q(id_usuario__nombre__icontains=busqueda)
-                | Q(id_usuario__apellido__icontains=busqueda)
-                | Q(destino__icontains=busqueda)
-            )
+            busqueda_lower = busqueda.lower()
+            for palabra in busqueda_lower.split():
+                tickets_qs = tickets_qs.filter(
+                    Q(busq_nombre__icontains=palabra)
+                    | Q(busq_apellido__icontains=palabra)
+                    | Q(busq_destino__icontains=palabra)
+                )
+        if conductor:
+            conductor_lower = conductor.lower()
+            for palabra in conductor_lower.split():
+                tickets_qs = tickets_qs.filter(
+                    Q(cond_nombre__icontains=palabra)
+                    | Q(cond_apellido__icontains=palabra)
+                )
         if vehiculo:
             tickets_qs = tickets_qs.filter(id_vehiculo=vehiculo)
         if cargo:

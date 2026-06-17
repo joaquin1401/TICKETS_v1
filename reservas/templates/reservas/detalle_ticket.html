@@ -41,13 +41,25 @@
         <div class="detail-field-label">Destino</div>
         <div class="detail-field-value large">
           {{ ticket.destino }}
-          {% if ticket.kilometraje > 0 or ticket.kilometraje_real %}
-          <span style="font-size: 14px; font-weight: 500; color: var(--text-dim); margin-left: 8px;">
-            ({% if ticket.kilometraje > 0 %}Est: {{ ticket.kilometraje }} km{% endif %}{% if ticket.kilometraje > 0 and ticket.kilometraje_real %} | {% endif %}{% if ticket.kilometraje_real %}Real: {{ ticket.kilometraje_real }} km{% endif %})
-          </span>
-          {% endif %}
         </div>
       </div>
+
+      {% if ticket.kilometraje > 0 or ticket.kilometraje_real %}
+      <div class="form-row">
+        {% if ticket.kilometraje > 0 %}
+        <div class="detail-field">
+          <div class="detail-field-label">Kilometraje Estimado</div>
+          <div class="detail-field-value">{{ ticket.kilometraje }} km</div>
+        </div>
+        {% endif %}
+        {% if ticket.kilometraje_real %}
+        <div class="detail-field">
+          <div class="detail-field-label">Kilometraje Real</div>
+          <div class="detail-field-value">{{ ticket.kilometraje_real }} km</div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
       <div class="form-row">
         <div class="detail-field">
         <div class="detail-field-label">Salida</div>

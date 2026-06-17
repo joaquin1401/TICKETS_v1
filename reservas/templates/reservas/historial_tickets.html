@@ -20,6 +20,12 @@
                placeholder="Buscar solicitante o destino..."
                value="{{ form.busqueda.value|default:'' }}">
       </div>
+      <div style="flex:1;min-width:180px;">
+        <label class="form-label">Conductor</label>
+        <input type="text" name="conductor" class="form-control"
+               placeholder="Buscar conductor..."
+               value="{{ form.conductor.value|default:'' }}">
+      </div>
       <div style="min-width:180px;">
         <label class="form-label">Vehículo</label>
         <select name="vehiculo" class="form-control">
@@ -77,8 +83,10 @@
           <th>Solicitante</th>
           <th>Cargo</th>
           <th>Vehículo</th>
+          <th>Conductor</th>
           <th>Destino</th>
-          <th>Kilometraje</th>
+          <th>Km Est.</th>
+          <th>Km Real</th>
           <th>Salida Est.</th>
           <th>Salida Real</th>
           <th>Llegada Est.</th>
@@ -95,7 +103,11 @@
           <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
           <td><span class="badge badge-neutral">{{ t.id_usuario.id_cargo.nombre }}</span></td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }}</td>
+          <td>{% if t.conductor %}{{ t.conductor.nombre_completo }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{{ t.destino }}</td>
+          <td>
+            {% if t.kilometraje > 0 %}{{ t.kilometraje }} km{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
           <td>
             {% if t.kilometraje_real %}{{ t.kilometraje_real }} km{% else %}<span class="text-muted">—</span>{% endif %}
           </td>

@@ -325,6 +325,11 @@ class FiltroTicketsForm(forms.Form):
         widget=forms.TextInput(attrs={"placeholder": "Buscar por solicitante o destino..."}),
         label="",
     )
+    conductor = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={"placeholder": "Buscar por conductor..."}),
+        label="Conductor",
+    )
     vehiculo = forms.ModelChoiceField(
         queryset=Vehiculo.objects.all(),
         required=False,
