@@ -1551,7 +1551,8 @@ def reporte_analiticas(request):
         - Duración promedio de viaje
         - Usuarios pendientes de aprobación
     """
-    from django.db.models import Count
+    from django.db.models import Count, Sum
+    import json
     from django.db.models.functions import TruncMonth
     from django.utils import timezone
     from datetime import timedelta
@@ -1722,17 +1723,51 @@ def reporte_analiticas(request):
         )
 
     # ── Comportamiento de Usuarios ───────────────────────────────────────────
+
     top_usuarios = tickets_periodo.values(
         'id_usuario__nombre', 'id_usuario__apellido', 'id_usuario__id_cargo__nombre'
     ).annotate(
         total=Count('id')
-    ).order_by('-total')[:5]
+    ).order_by('-total')[:10]
+
+    top_usuarios_json = json.dumps({
+        "labels": [f"{u['id_usuario__nombre']} {u['id_usuario__apellido']}" for u in top_usuarios],
+        "data": [u['total'] for u in top_usuarios]
+    })
 
     solicitudes_cargo = tickets_periodo.values(
         'id_usuario__id_cargo__nombre'
     ).annotate(
         total=Count('id')
     ).order_by('-total')
+
+    solicitudes_cargo_json = json.dumps({
+        "labels": [c['id_usuario__id_cargo__nombre'] for c in solicitudes_cargo],
+        "data": [c['total'] for c in solicitudes_cargo]
+    })
+
+    vehiculos_solicitudes = tickets_periodo.values(
+        'id_vehiculo__marca', 'id_vehiculo__modelo'
+    ).annotate(
+        total=Count('id')
+    ).order_by('-total')
+
+    vehiculos_solicitudes_json = json.dumps({
+        "labels": [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']}" for v in vehiculos_solicitudes],
+        "data": [v['total'] for v in vehiculos_solicitudes]
+    })
+
+    vehiculos_km = tickets_periodo.filter(distancia_real__isnull=False).values(
+        'id_vehiculo__marca', 'id_vehiculo__modelo'
+    ).annotate(
+        total_km=Sum('distancia_real')
+    ).order_by('-total_km')
+
+    vehiculos_km_json = json.dumps({
+        "labels": [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']}" for v in vehiculos_km],
+        "data": [float(v['total_km']) for v in vehiculos_km]
+    })
+
 
     return render(request, "reservas/analiticas.html", {
         "usuario":                   usuario,
@@ -1755,6 +1790,10 @@ def reporte_analiticas(request):
         "insights":                  insights,
         "top_usuarios":              top_usuarios,
         "solicitudes_cargo":         solicitudes_cargo,
+        "top_usuarios_json":         top_usuarios_json,
+        "solicitudes_cargo_json":    solicitudes_cargo_json,
+        "vehiculos_solicitudes_json": vehiculos_solicitudes_json,
+        "vehiculos_km_json":         vehiculos_km_json,
     })
 
 

@@ -1,93 +1,11 @@
-{% extends "reservas/base.html" %}
-{% load static %}
-{% block title %}Analíticas — Sistema de Reserva de Vehículos
+import re
 
-{% endblock %}
-{% block breadcrumb %}Analíticas
+file_path = "/home/blob/dev/active projects/TICKETS_v1/reservas/templates/reservas/analiticas.html"
+with open(file_path, "r") as f:
+    content = f.read()
 
-{% endblock %}
-
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/pages/analiticas.css' %}">
-
-
-{% endblock %}
-
-{% block content %}
-<div class="report-header" id="report-top">
-  <div class="report-header-text">
-    <p class="report-eyebrow">Reporte de Flota · Admin</p>
-    <h1>Analíticas de uso</h1>
-    <p class="report-period">Período: <strong>{{ rango_label }}</strong></p>
-  </div>
-  <div class="report-header-actions no-print">
-    <!-- Filtro de rango -->
-    <div class="range-filter">
-      <a href="?rango=30d" class="range-btn {% if rango == '30d'  %}active{% endif %}">30 días</a>
-      <a href="?rango=90d" class="range-btn {% if rango == '90d'  %}active{% endif %}">90 días</a>
-      <a href="?rango=anio" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
-      <a href="?rango=todo" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
-    </div>
-    <a href="{% url 'reporte_analiticas_pdf' %}?rango={{ rango }}" class="btn btn-outline pdf-btn" id="btn-pdf">
-      <span>↓</span> Descargar PDF
-    </a>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════
-      La flota en números
-     ═══════════════════════════════════════════════════════ -->
-<div class="act-label">La flota en números</div>
-<div class="kpi-grid">
-  <div class="kpi-card kpi-accent">
-    <div class="kpi-value">{{ total_aprobados }}</div>
-    <div class="kpi-label">Reservas aprobadas</div>
-    <div class="kpi-sub">en {{ rango_label|lower }}</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-value">{{ horas_totales }}h</div>
-    <div class="kpi-label">Horas efectivas de uso</div>
-    <div class="kpi-sub">suma de todos los vehículos</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-value">{{ duracion_promedio }}h</div>
-    <div class="kpi-label">Duración promedio por viaje</div>
-    <div class="kpi-sub">tickets aprobados con hora_fin</div>
-  </div>
-  <div class="kpi-card {% if tasa_cancelacion_global > 20 %}kpi-warn{% endif %}">
-    <div class="kpi-value">{{ tasa_cancelacion_global }}%</div>
-    <div class="kpi-label">Tasa de cancelación global</div>
-    <div class="kpi-sub">{{ total_cancelados }} de {{ total_tickets }} tickets</div>
-  </div>
-</div>
-
-<div class="kpi-grid kpi-grid-secondary">
-  <div class="kpi-card kpi-small">
-    <div class="kpi-value-sm">{{ total_usuarios_activos }}</div>
-    <div class="kpi-label">Usuarios activos</div>
-  </div>
-  <div class="kpi-card kpi-small {% if total_usuarios_pendientes > 0 %}kpi-warn{% endif %}">
-    <div class="kpi-value-sm">{{ total_usuarios_pendientes }}</div>
-    <div class="kpi-label">Usuarios pendientes</div>
-  </div>
-  <div class="kpi-card kpi-small">
-    <div class="kpi-value-sm">{{ total_vehiculos_activos }}</div>
-    <div class="kpi-label">Vehículos activos</div>
-  </div>
-  <div class="kpi-card kpi-small">
-    <div class="kpi-value-sm">{{ total_vehiculos_inactivos }}</div>
-    <div class="kpi-label">Vehículos inactivos</div>
-  </div>
-  {% if rango != '30d' %}
-  <div class="kpi-card kpi-small">
-    <div class="kpi-label" style="margin-bottom:6px;">Mes con más actividad</div>
-    <div class="kpi-month-label">{{ mes_pico_label }}</div>
-    <div class="kpi-sub">{{ mes_pico_count }} reservas aprobadas</div>
-  </div>
-  {% endif %}
-</div>
-
-<!-- ═══════════════════════════════════════════════════════
+# Replace the tables with canvas elements
+users_behavior_section = """<!-- ═══════════════════════════════════════════════════════
       Comportamiento de Usuarios
      ═══════════════════════════════════════════════════════ -->
 <div class="act-label" style="margin-top:36px;">Comportamiento de Usuarios</div>
@@ -139,18 +57,16 @@
     </div>
   </div>
 
-</div>
+</div>"""
 
-<!-- Nota de pie para el PDF -->
-<div class="report-footer">
-  <span>Sistema de Reserva de Vehículos</span>
-  <span>Reporte generado · {{ rango_label }}</span>
-</div>
+# Find where "Comportamiento de Usuarios" starts and replace until the footer
+start_idx = content.find("<!-- ═══════════════════════════════════════════════════════\n      Comportamiento de Usuarios")
+end_idx = content.find("<!-- Nota de pie para el PDF -->")
 
+new_content = content[:start_idx] + users_behavior_section + "\n\n" + content[end_idx:]
 
-
-{% endblock %}
-{% block extra_js %}
+# Add Chart.js and DataLabels plugin
+scripts = """
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 <script>
@@ -251,4 +167,11 @@
     }
   });
 </script>
-{% endblock %}
+"""
+
+new_content = new_content.replace("{% endblock %}", scripts + "\n{% endblock %}")
+
+with open(file_path, "w") as f:
+    f.write(new_content)
+
+print("Updated analiticas.html")

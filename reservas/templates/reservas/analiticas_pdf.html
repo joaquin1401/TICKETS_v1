@@ -436,50 +436,8 @@
       {% endif %}
     </div>
 
-    <!-- Acto II: Tabla por vehículo -->
-    <div class="act-label section-title">Rendimiento por vehículo</div>
-    {% if stats_vehiculos %}
-    <table>
-      <thead>
-        <tr>
-          <th>Vehículo</th>
-          <th>Estado</th>
 
-          <th class="align-right">Reservas</th>
-          <th class="align-right">Canceladas</th>
-          <th class="align-right">% Cancel.</th>
-          <th class="align-right">Horas efectivas</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for sv in stats_vehiculos %}
-        <tr class="{% if forloop.first %}row-leader{% endif %}">
-          <td>
-            <div class="vehicle-name">
-              {% if forloop.first %}<span class="leader-crown">★</span>{% endif %}
-              {{ sv.vehiculo.marca }} {{ sv.vehiculo.modelo }}
-            </div>
-            <div class="vehicle-sub">{{ sv.vehiculo.cant_pasajeros }} pasajeros</div>
-          </td>
-          <td>
-            {% if sv.vehiculo.activo %}
-            <span class="badge badge-success">Activo</span>
-            {% else %}
-            <span class="badge badge-neutral">Inactivo</span>
-            {% endif %}
-          </td>
-
-          <td class="align-right">{{ sv.count_aprobados }}</td>
-          <td class="align-right">{{ sv.count_cancelados }}</td>
-          <td class="align-right">{{ sv.tasa_cancelacion }}%</td>
-          <td class="align-right">{{ sv.horas_efectivas }}h</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
-
-    <!-- Acto III: Comportamiento de Usuarios -->
+    <!-- Comportamiento de Usuarios -->
     <div class="act-label section-title">Comportamiento de Usuarios</div>
     <div style="display: flex; gap: 20pt; page-break-inside: avoid;">
     
