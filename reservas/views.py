@@ -1003,7 +1003,7 @@ def usuarios(request):
         - Q() permite búsqueda OR en múltiples campos.
     """
     form = FiltroUsuariosForm(request.GET or None)
-    usuarios = Usuario.objects.filter(valido=True).select_related("id_cargo")
+    usuarios = Usuario.objects.exclude(valido=False, rechazado=False).select_related("id_cargo")
 
     if form.is_valid():
         busqueda = form.cleaned_data.get("busqueda")

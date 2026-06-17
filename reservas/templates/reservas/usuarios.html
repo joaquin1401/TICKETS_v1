@@ -6,7 +6,7 @@
 <div class="page-header">
   <div>
     <h1>Usuarios</h1>
-    <p class="sub">Empleados con acceso activo</p>
+    <p class="sub">Todos los empleados registrados</p>
   </div>
   <div style="display: flex; gap: 8px;">
     <a href="{% url 'admin_crear_usuario' %}" class="btn btn-primary">Crear Usuario</a>
@@ -47,7 +47,7 @@
 
 <div class="card">
   <div class="card-header">
-    <span class="card-title">◷ Usuarios activos</span>
+    <span class="card-title">◷ Todos los usuarios</span>
     <span class="badge badge-neutral">{{ total_usuarios }}</span>
   </div>
   <div class="table-wrap">
@@ -58,6 +58,7 @@
           <th>Nombre</th>
           <th>Correo</th>
           <th>Cargo</th>
+          <th>Estado</th>
           <th>Prioridad</th>
           <th></th>
         </tr>
@@ -75,6 +76,15 @@
           </td>
           <td class="text-mono" style="font-size:12px;">{{ u.correo }}</td>
           <td><span class="badge badge-warning">{{ u.id_cargo.nombre }}</span></td>
+          <td>
+            {% if u.valido %}
+              <span class="badge badge-success">Activo</span>
+            {% elif u.valido == False and u.rechazado == False %}
+              <span class="badge badge-warning">Pendiente</span>
+            {% else %}
+              <span class="badge badge-danger">Desactivado</span>
+            {% endif %}
+          </td>
           <td class="text-mono text-muted">{{ u.id_cargo.prioridad }}</td>
           <td><a href="{% url 'detalle_usuario' u.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
         </tr>
