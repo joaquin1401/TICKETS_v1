@@ -200,6 +200,10 @@ class Vehiculo(models.Model):
         default=False,
         help_text="True = solo puede ser reservado por el Decano"
     )
+    requiere_chofer = models.BooleanField(
+        default=False,
+        help_text="True = es obligatorio que se asigne un chofer para su reserva"
+    )
 
     class Meta:
         verbose_name = "Vehículo"
