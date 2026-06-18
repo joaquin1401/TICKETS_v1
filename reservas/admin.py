@@ -122,7 +122,7 @@ class UsuarioAdmin(admin.ModelAdmin):
 @admin.register(Vehiculo)
 class VehiculoAdmin(admin.ModelAdmin):
     """
-    Interfaz de administración para la flota de vehículos.
+    Interfaz de administración para los vehículos.
 
     Permite filtrar vehículos por estado activo/inactivo y marca,
     y buscar por marca y modelo.

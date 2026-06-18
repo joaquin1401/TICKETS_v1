@@ -4,7 +4,7 @@ Models para el sistema de reserva de vehículos.
 Define las entidades principales del dominio:
 - Cargo: Jerarquía organizacional de usuarios.
 - Usuario: Cuentas de usuario con control de acceso por cargo.
-- Vehículo: Flota disponible para reservas.
+- Vehículo: Vehículos disponibles para reservas.
 - Ticket: Solicitudes de reserva con lógica de conflictos y jerarquía.
 
 Este módulo integra con la lógica de negocio en services.py para resolver
@@ -172,7 +172,7 @@ class Usuario(models.Model):
 
 class Vehiculo(models.Model):
     """
-    Representa un vehículo en la flota corporativa.
+    Representa un vehículo en los vehículos corporativos.
 
     Los vehículos son el recurso central que se reserva mediante tickets.
     La disponibilidad se determina por conflictos de tiempo en tickets

@@ -79,9 +79,9 @@
         class="nav-item {% if request.resolver_match.url_name == 'reporte_analiticas' %}active{% endif %}">
         <span class="icon">◈</span> Analíticas
       </a>
-      <a href="{% url 'listado_flota' %}"
-        class="nav-item {% if 'flota' in request.resolver_match.url_name or 'vehiculo' in request.resolver_match.url_name %}active{% endif %}">
-        <span class="icon">◧</span> Flota
+      <a href="{% url 'listado_vehiculos' %}"
+        class="nav-item {% if 'vehiculos' in request.resolver_match.url_name or 'vehiculo' in request.resolver_match.url_name %}active{% endif %}">
+        <span class="icon">◧</span> Vehículos
       </a>
     </div>
     {% endif %}

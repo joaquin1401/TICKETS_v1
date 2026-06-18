@@ -6,7 +6,7 @@ Define todas las rutas HTTP del sistema, organizadas por épica funcional:
 - Épica 2: Inicio y gestión de tickets de usuario
 - Épica 3: Calendario interactivo y línea de tiempo
 - Épica 5: Panel administrativo (validación, directorio, auditoría)
-- Épica 6: Administración de flota
+- Épica 6: Administración de vehículos
 
 Convención de nombramiento: Los nombres de rutas (name=...) utilizan
 snake_case y sirven como identificadores únicos en templates y redirects.
@@ -92,7 +92,7 @@ urlpatterns = [
     path("admin-panel/tickets/historial/descargar/", views.descargar_historial_csv, name="descargar_historial_csv"),
 
     # ═══════════════════════════════════════════════════════════════════════════════
-    # Épica 6: ABM (Alta, Baja, Modificación) de Flota
+    # Épica 6: ABM (Alta, Baja, Modificación) de Vehículos
     # ═══════════════════════════════════════════════════════════════════════════════
     # HU 6.1: Listado de vehículos
     # HU 6.2: Alta de vehículo
@@ -100,9 +100,9 @@ urlpatterns = [
     
     path("admin-panel/analiticas/", views.reporte_analiticas, name="reporte_analiticas"),
     path("admin-panel/analiticas/pdf/", views.reporte_analiticas_pdf, name="reporte_analiticas_pdf"),
-    path("admin-panel/flota/", views.listado_flota, name="listado_flota"),
-    path("admin-panel/flota/nueva/", views.alta_vehiculo, name="alta_vehiculo"),
-    path("admin-panel/flota/<int:vehiculo_id>/editar/", views.edicion_vehiculo, name="edicion_vehiculo"),
+    path("admin-panel/vehiculos/", views.listado_vehiculos, name="listado_vehiculos"),
+    path("admin-panel/vehiculos/nueva/", views.alta_vehiculo, name="alta_vehiculo"),
+    path("admin-panel/vehiculos/<int:vehiculo_id>/editar/", views.edicion_vehiculo, name="edicion_vehiculo"),
 
 
     # NUEVO — Verificación de correo electrónico (extensión de HU 1.1)

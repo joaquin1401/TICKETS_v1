@@ -25,7 +25,7 @@ Estructura del proyecto:
     3. Calendario interactivo e integración temporal.
     4. Reglas de negocio (colisiones, prioridad jerárquica).
     5. Supervisión administrativa (directorio, auditoría, monitor).
-    6. ABM de flota (alta, baja, modificación de vehículos).
+    6. ABM de vehículos (alta, baja, modificación de vehículos).
 
 Convención de sesión:
     - request.session["usuario_id"]: PK del usuario logueado.

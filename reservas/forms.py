@@ -2,7 +2,7 @@
 Forms para validación y captura de datos del sistema de reservas.
 
 Incluye formularios para autenticación, creación de tickets,
-búsqueda y administración de flota. Todos heredan de Django forms
+búsqueda y administración de vehículos. Todos heredan de Django forms
 y aplican validaciones tanto a nivel de campo como de formulario.
 
 Convención de sesión utilizada en vistas:
@@ -296,7 +296,7 @@ class TicketForm(forms.ModelForm):
         if hora_inicio:
             if not self.es_admin:
                 if hora_inicio <= ahora:
-                    raise ValidationError("La hora de inicio debe ser en el futuro.")
+                    raise ValidationError("La fecha de inicio debe ser en el futuro.")
                 
                 if hora_inicio > ahora + timedelta(days=60):
                     self.add_error("hora_inicio", "No se pueden realizar reservas con más de 2 meses (60 días) de antelación.")
@@ -402,14 +402,14 @@ class FiltroTicketsForm(forms.Form):
 
 
 # ══════════════════════════════════════════════
-# Épica 6 — ABM de Flota
+# Épica 6 — ABM de Vehículos
 # ══════════════════════════════════════════════
 
 class VehiculoForm(forms.ModelForm):
     """
     Formulario para alta y edición de vehículos (HU 6.2, 6.3).
 
-    Permite crear y modificar registros de vehículos en la flota.
+    Permite crear y modificar registros de vehículos en los vehículos.
     El flag 'activo' controla si el vehículo aparece en formularios de reserva.
 
     Fields:

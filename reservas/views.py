@@ -1389,7 +1389,7 @@ def descargar_historial_csv(request):
     return response
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ÉPICA 6: ABM (ALTA, BAJA, MODIFICACIÓN) DE FLOTA
+# ÉPICA 6: ABM (ALTA, BAJA, MODIFICACIÓN) DE VEHÍCULOS
 # ══════════════════════════════════════════════════════════════════════════════
 # HU 6.1: Listado de vehículos
 # HU 6.2: Alta de vehículo
@@ -1398,9 +1398,9 @@ def descargar_historial_csv(request):
 
 @login_requerido
 @admin_requerido
-def listado_flota(request):
+def listado_vehiculos(request):
     """
-    Vista del listado de vehículos de la flota (HU 6.1).
+    Vista del listado de vehículos de los vehículos (HU 6.1).
 
     Muestra todos los vehículos (activos e inactivos) ordenados
     por marca y modelo. Desde aquí se puede navegar a crear o editar.
@@ -1409,7 +1409,7 @@ def listado_flota(request):
         request (HttpRequest): Objeto de solicitud (GET).
 
     Returns:
-        HttpResponse: Plantilla 'reservas/listado_flota.html' con:
+        HttpResponse: Plantilla 'reservas/listado_vehiculos.html' con:
             - vehiculos: QuerySet de todos los vehículos.
             - usuario: Instancia del usuario logueado (admin).
     """
@@ -1417,7 +1417,7 @@ def listado_flota(request):
     vehiculos_qs = Vehiculo.objects.filter(exclusivo_decanato=False).order_by("marca", "modelo")
     page_obj, pagination_query = paginate_queryset(request, vehiculos_qs)
 
-    return render(request, "reservas/listado_flota.html", {
+    return render(request, "reservas/listado_vehiculos.html", {
         "vehiculos_decano": vehiculos_decano,
         "vehiculos": page_obj.object_list,
         "page_obj": page_obj,
@@ -1449,17 +1449,17 @@ def alta_vehiculo(request):
             - usuario: Instancia del usuario logueado (admin).
 
     Redirección (POST exitoso):
-        - Redirect a listado_flota.
+        - Redirect a listado_vehiculos.
 
     Messages (POST):
-        - success: "Vehículo agregado a la flota."
+        - success: "Vehículo agregado a los vehículos."
     """
     if request.method == "POST":
         form = VehiculoForm(request.POST)
         if form.is_valid():
             form.save()
-            messages.success(request, "Vehículo agregado a la flota.")
-            return redirect("listado_flota")
+            messages.success(request, "Vehículo agregado a los vehículos.")
+            return redirect("listado_vehiculos")
     else:
         form = VehiculoForm()
     return render(request, "reservas/form_vehiculo.html", {
@@ -1492,7 +1492,7 @@ def edicion_vehiculo(request, vehiculo_id):
             - usuario: Instancia del usuario logueado (admin).
 
     Redirección (POST exitoso):
-        - Redirect a listado_flota.
+        - Redirect a listado_vehiculos.
 
     Messages (POST):
         - success: "Vehículo actualizado."
@@ -1510,7 +1510,7 @@ def edicion_vehiculo(request, vehiculo_id):
         if form.is_valid():
             form.save()
             messages.success(request, "Vehículo actualizado.")
-            return redirect("listado_flota")
+            return redirect("listado_vehiculos")
     else:
         form = VehiculoForm(instance=vehiculo)
     return render(request, "reservas/form_vehiculo.html", {
@@ -1529,7 +1529,7 @@ def edicion_vehiculo(request, vehiculo_id):
 @admin_requerido
 def reporte_analiticas(request):
     """
-    Vista de analíticas y reportes narrativos de la flota (admin only).
+    Vista de analíticas y reportes narrativos de los vehículos (admin only).
 
     Calcula métricas de uso efectivo por vehículo y globales de la app,
     con filtro de rango temporal. Aplica principios de data storytelling
@@ -1670,7 +1670,7 @@ def reporte_analiticas(request):
     ]
     duracion_promedio = round(sum(duraciones) / len(duraciones), 1) if duraciones else 0
 
-    # ── Usuarios y flota ─────────────────────────────────────────────────────
+    # ── Usuarios y vehículos ─────────────────────────────────────────────────────
     total_usuarios_activos    = Usuario.objects.filter(valido=True).count()
     total_usuarios_pendientes = Usuario.objects.filter(valido=False, rechazado=False).count()
     total_vehiculos_activos   = Vehiculo.objects.filter(activo=True).count()
@@ -1686,7 +1686,7 @@ def reporte_analiticas(request):
         ) if horas_totales > 0 else 0
         insights.append(
             f"El {lider['vehiculo'].marca} {lider['vehiculo'].modelo} concentra "
-            f"el {pct_lider}% del tiempo efectivo de uso de la flota "
+            f"el {pct_lider}% del tiempo efectivo de uso de los vehículos "
             f"({lider['horas_efectivas']}h en {rango_label.lower()})."
         )
 
@@ -1709,7 +1709,7 @@ def reporte_analiticas(request):
             insights.append(
                 f"El {peor['vehiculo'].marca} {peor['vehiculo'].modelo} tiene una tasa de "
                 f"cancelación del {peor['tasa_cancelacion']}%, "
-                f"{diff} puntos por encima del promedio de la flota."
+                f"{diff} puntos por encima del promedio de los vehículos."
             )
 
     if total_usuarios_pendientes > 0:
