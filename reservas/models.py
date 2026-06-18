@@ -282,6 +282,14 @@ class Ticket(models.Model):
         Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets_conducidos",
         help_text="Chofer asignado al viaje"
     )
+    requiere_chofer = models.BooleanField(
+        default=False,
+        help_text="True = la reserva requiere de un chofer"
+    )
+    para_tercero = models.BooleanField(
+        default=False,
+        help_text="True = el vehículo será usado por alguien distinto al solicitante"
+    )
     destino = models.CharField(max_length=255)
     distancia_est = models.DecimalField(
         max_digits=10, decimal_places=2, default=0.0,
