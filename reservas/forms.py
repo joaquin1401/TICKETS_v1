@@ -238,7 +238,7 @@ class TicketForm(forms.ModelForm):
 
     class Meta:
         model = Ticket
-        fields = ["id_vehiculo", "destino", "cant_pasajeros", "descripcion", "hora_inicio", "hora_fin"]
+        fields = ["id_vehiculo", "destino", "cant_pasajeros", "descripcion", "hora_inicio", "hora_fin", "requiere_chofer", "para_tercero"]
         labels = {
             "id_vehiculo":    "Vehículo",
             "destino":        "Destino",

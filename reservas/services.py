@@ -252,6 +252,34 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             mensaje=f"La cantidad de pasajeros solicitada ({cant_pasajeros}) excede la capacidad del vehículo ({vehiculo.cant_pasajeros})."
         )
 
+    # ── Regla: Chofer obligatorio y disponibilidad ──────────────────────────────────
+    requiere_chofer = kwargs.get("requiere_chofer", False)
+    if vehiculo.requiere_chofer:
+        requiere_chofer = True
+    kwargs["requiere_chofer"] = requiere_chofer
+
+    if requiere_chofer:
+        from .models import Usuario, Cargo
+        total_choferes = Usuario.objects.filter(id_cargo__nombre=Cargo.CHOFER, valido=True).count()
+        
+        tickets_chofer_conflicto = Ticket.objects.filter(
+            estado__in=[Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO],
+            requiere_chofer=True,
+            hora_inicio__lt=hora_fin,
+            hora_fin__gt=hora_inicio
+        )
+        if tickets_chofer_conflicto.count() >= total_choferes:
+            if vehiculo.requiere_chofer:
+                return ResultadoCreacion(
+                    estado=ResultadoCreacion.BLOQUEADO,
+                    mensaje="El vehículo seleccionado requiere obligatoriamente la asignación de un chofer autorizado para su uso y no hay choferes disponibles para la fecha y el horario seleccionados. Intenta con otro rango de tiempo."
+                )
+            else:
+                return ResultadoCreacion(
+                    estado=ResultadoCreacion.BLOQUEADO,
+                    mensaje="No hay choferes disponibles para la fecha y el horario seleccionados. Intenta con otro rango de tiempo."
+                )
+
     # ── Reglas Temporales: Max 2 meses, Min 3 días ──────────────────────────────────
     from datetime import timedelta
     ahora = timezone.now()

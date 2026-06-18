@@ -392,6 +392,7 @@ def inicio(request):
                 destino=cd["destino"],
                 cant_pasajeros=cd["cant_pasajeros"],
                 descripcion=cd.get("descripcion", ""),
+                requiere_chofer=cd.get("requiere_chofer", False),
             )
 
             if resultado.exito:

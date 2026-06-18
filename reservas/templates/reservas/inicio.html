@@ -58,7 +58,7 @@
           <select name="id_vehiculo" id="vehiculoSelect" class="form-control">
             <option value="">-- Seleccionar vehículo --</option>
             {% for v in form.id_vehiculo.field.queryset %}
-            <option value="{{ v.pk }}" data-capacity="{{ v.cant_pasajeros }}" {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
+            <option value="{{ v.pk }}" data-capacity="{{ v.cant_pasajeros }}" data-req-chofer="{{ v.requiere_chofer|yesno:'true,false' }}" {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
               {{ v.marca }} {{ v.modelo }} ({{ v.cant_pasajeros }} pas.)
             </option>
             {% endfor %}
@@ -102,6 +102,13 @@
           <label class="form-label">Descripción / Motivo</label>
           <textarea name="descripcion" class="form-control" rows="2"
             placeholder="Motivo del viaje...">{{ form.descripcion.value|default:'' }}</textarea>
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" name="requiere_chofer" id="requiereChoferCheckbox" {% if form.requiere_chofer.value %}checked{% endif %} style="width: auto;">
+          <label class="form-label" for="requiereChoferCheckbox" style="margin: 0; cursor: pointer;">Solicitar chofer</label>
+        </div>
+        <div id="choferWarning" style="display: none; color: var(--warning); font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px; background: rgba(232, 160, 32, 0.1); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--warning);">
+          El vehículo seleccionado requiere obligatoriamente la asignación de un chofer autorizado para su uso.
         </div>
         {% if form.non_field_errors %}
         <p class="form-error" style="margin-bottom:10px;">{{ form.non_field_errors.0 }}</p>
@@ -238,6 +245,22 @@
             exclusiveWarning.style.display = 'block';
           } else {
             exclusiveWarning.style.display = 'none';
+          }
+
+          // Lógica para requiere_chofer
+          const reqChofer = selectedOption.getAttribute('data-req-chofer') === 'true';
+          const choferCheckbox = document.getElementById('requiereChoferCheckbox');
+          const choferWarning = document.getElementById('choferWarning');
+          
+          if (choferCheckbox && choferWarning) {
+            if (reqChofer) {
+              choferCheckbox.checked = true;
+              choferCheckbox.disabled = true;
+              choferWarning.style.display = 'block';
+            } else {
+              choferCheckbox.disabled = false;
+              choferWarning.style.display = 'none';
+            }
           }
         }
 
