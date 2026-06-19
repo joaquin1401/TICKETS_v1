@@ -99,9 +99,10 @@
           </div>
         </div>
         <div class="form-group">
-          <label class="form-label">Descripción / Motivo</label>
+          <label class="form-label">Descripción / Motivo <span style="color:var(--danger);">*</span></label>
           <textarea name="descripcion" class="form-control" rows="2"
-            placeholder="Motivo del viaje...">{{ form.descripcion.value|default:'' }}</textarea>
+            placeholder="Motivo del viaje..." required>{{ form.descripcion.value|default:'' }}</textarea>
+          {% if form.descripcion.errors %}<p class="form-error">{{ form.descripcion.errors.0 }}</p>{% endif %}
         </div>
         <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
           <input type="checkbox" name="requiere_chofer" id="requiereChoferCheckbox" {% if form.requiere_chofer.value %}checked{% endif %} style="width: auto;">
@@ -109,6 +110,23 @@
         </div>
         <div id="choferWarning" style="display: none; color: var(--warning); font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px; background: rgba(232, 160, 32, 0.1); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--warning);">
           El vehículo seleccionado requiere obligatoriamente la asignación de un chofer autorizado para su uso.
+        </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" name="para_tercero" id="paraTerceroCheckbox" {% if form.para_tercero.value %}checked{% endif %} style="width: auto;">
+          <label class="form-label" for="paraTerceroCheckbox" style="margin: 0; cursor: pointer;">Estoy solicitando un ticket para otra persona</label>
+        </div>
+        <div id="datosTerceroContainer" style="display: none; background: var(--bg-color, #f8f9fa); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0; margin-bottom: 10px;">Por favor, complete los campos con los datos de la persona para la cual se está solicitando el ticket.</p>
+          <div class="form-group" style="margin-bottom: 10px;">
+            <label class="form-label">Nombre <span style="color:var(--danger);">*</span></label>
+            <input type="text" name="tercero_nombre" id="terceroNombreInput" class="form-control" placeholder="Nombre completo" value="{{ form.tercero_nombre.value|default:'' }}">
+            {% if form.tercero_nombre.errors %}<p class="form-error">{{ form.tercero_nombre.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">Información de contacto (teléfono o correo) <span style="color:var(--danger);">*</span></label>
+            <input type="text" name="tercero_contacto" id="terceroContactoInput" class="form-control" placeholder="Ej: 381-1234567 o correo@ejemplo.com" value="{{ form.tercero_contacto.value|default:'' }}">
+            {% if form.tercero_contacto.errors %}<p class="form-error">{{ form.tercero_contacto.errors.0 }}</p>{% endif %}
+          </div>
         </div>
         {% if form.non_field_errors %}
         <p class="form-error" style="margin-bottom:10px;">{{ form.non_field_errors.0 }}</p>
@@ -355,6 +373,29 @@
             localStorage.setItem('form_hora_inicio', newVal);
           }
           window.location.href = '?vehiculo=' + vehiculo + '&anio=' + anio + '&mes=' + mes + '&dia=' + dia;
+        }
+
+        // Lógica para terceros
+        const paraTerceroCheckbox = document.getElementById('paraTerceroCheckbox');
+        const datosTerceroContainer = document.getElementById('datosTerceroContainer');
+        const terceroNombreInput = document.getElementById('terceroNombreInput');
+        const terceroContactoInput = document.getElementById('terceroContactoInput');
+
+        function toggleTerceros() {
+            if (paraTerceroCheckbox.checked) {
+                datosTerceroContainer.style.display = 'block';
+                terceroNombreInput.required = true;
+                terceroContactoInput.required = true;
+            } else {
+                datosTerceroContainer.style.display = 'none';
+                terceroNombreInput.required = false;
+                terceroContactoInput.required = false;
+            }
+        }
+
+        if (paraTerceroCheckbox) {
+            paraTerceroCheckbox.addEventListener('change', toggleTerceros);
+            toggleTerceros(); // Llamada inicial
         }
       </script>
     </div>

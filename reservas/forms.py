@@ -236,6 +236,9 @@ class TicketForm(forms.ModelForm):
         Esa lógica puede añadirse a nivel de servicios en futuras iteraciones.
     """
 
+    tercero_nombre = forms.CharField(required=False, label="Nombre de la persona")
+    tercero_contacto = forms.CharField(required=False, label="Información de contacto (teléfono o correo)")
+
     class Meta:
         model = Ticket
         fields = ["id_vehiculo", "destino", "cant_pasajeros", "descripcion", "hora_inicio", "hora_fin", "requiere_chofer", "para_tercero"]
@@ -273,6 +276,7 @@ class TicketForm(forms.ModelForm):
         self.fields["hora_inicio"].input_formats = ["%Y-%m-%dT%H:%M"]
         self.fields["hora_fin"].input_formats = ["%Y-%m-%dT%H:%M"]
         self.fields["hora_fin"].required = False
+        self.fields["descripcion"].required = True
 
     def clean(self):
         """
@@ -307,6 +311,17 @@ class TicketForm(forms.ModelForm):
         if hora_inicio and hora_fin:
             if hora_fin <= hora_inicio:
                 self.add_error("hora_fin", "La hora de regreso debe ser posterior a la de salida.")
+
+        para_tercero = cleaned.get("para_tercero")
+        if para_tercero:
+            tercero_nombre = cleaned.get("tercero_nombre")
+            tercero_contacto = cleaned.get("tercero_contacto")
+            if not tercero_nombre or not tercero_contacto:
+                self.add_error("para_tercero", "Debe completar el nombre y contacto de la persona para la cual solicita el ticket.")
+            else:
+                desc = cleaned.get("descripcion", "")
+                nueva_desc = f"{desc}\n\n[Solicitado para tercero]\nNombre: {tercero_nombre}\nContacto: {tercero_contacto}"
+                cleaned["descripcion"] = nueva_desc
 
         return cleaned
 
