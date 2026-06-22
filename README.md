@@ -21,15 +21,14 @@ El proyecto utiliza variables de entorno para la conexión a la base de datos. S
 
 ### Cómo configurar en PostgreSQL
 
-Crea la base de datos y el usuario en tu instancia de PostgreSQL:
+Crea el usuario y la base de datos (asignándole el usuario como dueño) en tu instancia de PostgreSQL. Esto evitará problemas de permisos con el esquema `public` en versiones recientes de PostgreSQL:
 
 ```sql
-CREATE DATABASE tu_base_de_datos;
 CREATE USER tu_usuario WITH PASSWORD 'tu_contrasena';
+CREATE DATABASE tu_base_de_datos OWNER tu_usuario;
 ALTER ROLE tu_usuario SET client_encoding TO 'utf8';
 ALTER ROLE tu_usuario SET default_transaction_isolation TO 'read committed';
 ALTER ROLE tu_usuario SET timezone TO 'America/Argentina/Buenos_Aires';
-GRANT ALL PRIVILEGES ON DATABASE tu_base_de_datos TO tu_usuario;
 ```
 
 ## Configuración del Proyecto
@@ -107,9 +106,9 @@ Si deseas usar configuraciones diferentes a las predeterminadas, puedes definir 
 - `DB_HOST`: Host de la base de datos.
 - `DB_PORT`: Puerto de conexión a la base de datos (por defecto 5432).
 
-## Carga de Datos de Prueba (Fixtures)
+## Carga de Datos de Prueba
 
-Para facilitar el desarrollo, el proyecto incluye un archivo de datos iniciales con Cargos, Usuarios (contraseña: `password123`), Vehículos y Tickets.
+Para realizar pruebas, el proyecto incluye un comando para poblar la base de datos con datos de test (Cargos, Usuarios, Vehículos y Reservas en distintos estados). La contraseña de todos los usuarios es: `test123456`.
 
 ### Pasos para cargar los datos:
 
@@ -120,14 +119,21 @@ Para facilitar el desarrollo, el proyecto incluye un archivo de datos iniciales 
    venv\Scripts\activate     # Windows
    ```
 
-2. **Cargar el archivo JSON:**
-   Ejecuta el siguiente comando desde la raíz del proyecto:
+2. **Ejecutar el script de población:**
+   Ejecuta el siguiente comando desde la raíz del proyecto para generar los datos:
    ```bash
-   python manage.py loaddata test_data.json
+   python manage.py poblar_bd
    ```
+   *Nota: Si deseas limpiar los datos anteriores antes de generar nuevos, puedes usar el flag `--clean` (`python manage.py poblar_bd --clean`).*
 
-3. **Verificar en el Administrador:**
-   Ingresa a `http://127.0.0.1:8000/admin` y verifica que las tablas tengan registros.
+3. **Verificar los datos:**
+   Ingresa a `http://127.0.0.1:8000` o utiliza uno de los correos de prueba generados. Todos usan la contraseña `test123456`:
+
+   * **Administrador:** `admin@universidad.edu`
+   * **Decano:** `decano_aprobado@universidad.edu`
+   * **Secretario:** `secretario_aprobado@universidad.edu`
+   * **Usuario regular:** `usuario_aprobado@universidad.edu`
+   * **Chofer:** `chofer1@universidad.edu`
 
 ## Despliegue en Producción (Deployment)
 
@@ -168,7 +174,23 @@ python manage.py qcluster
 *Ejemplo en Render:* Debes crear un **Background Worker** separado de tu **Web Service**. Ambos deben apuntar al mismo repositorio y compartir las mismas variables de entorno (especialmente la Base de Datos). El comando de inicio para este worker es `python manage.py qcluster`.
 
 ### 4. Archivos Estáticos
-En producción, asegúrate de recolectar los archivos estáticos durante el proceso de build (Build Command). Por ejemplo:
+En producción, el servidor de desarrollo de Django (`DEBUG=False`) no sirve los archivos estáticos automáticamente. Tienes dos opciones para servirlos:
+
+**Opción A (Recomendada para Render/Heroku): Usar WhiteNoise**
+1. Instala WhiteNoise: `pip install whitenoise` y agrégalo a tu `requirements.txt`.
+2. En `settings.py`, agrégalo a la lista de `MIDDLEWARE` justo debajo de `SecurityMiddleware`:
+   ```python
+   MIDDLEWARE = [
+       "django.middleware.security.SecurityMiddleware",
+       "whitenoise.middleware.WhiteNoiseMiddleware",  # Añadir esta línea
+       # ...
+   ]
+   ```
+
+**Opción B (Recomendada para VPS): Usar Nginx o Apache**
+Configura tu servidor web (Nginx/Apache) para que intercepte todas las peticiones a `/static/` y sirva los archivos directamente desde la carpeta `staticfiles`.
+
+En ambos casos, asegúrate de **recolectar los archivos estáticos** durante el proceso de build (Build Command) antes de iniciar la aplicación. Por ejemplo:
 
 ```bash
 pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
