@@ -14,24 +14,31 @@
     <h1>Analíticas de uso</h1>
     <p class="report-period">Período: <strong>{{ rango_label }}</strong>
       {% if filtro_cargo %} · Cargo: <strong>{{ filtro_cargo.nombre }}</strong>{% endif %}
+      {% if filtro_departamento %} · Depto: <strong>{{ filtro_departamento }}</strong>{% endif %}
     </p>
   </div>
   <div class="report-header-actions no-print">
     <!-- Filtro de rango -->
     <div class="range-filter">
-      <a href="?rango=30d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="range-btn {% if rango == '30d' %}active{% endif %}">30 días</a>
-      <a href="?rango=90d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="range-btn {% if rango == '90d' %}active{% endif %}">90 días</a>
-      <a href="?rango=anio{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
-      <a href="?rango=todo{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
+      <a href="?rango=30d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="range-btn {% if rango == '30d' %}active{% endif %}">30 días</a>
+      <a href="?rango=90d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="range-btn {% if rango == '90d' %}active{% endif %}">90 días</a>
+      <a href="?rango=anio{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
+      <a href="?rango=todo{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
     </div>
 
-    <!-- Filtro por cargo -->
-    <form method="get" class="filter-form" id="form-filtro-cargo">
+    <!-- Filtros -->
+    <form method="get" class="filter-form" id="form-filtros">
       <input type="hidden" name="rango" value="{{ rango }}">
       <select name="cargo" id="sel-cargo" class="filter-select" onchange="this.form.submit()">
         <option value="">Todos los cargos</option>
         {% for c in cargos_lista %}
         <option value="{{ c.pk }}" {% if cargo_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+      <select name="departamento" id="sel-departamento" class="filter-select" onchange="this.form.submit()">
+        <option value="">Todos los departamentos</option>
+        {% for c_id, c_name in departamentos_lista %}
+        <option value="{{ c_id }}" {% if filtro_departamento == c_id|stringformat:"s" %}selected{% endif %}>{{ c_name }}</option>
         {% endfor %}
       </select>
     </form>
@@ -46,7 +53,7 @@
       {% endfor %}
     </select>
 
-    <a href="{% url 'reporte_analiticas_pdf' %}?rango={{ rango }}{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="btn btn-outline pdf-btn" id="btn-pdf">
+    <a href="{% url 'reporte_analiticas_pdf' %}?rango={{ rango }}{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="btn btn-outline pdf-btn" id="btn-pdf">
       <span>↓</span> Descargar PDF
     </a>
   </div>
@@ -122,12 +129,12 @@
 
   <div class="card report-card" style="margin: 0;">
     <div class="card-header">
-      <span class="card-title">◧ Top 10 Usuarios</span>
-      <span class="badge badge-neutral">con más solicitudes</span>
+      <span class="card-title">◧ Solicitudes por Departamento</span>
+      <span class="badge badge-neutral">distribución</span>
     </div>
-    {% if chart_top_usuarios %}
+    {% if chart_departamentos %}
     <div style="padding: 20px; text-align: center;">
-      <img src="{{ chart_top_usuarios }}" alt="Top Usuarios" style="max-width: 100%; height: auto;">
+      <img src="{{ chart_departamentos }}" alt="Solicitudes por Departamento" style="max-width: 100%; height: auto;">
     </div>
     {% else %}
     <div class="empty-state" style="padding: 20px;"><p>No hay solicitudes registradas.</p></div>

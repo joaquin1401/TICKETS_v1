@@ -1563,7 +1563,6 @@ def reporte_analiticas(request):
     usuario = get_usuario_sesion(request)
     rango = request.GET.get("rango", "30d")
 
-    # ── Filtro por cargo/departamento ────────────────────────────────────────
     cargo_id = request.GET.get("cargo", "")
     filtro_cargo = None
     if cargo_id:
@@ -1571,6 +1570,8 @@ def reporte_analiticas(request):
             filtro_cargo = Cargo.objects.get(pk=int(cargo_id))
         except (Cargo.DoesNotExist, ValueError):
             filtro_cargo = None
+
+    filtro_departamento = request.GET.get("departamento", "")
 
     # ── Calcular fecha de corte ──────────────────────────────────────────────
     hoy = timezone.now()
@@ -1592,6 +1593,8 @@ def reporte_analiticas(request):
         q = qs.filter(hora_inicio__gte=desde) if desde else qs
         if filtro_cargo:
             q = q.filter(id_usuario__id_cargo=filtro_cargo)
+        if filtro_departamento:
+            q = q.filter(id_usuario__departamento=filtro_departamento)
         return q
 
     # ── Tickets en el período ────────────────────────────────────────────────
@@ -1723,11 +1726,11 @@ def reporte_analiticas(request):
 
     # ── Comportamiento de Usuarios ───────────────────────────────────────────
 
-    top_usuarios = tickets_periodo.values(
-        'id_usuario__nombre', 'id_usuario__apellido', 'id_usuario__id_cargo__nombre'
+    solicitudes_departamento = tickets_periodo.exclude(id_usuario__departamento__isnull=True).exclude(id_usuario__departamento='').values(
+        'id_usuario__departamento'
     ).annotate(
         total=Count('id')
-    ).order_by('-total')[:10]
+    ).order_by('-total')
 
     solicitudes_cargo = tickets_periodo.values(
         'id_usuario__id_cargo__nombre'
@@ -1748,9 +1751,9 @@ def reporte_analiticas(request):
     ).order_by('-total_km')
 
     # Gráficos con Matplotlib
-    l_top = [f"{u['id_usuario__nombre']} {u['id_usuario__apellido']}" for u in top_usuarios]
-    d_top = [u['total'] for u in top_usuarios]
-    chart_top_usuarios = generar_grafico_barras_horizontal(l_top, d_top)
+    l_dept = [u['id_usuario__departamento'] for u in solicitudes_departamento]
+    d_dept = [u['total'] for u in solicitudes_departamento]
+    chart_departamentos = generar_grafico_barras_horizontal(l_dept, d_dept)
 
     l_cargos = [c['id_usuario__id_cargo__nombre'] for c in solicitudes_cargo]
     d_cargos = [c['total'] for c in solicitudes_cargo]
@@ -1789,16 +1792,18 @@ def reporte_analiticas(request):
         "total_vehiculos_activos":   total_vehiculos_activos,
         "total_vehiculos_inactivos": total_vehiculos_inactivos,
         "insights":                  insights,
-        "top_usuarios":              top_usuarios,
+        "solicitudes_departamento":  solicitudes_departamento,
         "solicitudes_cargo":         solicitudes_cargo,
-        "chart_top_usuarios":        chart_top_usuarios,
+        "chart_departamentos":       chart_departamentos,
         "chart_cargos":              chart_cargos,
         "chart_vehiculos_sol":       chart_vehiculos_sol,
         "chart_vehiculos_km":        chart_vehiculos_km,
         "cargos_lista":              cargos_lista,
         "vehiculos_lista":           vehiculos_lista,
         "filtro_cargo":              filtro_cargo,
+        "filtro_departamento":       filtro_departamento,
         "cargo_id":                  cargo_id,
+        "departamentos_lista":       Usuario.DEPARTAMENTOS_CHOICES,
     })
 
 
@@ -1939,7 +1944,7 @@ def reporte_analiticas_pdf(request):
     usuario = get_usuario_sesion(request)
     rango = request.GET.get("rango", "30d")
 
-    # ── Filtro por cargo ─────────────────────────────────────────────────────
+    # ── Filtro por cargo/departamento ────────────────────────────────────────
     cargo_id = request.GET.get("cargo", "")
     filtro_cargo = None
     if cargo_id:
@@ -1947,6 +1952,8 @@ def reporte_analiticas_pdf(request):
             filtro_cargo = Cargo.objects.get(pk=int(cargo_id))
         except (Cargo.DoesNotExist, ValueError):
             filtro_cargo = None
+
+    filtro_departamento = request.GET.get("departamento", "")
 
     hoy = timezone.now()
     if rango == "30d":
@@ -1967,6 +1974,8 @@ def reporte_analiticas_pdf(request):
         q = qs.filter(hora_inicio__gte=desde) if desde else qs
         if filtro_cargo:
             q = q.filter(id_usuario__id_cargo=filtro_cargo)
+        if filtro_departamento:
+            q = q.filter(id_usuario__departamento=filtro_departamento)
         return q
 
     tickets_periodo    = filtro_base(Ticket.objects.all())
@@ -2028,11 +2037,11 @@ def reporte_analiticas_pdf(request):
     duracion_promedio = round(sum(duraciones) / len(duraciones), 1) if duraciones else 0
 
     # ── Comportamiento de Usuarios ───────────────────────────────────────────
-    top_usuarios = tickets_periodo.values(
-        'id_usuario__nombre', 'id_usuario__apellido', 'id_usuario__id_cargo__nombre'
+    solicitudes_departamento = tickets_periodo.exclude(id_usuario__departamento__isnull=True).exclude(id_usuario__departamento='').values(
+        'id_usuario__departamento'
     ).annotate(
         total=Count('id')
-    ).order_by('-total')[:10]
+    ).order_by('-total')
 
     solicitudes_cargo = tickets_periodo.values(
         'id_usuario__id_cargo__nombre'
@@ -2053,9 +2062,9 @@ def reporte_analiticas_pdf(request):
     ).order_by('-total_km')
 
     # Gráficos con Matplotlib
-    l_top = [f"{u['id_usuario__nombre']} {u['id_usuario__apellido']}" for u in top_usuarios]
-    d_top = [u['total'] for u in top_usuarios]
-    chart_top_usuarios = generar_grafico_barras_horizontal(l_top, d_top)
+    l_dept = [u['id_usuario__departamento'] for u in solicitudes_departamento]
+    d_dept = [u['total'] for u in solicitudes_departamento]
+    chart_departamentos = generar_grafico_barras_horizontal(l_dept, d_dept)
 
     l_cargos = [c['id_usuario__id_cargo__nombre'] for c in solicitudes_cargo]
     d_cargos = [c['total'] for c in solicitudes_cargo]
@@ -2094,13 +2103,14 @@ def reporte_analiticas_pdf(request):
         "total_vehiculos_activos":   Vehiculo.objects.filter(activo=True).count(),
         "total_vehiculos_inactivos": Vehiculo.objects.filter(activo=False).count(),
         "fecha_generacion":          f"{hoy.day} de {_MESES_ES[hoy.month]} de {hoy.year}",
-        "top_usuarios":              top_usuarios,
+        "solicitudes_departamento":  solicitudes_departamento,
         "solicitudes_cargo":         solicitudes_cargo,
-        "chart_top_usuarios":        chart_top_usuarios,
+        "chart_departamentos":       chart_departamentos,
         "chart_cargos":              chart_cargos,
         "chart_vehiculos_sol":       chart_vehiculos_sol,
         "chart_vehiculos_km":        chart_vehiculos_km,
         "filtro_cargo":              filtro_cargo,
+        "filtro_departamento":       filtro_departamento,
     }
 
     html_string = render_to_string("reservas/analiticas/analiticas_pdf.html", context)
