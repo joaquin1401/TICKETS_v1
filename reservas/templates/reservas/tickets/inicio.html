@@ -325,7 +325,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.distancia_est > 0) {
-                        distanciaHelper.innerText = `Distancia calculada: ${data.distancia_est} km (aprox)`;
+                        distanciaHelper.innerText = `Distancia calculada: ${data.distancia_est} km (ida y vuelta aprox)`;
                         distanciaHelper.style.color = 'var(--success)';
                     } else {
                         distanciaHelper.innerText = 'No se pudo calcular la distancia (destino genérico).';

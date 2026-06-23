@@ -61,7 +61,7 @@ def calcular_distancia_osrm(destino):
             return 0.0
             
         distancia_metros = data_osrm["routes"][0]["distance"]
-        return round(distancia_metros / 1000.0, 2)
+        return round((distancia_metros / 1000.0) * 2, 2)
         
     except Exception as e:
         logger.warning(f"Error calculando distancia a {destino}: {e}")

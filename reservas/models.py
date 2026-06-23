@@ -315,7 +315,7 @@ class Ticket(models.Model):
     destino = models.CharField(max_length=255)
     distancia_est = models.DecimalField(
         max_digits=10, decimal_places=2, default=0.0,
-        help_text="Distancia estimada por el sistema"
+        help_text="Distancia estimada por el sistema (incluye ida y vuelta, calculada automáticamente x2)"
     )
     distancia_real = models.DecimalField(
         max_digits=10, decimal_places=2, null=True, blank=True,
