@@ -17,6 +17,7 @@ Decoradores de autorización:
 
 import calendar
 from datetime import date, timedelta, datetime, time
+from decimal import Decimal, InvalidOperation
 
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
@@ -802,8 +803,8 @@ def aceptar_ticket(request, ticket_id):
             return redirect(request.META.get('HTTP_REFERER', 'inicio'))
         
         try:
-            ticket.kilometraje_inicio = float(km_inicio_str)
-        except ValueError:
+            ticket.kilometraje_inicio = Decimal(km_inicio_str)
+        except InvalidOperation:
             messages.error(request, "El kilometraje de inicio ingresado no es válido.")
             return redirect(request.META.get('HTTP_REFERER', 'inicio'))
 
@@ -814,9 +815,7 @@ def aceptar_ticket(request, ticket_id):
     else:
         messages.error(request, "El ticket no está disponible para asignación.")
 
-    if request.session.get("es_admin"):
-        return redirect("monitor_tickets_activos")
-    return redirect("chofer_dashboard")
+    return redirect(request.META.get('HTTP_REFERER', 'chofer_dashboard'))
 
 @login_requerido
 @chofer_requerido
@@ -844,7 +843,7 @@ def finalizar_ticket(request, ticket_id):
             from django.utils.timezone import make_aware, is_naive
             
             try:
-                ticket.kilometraje_fin = float(km_fin_str)
+                ticket.kilometraje_fin = Decimal(km_fin_str)
                 
                 dt_inicio = parse_datetime(hora_inicio_real_str)
                 if dt_inicio and is_naive(dt_inicio):
@@ -856,10 +855,18 @@ def finalizar_ticket(request, ticket_id):
                     dt_fin = make_aware(dt_fin)
                 ticket.hora_fin_real = dt_fin
                 
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, InvalidOperation):
                 messages.error(request, "Datos reales inválidos.")
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
                 
+            if ticket.hora_fin_real < ticket.hora_inicio_real:
+                messages.error(request, "La hora de regreso no puede ser anterior a la hora de salida.")
+                return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+                
+            if ticket.kilometraje_inicio is not None and ticket.kilometraje_fin < ticket.kilometraje_inicio:
+                messages.error(request, f"El kilometraje de regreso no puede ser menor al de salida ({ticket.kilometraje_inicio}).")
+                return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+
             ticket.estado = Ticket.ESTADO_FINALIZADO
             ticket.save(update_fields=['estado', 'kilometraje_fin', 'hora_inicio_real', 'hora_fin_real'])
             messages.success(request, f"El ticket #{ticket.pk} ha sido finalizado.")
@@ -868,9 +875,7 @@ def finalizar_ticket(request, ticket_id):
     else:
         messages.error(request, "No tenés permisos para finalizar este ticket.")
 
-    if request.session.get("es_admin"):
-        return redirect("monitor_tickets_activos")
-    return redirect("chofer_finalizados")
+    return redirect(request.META.get('HTTP_REFERER', 'chofer_finalizados'))
 
 
 
@@ -1246,7 +1251,7 @@ def historial_tickets(request):
     """
     form = FiltroTicketsForm(request.GET or None)
     tickets_qs = Ticket.objects.filter(
-        Q(estado=Ticket.ESTADO_CANCELADO) | Q(hora_inicio__lt=date.today())
+        Q(estado__in=[Ticket.ESTADO_CANCELADO, Ticket.ESTADO_FINALIZADO]) | Q(hora_inicio__lt=date.today())
     ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-fecha", "-id")
 
     if form.is_valid():
