@@ -31,13 +31,15 @@
     <table>
       <thead>
         <tr>
-          <th style="width: 5%;">#</th>
-          <th style="width: 20%;">Marca</th>
-          <th style="width: 25%;">Modelo</th>
-          <th style="width: 15%;">Capacidad</th>
-
-          <th style="width: 10%;">Estado</th>
-          <th style="width: 10%;"></th>
+          <th>#</th>
+          <th>Marca</th>
+          <th>Modelo</th>
+          <th>Patente</th>
+          <th>Capacidad</th>
+          <th>Exc. Decanato</th>
+          <th>Req. Chofer</th>
+          <th>Estado</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -46,9 +48,22 @@
           <td class="text-mono text-muted">{{ v.pk }}</td>
           <td><span class="primary">{{ v.marca }}</span></td>
           <td>{{ v.modelo }}</td>
-          <td><span class="badge badge-neutral">{{ v.patente|default:'S/P' }}</span></td>
-          <td>{{ v.cant_pasajeros }} pasajeros</td>
-
+          <td>{{ v.patente|default:'S/P' }}</td>
+          <td>{{ v.cant_pasajeros }} pas.</td>
+          <td>
+            {% if v.exclusivo_decanato %}
+            Sí
+            {% else %}
+            No
+            {% endif %}
+          </td>
+          <td>
+            {% if v.requiere_chofer %}
+            Sí
+            {% else %}
+            No
+            {% endif %}
+          </td>
           <td>
             {% if v.activo %}
             <span class="badge badge-success">Activo</span>
@@ -81,13 +96,15 @@
     <table>
       <thead>
         <tr>
-          <th style="width: 5%;">#</th>
-          <th style="width: 20%;">Marca</th>
-          <th style="width: 25%;">Modelo</th>
-          <th style="width: 15%;">Capacidad</th>
-
-          <th style="width: 10%;">Estado</th>
-          <th style="width: 10%;"></th>
+          <th>#</th>
+          <th>Marca</th>
+          <th>Modelo</th>
+          <th>Patente</th>
+          <th>Capacidad</th>
+          <th>Exc. Decanato</th>
+          <th>Req. Chofer</th>
+          <th>Estado</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -96,9 +113,22 @@
           <td class="text-mono text-muted">{{ v.pk }}</td>
           <td><span class="primary">{{ v.marca }}</span></td>
           <td>{{ v.modelo }}</td>
-          <td><span class="badge badge-neutral">{{ v.patente|default:'S/P' }}</span></td>
-          <td>{{ v.cant_pasajeros }} pasajeros</td>
-
+          <td>{{ v.patente|default:'S/P' }}</td>
+          <td>{{ v.cant_pasajeros }} pas.</td>
+          <td>
+            {% if v.exclusivo_decanato %}
+            Sí
+            {% else %}
+            No
+            {% endif %}
+          </td>
+          <td>
+            {% if v.requiere_chofer %}
+            Sí
+            {% else %}
+            No
+            {% endif %}
+          </td>
           <td>
             {% if v.activo %}
             <span class="badge badge-success">Activo</span>
