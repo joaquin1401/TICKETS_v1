@@ -56,17 +56,19 @@ class RegistroForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ["nombre", "apellido", "correo", "id_cargo", "contrasena"]
+        fields = ["nombre", "apellido", "correo", "id_cargo", "departamento", "contrasena"]
         labels = {
             "nombre": "Nombre",
             "apellido": "Apellido",
             "correo": "Correo electrónico",
             "id_cargo": "Cargo",
+            "departamento": "Departamento",
         }
         widgets = {
             "nombre":   forms.TextInput(attrs={"placeholder": "Nombre"}),
             "apellido": forms.TextInput(attrs={"placeholder": "Apellido"}),
             "correo":   forms.EmailInput(attrs={"placeholder": "correo@empresa.com"}),
+            "departamento": forms.Select(attrs={"class": "form-control"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -78,19 +80,23 @@ class RegistroForm(forms.ModelForm):
 
     def clean(self):
         """
-        Valida que ambas contraseñas coincidan.
-
-        Raises:
-            ValidationError: Si contrasena y confirmar_contrasena no coinciden.
-
-        Returns:
-            dict: Datos limpios del formulario.
+        Valida que ambas contraseñas coincidan y la lógica del departamento.
         """
         cleaned = super().clean()
         p1 = cleaned.get("contrasena")
         p2 = cleaned.get("confirmar_contrasena")
         if p1 and p2 and p1 != p2:
             raise ValidationError("Las contraseñas no coinciden.")
+            
+        cargo = cleaned.get("id_cargo")
+        departamento = cleaned.get("departamento")
+        if cargo and cargo.nombre == Cargo.USUARIO:
+            if not departamento:
+                self.add_error("departamento", "Debe seleccionar un departamento si su cargo es Usuario.")
+        else:
+            if "departamento" in cleaned:
+                cleaned["departamento"] = None
+                
         return cleaned
 
     def save(self, commit=True):
@@ -145,12 +151,13 @@ class AdminEditarUsuarioForm(forms.ModelForm):
     """
     class Meta:
         model = Usuario
-        fields = ["nombre", "apellido", "correo", "id_cargo", "valido"]
+        fields = ["nombre", "apellido", "correo", "id_cargo", "departamento", "valido"]
         labels = {
             "nombre": "Nombre",
             "apellido": "Apellido",
             "correo": "Correo electrónico",
             "id_cargo": "Cargo",
+            "departamento": "Departamento",
             "valido": "Usuario activo (válido)",
         }
         widgets = {
@@ -158,12 +165,25 @@ class AdminEditarUsuarioForm(forms.ModelForm):
             "apellido": forms.TextInput(attrs={"placeholder": "Apellido", "class": "form-control"}),
             "correo":   forms.EmailInput(attrs={"placeholder": "correo@empresa.com", "class": "form-control"}),
             "id_cargo": forms.Select(attrs={"class": "form-control"}),
+            "departamento": forms.Select(attrs={"class": "form-control"}),
             "valido": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["id_cargo"].queryset = Cargo.objects.all()
+
+    def clean(self):
+        cleaned = super().clean()
+        cargo = cleaned.get("id_cargo")
+        departamento = cleaned.get("departamento")
+        if cargo and cargo.nombre == Cargo.USUARIO:
+            if not departamento:
+                self.add_error("departamento", "Debe seleccionar un departamento si el cargo es Usuario.")
+        else:
+            if "departamento" in cleaned:
+                cleaned["departamento"] = None
+        return cleaned
 
     def clean_valido(self):
         valido = self.cleaned_data.get("valido")

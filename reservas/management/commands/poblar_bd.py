@@ -39,7 +39,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from reservas.models import Cargo, Usuario, Vehiculo, Ticket
-from reservas.services import crear_ticket_con_reglas
+from reservas.utils.services import crear_ticket_con_reglas
 
 class Command(BaseCommand):
     """
@@ -151,7 +151,9 @@ class Command(BaseCommand):
         cargos_config = [
             (Cargo.ADMIN_SEU, 0),
             (Cargo.DECANO, 1),
+            (Cargo.VICEDECANO, 1),
             (Cargo.SECRETARIO, 2),
+            (Cargo.SUBSECRETARIO, 2),
             (Cargo.USUARIO, 3),
             (Cargo.CHOFER, 4),
         ]
@@ -212,7 +214,7 @@ class Command(BaseCommand):
         for i in range(25):
             nombre = random.choice(nombres)
             apellido = random.choice(apellidos)
-            cargo_rand = random.choice([Cargo.USUARIO, Cargo.USUARIO, Cargo.USUARIO, Cargo.SECRETARIO, Cargo.DECANO])
+            cargo_rand = random.choice([Cargo.USUARIO, Cargo.USUARIO, Cargo.USUARIO, Cargo.SECRETARIO, Cargo.SUBSECRETARIO, Cargo.DECANO, Cargo.VICEDECANO])
             usuarios_config.append({
                 'nombre': nombre,
                 'apellido': apellido,
@@ -233,6 +235,10 @@ class Command(BaseCommand):
                 
             cargo_instancia = cargos[cargo_nombre]
             
+            departamento = None
+            if cargo_nombre == Cargo.USUARIO:
+                departamento = random.choice([c[0] for c in Usuario.DEPARTAMENTOS_CHOICES])
+
             usuario, creado = Usuario.objects.get_or_create(
                 correo=config['correo'],
                 defaults={
@@ -242,6 +248,7 @@ class Command(BaseCommand):
                     'valido': config['valido'],
                     'rechazado': config['rechazado'],
                     'correo_verificado': True,  # Para pruebas siempre verificado
+                    'departamento': departamento,
                 }
             )
             

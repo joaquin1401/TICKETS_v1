@@ -33,14 +33,18 @@ class Cargo(models.Model):
     """
 
     DECANO = "Decano"
+    VICEDECANO = "Vicedecano"
     SECRETARIO = "Secretario"
+    SUBSECRETARIO = "Subsecretario"
     USUARIO = "Usuario"
     CHOFER = "Chofer"
     ADMIN_SEU = "Administrador SEU"
 
     CARGOS_CHOICES = [
         (DECANO, "Decano"),
+        (VICEDECANO, "Vicedecano"),
         (SECRETARIO, "Secretario"),
+        (SUBSECRETARIO, "Subsecretario"),
         (USUARIO, "Usuario"),
         (CHOFER, "Chofer"),
         (ADMIN_SEU, "Administrador SEU"),
@@ -98,6 +102,24 @@ class Usuario(models.Model):
     apellido = models.CharField(max_length=100)
     contrasena = models.CharField(max_length=255)
     correo = models.EmailField(unique=True)
+
+    DEPARTAMENTOS_CHOICES = [
+        ('TUL', 'TUL'),
+        ('TUM', 'TUM'),
+        ('TUP', 'TUP'),
+        ('TOUMRE', 'TOUMRE'),
+        ('IEM', 'IEM'),
+        ('IQ', 'IQ'),
+        ('ISI', 'ISI'),
+        ('LAR', 'LAR'),
+    ]
+    departamento = models.CharField(
+        max_length=20, 
+        choices=DEPARTAMENTOS_CHOICES, 
+        null=True, 
+        blank=True,
+        help_text="Requerido si el cargo es Usuario"
+    )
     valido = models.BooleanField(
         default=False,
         help_text="True = aprobado por admin, False = pendiente o rechazado"

@@ -49,16 +49,21 @@
           </div>
           <div class="form-group">
             <label class="form-label">Cargo <span style="color:var(--danger);">*</span></label>
-            <select name="id_cargo" class="form-control">
+            <select name="id_cargo" class="form-control" id="id_cargo_select">
               <option value="">-- Seleccioná tu cargo --</option>
               {% for cargo in form.id_cargo.field.queryset %}
-              <option value="{{ cargo.pk }}"
+              <option value="{{ cargo.pk }}" data-nombre="{{ cargo.nombre }}"
                 {% if form.id_cargo.value|stringformat:"s" == cargo.pk|stringformat:"s" %}selected{% endif %}>
                 {{ cargo.nombre }}
               </option>
               {% endfor %}
             </select>
             {% if form.id_cargo.errors %}<p class="form-error">{{ form.id_cargo.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group" id="departamento_group" style="display: none;">
+            <label class="form-label">Departamento <span style="color:var(--danger);">*</span></label>
+            {{ form.departamento }}
+            {% if form.departamento.errors %}<p class="form-error">{{ form.departamento.errors.0 }}</p>{% endif %}
           </div>
           <div class="form-row">
             <div class="form-group">
@@ -85,4 +90,26 @@
     </p>
   </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const cargoSelect = document.getElementById('id_cargo_select');
+    const deptoGroup = document.getElementById('departamento_group');
+    
+    function toggleDepto() {
+      if (!cargoSelect || !deptoGroup) return;
+      const selectedOption = cargoSelect.options[cargoSelect.selectedIndex];
+      if (selectedOption && selectedOption.getAttribute('data-nombre') === 'Usuario') {
+        deptoGroup.style.display = 'block';
+      } else {
+        deptoGroup.style.display = 'none';
+      }
+    }
+    
+    if (cargoSelect) {
+      cargoSelect.addEventListener('change', toggleDepto);
+      toggleDepto();
+    }
+  });
+</script>
 {% endblock %}
