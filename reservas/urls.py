@@ -99,6 +99,7 @@ urlpatterns = [
     # HU 6.3: Edición / baja de vehículo
     
     path("admin-panel/analiticas/", views.reporte_analiticas, name="reporte_analiticas"),
+    path("admin-panel/analiticas/vehiculo/<int:vehiculo_id>/", views.analiticas_vehiculo, name="analiticas_vehiculo"),
     path("admin-panel/analiticas/pdf/", views.reporte_analiticas_pdf, name="reporte_analiticas_pdf"),
     path("admin-panel/vehiculos/", views.listado_vehiculos, name="listado_vehiculos"),
     path("admin-panel/vehiculos/nueva/", views.alta_vehiculo, name="alta_vehiculo"),

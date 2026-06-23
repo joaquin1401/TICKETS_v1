@@ -1563,6 +1563,15 @@ def reporte_analiticas(request):
     usuario = get_usuario_sesion(request)
     rango = request.GET.get("rango", "30d")
 
+    # ── Filtro por cargo/departamento ────────────────────────────────────────
+    cargo_id = request.GET.get("cargo", "")
+    filtro_cargo = None
+    if cargo_id:
+        try:
+            filtro_cargo = Cargo.objects.get(pk=int(cargo_id))
+        except (Cargo.DoesNotExist, ValueError):
+            filtro_cargo = None
+
     # ── Calcular fecha de corte ──────────────────────────────────────────────
     hoy = timezone.now()
     if rango == "30d":
@@ -1580,9 +1589,10 @@ def reporte_analiticas(request):
         rango_label = "Todo el tiempo"
 
     def filtro_base(qs):
-        if desde:
-            return qs.filter(hora_inicio__gte=desde)
-        return qs
+        q = qs.filter(hora_inicio__gte=desde) if desde else qs
+        if filtro_cargo:
+            q = q.filter(id_usuario__id_cargo=filtro_cargo)
+        return q
 
     # ── Tickets en el período ────────────────────────────────────────────────
     tickets_periodo   = filtro_base(Ticket.objects.all())
@@ -1612,15 +1622,6 @@ def reporte_analiticas(request):
         count_cancelados = t_cancelados.count()
         count_total      = t_total.count()
 
-        horas_efectivas = 0.0
-        for t in t_aprobados.exclude(hora_fin__isnull=True):
-            delta = t.hora_fin - t.hora_inicio
-            horas_efectivas += delta.total_seconds() / 3600
-
-        horas_efectivas = round(horas_efectivas, 1)
-        if horas_efectivas > max_horas:
-            max_horas = horas_efectivas
-
         tasa_cancel = round(
             (count_cancelados / count_total * 100) if count_total > 0 else 0, 1
         )
@@ -1630,18 +1631,17 @@ def reporte_analiticas(request):
             "count_aprobados":  count_aprobados,
             "count_cancelados": count_cancelados,
             "count_total":      count_total,
-            "horas_efectivas":  horas_efectivas,
             "tasa_cancelacion": tasa_cancel,
         })
 
-    for sv in stats_vehiculos:
-        sv["barra_pct"] = round(
-            (sv["horas_efectivas"] / max_horas * 100) if max_horas > 0 else 0
-        )
+    stats_vehiculos.sort(key=lambda x: x["count_aprobados"], reverse=True)
 
-    stats_vehiculos.sort(key=lambda x: x["horas_efectivas"], reverse=True)
-
-    horas_totales = sum(sv["horas_efectivas"] for sv in stats_vehiculos)
+    # ── KPIs de distancia ────────────────────────────────────────────────────
+    from django.db.models import Sum as _Sum
+    dist_est_agg  = tickets_periodo.aggregate(total=_Sum("distancia_est"))["total"]
+    dist_real_agg = tickets_periodo.filter(distancia_real__isnull=False).aggregate(total=_Sum("distancia_real"))["total"]
+    distancia_est_total  = round(float(dist_est_agg),  1) if dist_est_agg  else 0
+    distancia_real_total = round(float(dist_real_agg), 1) if dist_real_agg else 0
 
     # ── Mes con mayor actividad ──────────────────────────────────────────────
     _MESES_ES = {
@@ -1680,15 +1680,11 @@ def reporte_analiticas(request):
     # ── Insights narrativos ───────────────────────────────────────────────────
     insights = []
 
-    if stats_vehiculos and stats_vehiculos[0]["horas_efectivas"] > 0:
+    if stats_vehiculos and stats_vehiculos[0]["count_aprobados"] > 0:
         lider = stats_vehiculos[0]
-        pct_lider = round(
-            lider["horas_efectivas"] / horas_totales * 100
-        ) if horas_totales > 0 else 0
         insights.append(
-            f"El {lider['vehiculo'].marca} {lider['vehiculo'].modelo} concentra "
-            f"el {pct_lider}% del tiempo efectivo de uso de los vehículos "
-            f"({lider['horas_efectivas']}h en {rango_label.lower()})."
+            f"El {lider['vehiculo'].marca} {lider['vehiculo'].modelo} es el vehículo más utilizado "
+            f"con {lider['count_aprobados']} reservas aprobadas en {rango_label.lower()}."
         )
 
     if mes_pico_count > 0:
@@ -1770,6 +1766,9 @@ def reporte_analiticas(request):
 
 
 
+    cargos_lista = Cargo.objects.all().order_by("prioridad")
+    vehiculos_lista = Vehiculo.objects.all().order_by("marca", "modelo")
+
     return render(request, "reservas/analiticas.html", {
         "usuario":                   usuario,
         "rango":                     rango,
@@ -1780,7 +1779,8 @@ def reporte_analiticas(request):
         "total_cancelados":          total_cancelados,
         "total_pendientes_tickets":  total_pendientes_tickets,
         "tasa_cancelacion_global":   tasa_cancelacion_global,
-        "horas_totales":             round(horas_totales, 1),
+        "distancia_est_total":       distancia_est_total,
+        "distancia_real_total":      distancia_real_total,
         "mes_pico_label":            mes_pico_label,
         "mes_pico_count":            mes_pico_count,
         "duracion_promedio":         duracion_promedio,
@@ -1795,6 +1795,120 @@ def reporte_analiticas(request):
         "chart_cargos":              chart_cargos,
         "chart_vehiculos_sol":       chart_vehiculos_sol,
         "chart_vehiculos_km":        chart_vehiculos_km,
+        "cargos_lista":              cargos_lista,
+        "vehiculos_lista":           vehiculos_lista,
+        "filtro_cargo":              filtro_cargo,
+        "cargo_id":                  cargo_id,
+    })
+
+
+
+@login_requerido
+@admin_requerido
+def analiticas_vehiculo(request, vehiculo_id):
+    """
+    Vista de analíticas detalladas para un vehículo específico.
+    Muestra KPIs individuales, detalles del vehículo y permite filtrar por rango temporal.
+    """
+    from django.db.models import Sum as _Sum
+    from django.db.models.functions import TruncMonth
+    from django.utils import timezone
+    from datetime import timedelta
+
+    usuario = get_usuario_sesion(request)
+    vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id)
+    rango = request.GET.get("rango", "30d")
+
+    _MESES_ES = {
+        1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
+        5: "Mayo", 6: "Junio", 7: "Julio", 8: "Agosto",
+        9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre",
+    }
+
+    hoy = timezone.now()
+    if rango == "30d":
+        desde = hoy - timedelta(days=30)
+        rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
+    elif rango == "90d":
+        desde = hoy - timedelta(days=90)
+        rango_label = f"Últimos 90 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
+    elif rango == "anio":
+        desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        rango_label = f"Año {hoy.year} ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
+    else:
+        desde = None
+        rango = "todo"
+        rango_label = "Todo el tiempo"
+
+    base_qs = Ticket.objects.filter(id_vehiculo=vehiculo)
+    if desde:
+        base_qs = base_qs.filter(hora_inicio__gte=desde)
+
+    tickets_aprobados  = base_qs.filter(estado__in=[Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO, Ticket.ESTADO_FINALIZADO])
+    tickets_cancelados = base_qs.filter(estado=Ticket.ESTADO_CANCELADO)
+    count_total        = base_qs.count()
+    count_aprobados    = tickets_aprobados.count()
+    count_cancelados   = tickets_cancelados.count()
+
+    # Distancias
+    dist_est_agg  = base_qs.aggregate(total=_Sum("distancia_est"))["total"]
+    dist_real_agg = base_qs.filter(distancia_real__isnull=False).aggregate(total=_Sum("distancia_real"))["total"]
+    distancia_est_total  = round(float(dist_est_agg),  1) if dist_est_agg  else 0
+    distancia_real_total = round(float(dist_real_agg), 1) if dist_real_agg else 0
+
+    # Duración promedio
+    duraciones = [
+        (t.hora_fin - t.hora_inicio).total_seconds() / 3600
+        for t in tickets_aprobados.exclude(hora_fin__isnull=True)
+    ]
+    duracion_promedio = round(sum(duraciones) / len(duraciones), 1) if duraciones else 0
+
+    # Último kilometraje_fin registrado
+    ultimo_ticket_km = (
+        Ticket.objects.filter(id_vehiculo=vehiculo, kilometraje_fin__isnull=False)
+        .order_by("-hora_fin_real", "-hora_fin", "-fecha")
+        .first()
+    )
+    ultimo_km_fin    = ultimo_ticket_km.kilometraje_fin if ultimo_ticket_km else None
+    ultima_fecha_km  = None
+    if ultimo_ticket_km:
+        dt = ultimo_ticket_km.hora_fin_real or ultimo_ticket_km.hora_fin or ultimo_ticket_km.fecha
+        if dt:
+            from django.utils.timezone import localtime, is_aware
+            dt = localtime(dt) if is_aware(dt) else dt
+            ultima_fecha_km = dt.strftime("%d/%m/%Y")
+
+    # Tasa de cancelación
+    tasa_cancelacion = round(
+        (count_cancelados / count_total * 100) if count_total > 0 else 0, 1
+    )
+
+    # Top usuarios de este vehículo
+    from django.db.models import Count as _Count
+    top_usuarios_veh = (
+        base_qs.values("id_usuario__nombre", "id_usuario__apellido", "id_usuario__id_cargo__nombre")
+        .annotate(total=_Count("id"))
+        .order_by("-total")[:5]
+    )
+
+    vehiculos_lista = Vehiculo.objects.all().order_by("marca", "modelo")
+
+    return render(request, "reservas/analiticas_vehiculo.html", {
+        "usuario":             usuario,
+        "vehiculo":            vehiculo,
+        "rango":               rango,
+        "rango_label":         rango_label,
+        "count_total":         count_total,
+        "count_aprobados":     count_aprobados,
+        "count_cancelados":    count_cancelados,
+        "distancia_est_total": distancia_est_total,
+        "distancia_real_total":distancia_real_total,
+        "duracion_promedio":   duracion_promedio,
+        "tasa_cancelacion":    tasa_cancelacion,
+        "ultimo_km_fin":       ultimo_km_fin,
+        "ultima_fecha_km":     ultima_fecha_km,
+        "top_usuarios_veh":    top_usuarios_veh,
+        "vehiculos_lista":     vehiculos_lista,
     })
 
 
@@ -1825,6 +1939,15 @@ def reporte_analiticas_pdf(request):
     usuario = get_usuario_sesion(request)
     rango = request.GET.get("rango", "30d")
 
+    # ── Filtro por cargo ─────────────────────────────────────────────────────
+    cargo_id = request.GET.get("cargo", "")
+    filtro_cargo = None
+    if cargo_id:
+        try:
+            filtro_cargo = Cargo.objects.get(pk=int(cargo_id))
+        except (Cargo.DoesNotExist, ValueError):
+            filtro_cargo = None
+
     hoy = timezone.now()
     if rango == "30d":
         desde = hoy - timedelta(days=30)
@@ -1841,7 +1964,10 @@ def reporte_analiticas_pdf(request):
         rango_label = "Todo el tiempo"
 
     def filtro_base(qs):
-        return qs.filter(hora_inicio__gte=desde) if desde else qs
+        q = qs.filter(hora_inicio__gte=desde) if desde else qs
+        if filtro_cargo:
+            q = q.filter(id_usuario__id_cargo=filtro_cargo)
+        return q
 
     tickets_periodo    = filtro_base(Ticket.objects.all())
     tickets_aprobados  = tickets_periodo.filter(estado=Ticket.ESTADO_APROBADO)
@@ -1866,25 +1992,15 @@ def reporte_analiticas_pdf(request):
         count_aprobados  = t_aprobados.count()
         count_cancelados = t_cancelados.count()
         count_total      = t_total.count()
-        horas_efectivas  = 0.0
-        for t in t_aprobados.exclude(hora_fin__isnull=True):
-            horas_efectivas += (t.hora_fin - t.hora_inicio).total_seconds() / 3600
-        horas_efectivas = round(horas_efectivas, 1)
-        if horas_efectivas > max_horas:
-            max_horas = horas_efectivas
         stats_vehiculos.append({
             "vehiculo":         v,
             "count_aprobados":  count_aprobados,
             "count_cancelados": count_cancelados,
             "count_total":      count_total,
-            "horas_efectivas":  horas_efectivas,
             "tasa_cancelacion": round((count_cancelados / count_total * 100) if count_total > 0 else 0, 1),
         })
 
-    for sv in stats_vehiculos:
-        sv["barra_pct"] = round((sv["horas_efectivas"] / max_horas * 100) if max_horas > 0 else 0)
-    stats_vehiculos.sort(key=lambda x: x["horas_efectivas"], reverse=True)
-    horas_totales = sum(sv["horas_efectivas"] for sv in stats_vehiculos)
+    stats_vehiculos.sort(key=lambda x: x["count_aprobados"], reverse=True)
 
     _MESES_ES = {
         1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril",
@@ -1953,6 +2069,11 @@ def reporte_analiticas_pdf(request):
     d_veh_km = [float(v['total_km']) for v in vehiculos_km]
     chart_vehiculos_km = generar_grafico_barras_horizontal(l_veh_km, d_veh_km, "{} km")
 
+    dist_est_agg  = tickets_periodo.aggregate(total=Sum("distancia_est"))["total"]
+    dist_real_agg = tickets_periodo.filter(distancia_real__isnull=False).aggregate(total=Sum("distancia_real"))["total"]
+    distancia_est_total  = round(float(dist_est_agg),  1) if dist_est_agg  else 0
+    distancia_real_total = round(float(dist_real_agg), 1) if dist_real_agg else 0
+
     context = {
         "usuario":                   usuario,
         "rango":                     rango,
@@ -1963,7 +2084,8 @@ def reporte_analiticas_pdf(request):
         "total_cancelados":          total_cancelados,
         "total_pendientes_tickets":  total_pendientes_tickets,
         "tasa_cancelacion_global":   tasa_cancelacion_global,
-        "horas_totales":             round(horas_totales, 1),
+        "distancia_est_total":       distancia_est_total,
+        "distancia_real_total":      distancia_real_total,
         "mes_pico_label":            mes_pico_label,
         "mes_pico_count":            mes_pico_count,
         "duracion_promedio":         duracion_promedio,
@@ -1978,6 +2100,7 @@ def reporte_analiticas_pdf(request):
         "chart_cargos":              chart_cargos,
         "chart_vehiculos_sol":       chart_vehiculos_sol,
         "chart_vehiculos_km":        chart_vehiculos_km,
+        "filtro_cargo":              filtro_cargo,
     }
 
     html_string = render_to_string("reservas/analiticas_pdf.html", context)

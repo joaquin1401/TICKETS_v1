@@ -1,0 +1,131 @@
+{% extends "reservas/base.html" %}
+{% load static %}
+{% block title %}{{ vehiculo.marca }} {{ vehiculo.modelo }} — Analíticas{% endblock %}
+{% block breadcrumb %}Analíticas · {{ vehiculo.marca }} {{ vehiculo.modelo }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/pages/analiticas.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<div class="report-header" id="report-top">
+  <div class="report-header-text">
+    <p class="report-eyebrow">Detalle de Vehículo · Admin</p>
+    <h1>{{ vehiculo.marca }} {{ vehiculo.modelo }}</h1>
+    <p class="report-period">
+      Período: <strong>{{ rango_label }}</strong>
+      {% if vehiculo.patente %} · Patente: <strong>{{ vehiculo.patente }}</strong>{% endif %}
+    </p>
+  </div>
+  <div class="report-header-actions no-print">
+    <!-- Filtros de rango -->
+    <div class="range-filter">
+      <a href="?rango=30d"  class="range-btn {% if rango == '30d'  %}active{% endif %}">30 días</a>
+      <a href="?rango=90d"  class="range-btn {% if rango == '90d'  %}active{% endif %}">90 días</a>
+      <a href="?rango=anio" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
+      <a href="?rango=todo" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
+    </div>
+
+    <!-- Cambiar de vehículo rápidamente -->
+    <select id="sel-vehiculo" class="filter-select" onchange="if(this.value) window.location.href=this.value">
+      <option value="">Cambiar vehículo…</option>
+      {% for v in vehiculos_lista %}
+      <option value="{% url 'analiticas_vehiculo' v.pk %}?rango={{ rango }}"
+        {% if v.pk == vehiculo.pk %}selected{% endif %}>
+        {{ v.marca }} {{ v.modelo }}{% if v.patente %} · {{ v.patente }}{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+
+    <a href="{% url 'reporte_analiticas' %}?rango={{ rango }}" class="btn btn-outline" id="btn-volver">
+      ← Volver a Analíticas
+    </a>
+  </div>
+</div>
+
+<!-- ── KPIs del vehículo ──────────────────────────────────── -->
+<div class="act-label">Indicadores del vehículo</div>
+<div class="kpi-grid">
+  <div class="kpi-card kpi-accent">
+    <div class="kpi-value">{{ count_aprobados }}</div>
+    <div class="kpi-label">Reservas en el período</div>
+    <div class="kpi-sub">aprobadas / en curso / finalizadas</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-value">{{ duracion_promedio }}h</div>
+    <div class="kpi-label">Duración promedio de viaje</div>
+    <div class="kpi-sub">en horas, tickets con hora de regreso</div>
+  </div>
+  <div class="kpi-card kpi-dist-est">
+    <div class="kpi-value" style="font-size:32px;">{{ distancia_est_total }} km</div>
+    <div class="kpi-label">Distancia estimada total</div>
+    <div class="kpi-sub">calculada por el sistema</div>
+  </div>
+  <div class="kpi-card kpi-dist-real">
+    <div class="kpi-value" style="font-size:32px;">{% if distancia_real_total %}{{ distancia_real_total }} km{% else %}—{% endif %}</div>
+    <div class="kpi-label">Distancia real recorrida</div>
+    <div class="kpi-sub">basada en odómetro</div>
+  </div>
+</div>
+
+<div class="kpi-grid kpi-grid-secondary" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 28px;">
+  <div class="kpi-card kpi-small">
+    <div class="kpi-value-sm">{{ count_total }}</div>
+    <div class="kpi-label">Tickets totales</div>
+    <div class="kpi-sub">en el período</div>
+  </div>
+  <div class="kpi-card kpi-small {% if tasa_cancelacion > 20 %}kpi-warn{% endif %}">
+    <div class="kpi-value-sm">{{ tasa_cancelacion }}%</div>
+    <div class="kpi-label">Tasa de cancelación</div>
+    <div class="kpi-sub">{{ count_cancelados }} cancelados</div>
+  </div>
+  <div class="kpi-card kpi-small">
+    {% if ultimo_km_fin %}
+    <div class="kpi-value-sm">{{ ultimo_km_fin }} km</div>
+    <div class="kpi-label">Último km registrado</div>
+    <div class="kpi-sub">medido el {{ ultima_fecha_km }}</div>
+    {% else %}
+    <div class="kpi-value-sm">—</div>
+    <div class="kpi-label">Sin km registrado</div>
+    <div class="kpi-sub">ningún viaje con odómetro</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Top solicitantes ───────────────────────────────────── -->
+{% if top_usuarios_veh %}
+<div class="act-label" style="margin-top:36px;">Top solicitantes de este vehículo</div>
+<div class="card report-card" style="margin-bottom: 24px;">
+  <table class="fleet-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Usuario</th>
+        <th>Cargo</th>
+        <th class="align-right">Solicitudes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in top_usuarios_veh %}
+      <tr {% if forloop.first %}class="row-leader"{% endif %}>
+        <td style="color:var(--text-muted); font-family:var(--mono); font-size:11px;">{{ forloop.counter }}</td>
+        <td>{{ u.id_usuario__nombre }} {{ u.id_usuario__apellido }}</td>
+        <td style="color:var(--text-muted); font-size:12px;">{{ u.id_usuario__id_cargo__nombre }}</td>
+        <td class="align-right">{{ u.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- Nota de pie -->
+<div class="report-footer">
+  <span>Sistema de Reserva de Vehículos · {{ vehiculo.marca }} {{ vehiculo.modelo }}</span>
+  <span>{{ rango_label }}</span>
+</div>
+
+{% endblock %}
+{% block extra_js %}{% endblock %}

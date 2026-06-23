@@ -1,16 +1,10 @@
 {% extends "reservas/base.html" %}
 {% load static %}
-{% block title %}Analíticas — Sistema de Reserva de Vehículos
-
-{% endblock %}
-{% block breadcrumb %}Analíticas
-
-{% endblock %}
+{% block title %}Analíticas — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}Analíticas{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/pages/analiticas.css' %}">
-
-
 {% endblock %}
 
 {% block content %}
@@ -18,24 +12,48 @@
   <div class="report-header-text">
     <p class="report-eyebrow">Reporte de Vehículos · Admin</p>
     <h1>Analíticas de uso</h1>
-    <p class="report-period">Período: <strong>{{ rango_label }}</strong></p>
+    <p class="report-period">Período: <strong>{{ rango_label }}</strong>
+      {% if filtro_cargo %} · Cargo: <strong>{{ filtro_cargo.nombre }}</strong>{% endif %}
+    </p>
   </div>
   <div class="report-header-actions no-print">
     <!-- Filtro de rango -->
     <div class="range-filter">
-      <a href="?rango=30d" class="range-btn {% if rango == '30d'  %}active{% endif %}">30 días</a>
-      <a href="?rango=90d" class="range-btn {% if rango == '90d'  %}active{% endif %}">90 días</a>
-      <a href="?rango=anio" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
-      <a href="?rango=todo" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
+      <a href="?rango=30d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="range-btn {% if rango == '30d' %}active{% endif %}">30 días</a>
+      <a href="?rango=90d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="range-btn {% if rango == '90d' %}active{% endif %}">90 días</a>
+      <a href="?rango=anio{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
+      <a href="?rango=todo{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
     </div>
-    <a href="{% url 'reporte_analiticas_pdf' %}?rango={{ rango }}" class="btn btn-outline pdf-btn" id="btn-pdf">
+
+    <!-- Filtro por cargo -->
+    <form method="get" class="filter-form" id="form-filtro-cargo">
+      <input type="hidden" name="rango" value="{{ rango }}">
+      <select name="cargo" id="sel-cargo" class="filter-select" onchange="this.form.submit()">
+        <option value="">Todos los cargos</option>
+        {% for c in cargos_lista %}
+        <option value="{{ c.pk }}" {% if cargo_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <!-- Selector rápido de vehículo (navega a su página de detalle) -->
+    <select id="sel-vehiculo" class="filter-select" onchange="if(this.value) window.location.href=this.value">
+      <option value="">Ir a vehículo…</option>
+      {% for v in vehiculos_lista %}
+      <option value="{% url 'analiticas_vehiculo' v.pk %}?rango={{ rango }}">
+        {{ v.marca }} {{ v.modelo }}{% if v.patente %} · {{ v.patente }}{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+
+    <a href="{% url 'reporte_analiticas_pdf' %}?rango={{ rango }}{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}" class="btn btn-outline pdf-btn" id="btn-pdf">
       <span>↓</span> Descargar PDF
     </a>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
-      Los vehículos en números
+      KPIs principales
      ═══════════════════════════════════════════════════════ -->
 <div class="act-label">Los vehículos en números</div>
 <div class="kpi-grid">
@@ -43,11 +61,6 @@
     <div class="kpi-value">{{ total_aprobados }}</div>
     <div class="kpi-label">Reservas aprobadas</div>
     <div class="kpi-sub">en {{ rango_label|lower }}</div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-value">{{ horas_totales }}h</div>
-    <div class="kpi-label">Horas efectivas de uso</div>
-    <div class="kpi-sub">suma de todos los vehículos</div>
   </div>
   <div class="kpi-card">
     <div class="kpi-value">{{ duracion_promedio }}h</div>
@@ -58,6 +71,20 @@
     <div class="kpi-value">{{ tasa_cancelacion_global }}%</div>
     <div class="kpi-label">Tasa de cancelación global</div>
     <div class="kpi-sub">{{ total_cancelados }} de {{ total_tickets }} tickets</div>
+  </div>
+</div>
+
+<!-- KPIs de distancia -->
+<div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+  <div class="kpi-card kpi-dist-est">
+    <div class="kpi-value" style="font-size:34px;">{{ distancia_est_total }} km</div>
+    <div class="kpi-label">Distancia estimada total</div>
+    <div class="kpi-sub">suma de distancia_est en el período</div>
+  </div>
+  <div class="kpi-card kpi-dist-real">
+    <div class="kpi-value" style="font-size:34px;">{% if distancia_real_total %}{{ distancia_real_total }} km{% else %}—{% endif %}</div>
+    <div class="kpi-label">Distancia real recorrida total</div>
+    <div class="kpi-sub">basada en odómetro (tickets finalizados)</div>
   </div>
 </div>
 
@@ -92,7 +119,7 @@
      ═══════════════════════════════════════════════════════ -->
 <div class="act-label" style="margin-top:36px;">Comportamiento de Usuarios</div>
 <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
-  
+
   <div class="card report-card" style="margin: 0;">
     <div class="card-header">
       <span class="card-title">◧ Top 10 Usuarios</span>
@@ -103,9 +130,7 @@
       <img src="{{ chart_top_usuarios }}" alt="Top Usuarios" style="max-width: 100%; height: auto;">
     </div>
     {% else %}
-    <div class="empty-state" style="padding: 20px;">
-      <p>No hay solicitudes registradas.</p>
-    </div>
+    <div class="empty-state" style="padding: 20px;"><p>No hay solicitudes registradas.</p></div>
     {% endif %}
   </div>
 
@@ -119,9 +144,7 @@
       <img src="{{ chart_cargos }}" alt="Cargos" style="max-width: 100%; height: auto;">
     </div>
     {% else %}
-    <div class="empty-state" style="padding: 20px;">
-      <p>No hay solicitudes registradas.</p>
-    </div>
+    <div class="empty-state" style="padding: 20px;"><p>No hay solicitudes registradas.</p></div>
     {% endif %}
   </div>
 
@@ -131,8 +154,8 @@
       Análisis de Vehículos
      ═══════════════════════════════════════════════════════ -->
 <div class="act-label" style="margin-top:36px;">Análisis de Vehículos</div>
-<div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
-  
+<div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom:24px;">
+
   <div class="card report-card" style="margin: 0;">
     <div class="card-header">
       <span class="card-title">◧ Vehículos vs Solicitudes</span>
@@ -142,9 +165,7 @@
       <img src="{{ chart_vehiculos_sol }}" alt="Vehículos vs Solicitudes" style="max-width: 100%; height: auto;">
     </div>
     {% else %}
-    <div class="empty-state" style="padding: 20px;">
-      <p>No hay datos.</p>
-    </div>
+    <div class="empty-state" style="padding: 20px;"><p>No hay datos.</p></div>
     {% endif %}
   </div>
 
@@ -157,25 +178,64 @@
       <img src="{{ chart_vehiculos_km }}" alt="Vehículos vs Km" style="max-width: 100%; height: auto;">
     </div>
     {% else %}
-    <div class="empty-state" style="padding: 20px;">
-      <p>No hay datos.</p>
-    </div>
+    <div class="empty-state" style="padding: 20px;"><p>No hay datos.</p></div>
     {% endif %}
   </div>
 
 </div>
 
-<!-- Nota de pie para el PDF -->
+<!-- ═══════════════════════════════════════════════════════
+      Listado de vehículos (clickeable → detalle)
+     ═══════════════════════════════════════════════════════ -->
+<div class="act-label" style="margin-top:36px;">Detalle por Vehículo</div>
+<p class="kpi-sub" style="margin-bottom:14px; padding-left:2px;">Hacé clic en cualquier vehículo para ver sus analíticas detalladas.</p>
+
+<div class="card report-card">
+  <table class="fleet-table">
+    <thead>
+      <tr>
+        <th>Vehículo</th>
+        <th class="align-right">Reservas</th>
+        <th class="align-right">Canceladas</th>
+        <th class="align-right">Tasa cancel.</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for sv in stats_vehiculos %}
+      <tr class="fleet-row-link {% if forloop.first %}row-leader{% endif %}"
+          onclick="window.location.href='{% url 'analiticas_vehiculo' sv.vehiculo.pk %}?rango={{ rango }}'"
+          title="Ver analíticas de {{ sv.vehiculo.marca }} {{ sv.vehiculo.modelo }}">
+        <td>
+          <div class="vehicle-name">
+            {% if forloop.first %}<span class="leader-crown">★</span>{% endif %}
+            <span class="primary">{{ sv.vehiculo.marca }} {{ sv.vehiculo.modelo }}</span>
+          </div>
+          <div class="vehicle-sub">
+            {% if sv.vehiculo.patente %}{{ sv.vehiculo.patente }} · {% endif %}
+            {{ sv.vehiculo.cant_pasajeros }} pas.
+            {% if not sv.vehiculo.activo %} · <span style="color:var(--danger);">Inactivo</span>{% endif %}
+          </div>
+        </td>
+        <td class="align-right">{{ sv.count_aprobados }}</td>
+        <td class="align-right">{{ sv.count_cancelados }}</td>
+        <td class="align-right">
+          <span class="pct-badge {% if sv.tasa_cancelacion < 10 %}pct-low{% elif sv.tasa_cancelacion < 25 %}pct-mid{% else %}pct-high{% endif %}">
+            {{ sv.tasa_cancelacion }}%
+          </span>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="empty-state" style="padding:20px; text-align:center;">No hay datos en el período seleccionado.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Nota de pie -->
 <div class="report-footer">
   <span>Sistema de Reserva de Vehículos</span>
   <span>Reporte generado · {{ rango_label }}</span>
 </div>
 
-
-
 {% endblock %}
-{% block extra_js %}
-
-
-
-{% endblock %}
+{% block extra_js %}{% endblock %}

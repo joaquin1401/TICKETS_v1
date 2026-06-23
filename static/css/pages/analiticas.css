@@ -321,18 +321,14 @@
   .kpi-grid-secondary { grid-template-columns: 1fr; }
 }
 
-/* ══════════════════════════════════════════════════════════
-   PRINT / PDF — se activa con window.print()
-   ══════════════════════════════════════════════════════════ */
+/* ── Print / PDF ─────────────────────────────────────────── */
 @media print {
-  /* Ocultar todo lo que no es el reporte */
   .no-print,
   .sidebar,
   .topbar,
   .alerts,
   .pdf-btn { display: none !important; }
 
-  /* Forzar fondo blanco y texto oscuro para impresión legible */
   :root {
     --bg:        #ffffff;
     --surface:   #f7f7f8;
@@ -348,29 +344,84 @@
     --warning:   #b06000;
   }
 
-  body {
-    background: #fff !important;
-    color: #111 !important;
-    font-size: 12px;
-  }
-
+  body { background: #fff !important; color: #111 !important; font-size: 12px; }
   .main { margin-left: 0 !important; }
   .page-content { padding: 0 24px; }
-
-  .kpi-card, .insight-item, .report-card {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
+  .kpi-card, .insight-item, .report-card { break-inside: avoid; page-break-inside: avoid; }
   .kpi-grid { grid-template-columns: repeat(4, 1fr); }
   .kpi-grid-secondary { grid-template-columns: repeat(6, 1fr); }
-
   .bar-fill { background: var(--accent) !important; }
-
   .report-footer { display: flex !important; }
 
-  @page {
-    size: A4 landscape;
-    margin: 16mm 12mm;
-  }
+  @page { size: A4 landscape; margin: 16mm 12mm; }
 }
+
+/* ── Filter form & selects ───────────────────────────────── */
+.filter-form { display: flex; align-items: center; }
+.filter-select {
+  appearance: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 28px 6px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+.filter-select:hover,
+.filter-select:focus { border-color: rgba(85,139,186,0.5); color: var(--text); outline: none; }
+
+/* ── Clickable fleet rows ────────────────────────────────── */
+.fleet-row-link {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.fleet-row-link:hover { background: rgba(85,139,186,0.08) !important; }
+.fleet-row-link:hover .primary { color: var(--accent2); }
+
+/* ── Distance KPI card variants ─────────────────────────── */
+.kpi-card.kpi-dist-est {
+  border-color: rgba(61,186,122,0.35);
+  background: linear-gradient(135deg, rgba(61,186,122,0.07) 0%, var(--surface) 100%);
+}
+.kpi-card.kpi-dist-est .kpi-value { color: var(--success); }
+
+.kpi-card.kpi-dist-real {
+  border-color: rgba(119,165,205,0.4);
+  background: linear-gradient(135deg, rgba(119,165,205,0.07) 0%, var(--surface) 100%);
+}
+.kpi-card.kpi-dist-real .kpi-value { color: var(--accent2); }
+
+/* ── Vehicle detail grid ─────────────────────────────────── */
+.vehicle-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0;
+}
+.vehicle-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.vehicle-detail-item:last-child { border-right: none; }
+.vd-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+.vd-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+

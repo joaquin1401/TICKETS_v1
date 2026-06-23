@@ -380,6 +380,7 @@
       </div>
       <div class="report-meta">
         <div>Período: <strong>{{ rango_label }}</strong></div>
+        {% if filtro_cargo %}<div>Cargo: <strong>{{ filtro_cargo.nombre }}</strong></div>{% endif %}
         <div>{{ fecha_generacion }}</div>
         <div>Sistema de Reserva de Vehículos</div>
       </div>
@@ -394,11 +395,6 @@
         <div class="kpi-sub">en {{ rango_label|lower }}</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-value">{{ horas_totales }}h</div>
-        <div class="kpi-label">Horas efectivas de uso</div>
-        <div class="kpi-sub">suma de todos los vehículos</div>
-      </div>
-      <div class="kpi-card">
         <div class="kpi-value">{{ duracion_promedio }}h</div>
         <div class="kpi-label">Duración promedio por viaje</div>
         <div class="kpi-sub">tickets con hora de regreso</div>
@@ -407,6 +403,20 @@
         <div class="kpi-value">{{ tasa_cancelacion_global }}%</div>
         <div class="kpi-label">Tasa de cancelación global</div>
         <div class="kpi-sub">{{ total_cancelados }} de {{ total_tickets }} tickets</div>
+      </div>
+    </div>
+
+    <!-- KPIs de distancia -->
+    <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 8pt; margin-bottom: 8pt;">
+      <div class="kpi-card" style="border-color: rgba(61,186,122,0.35); background: linear-gradient(135deg, rgba(61,186,122,0.07) 0%, var(--surface) 100%);">
+        <div class="kpi-value" style="color:#3dba7a; font-size:22pt;">{{ distancia_est_total }} km</div>
+        <div class="kpi-label">Distancia estimada total</div>
+        <div class="kpi-sub">calculada por el sistema</div>
+      </div>
+      <div class="kpi-card" style="border-color: rgba(119,165,205,0.4); background: linear-gradient(135deg, rgba(119,165,205,0.07) 0%, var(--surface) 100%);">
+        <div class="kpi-value" style="color:var(--accent2); font-size:22pt;">{% if distancia_real_total %}{{ distancia_real_total }} km{% else %}—{% endif %}</div>
+        <div class="kpi-label">Distancia real recorrida total</div>
+        <div class="kpi-sub">basada en odómetro (tickets finalizados)</div>
       </div>
     </div>
 
