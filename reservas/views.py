@@ -549,7 +549,7 @@ def historial(request):
     form = FiltroTicketsForm(request.GET or None)
     tickets_qs = Ticket.objects.filter(
         id_usuario=usuario
-    ).select_related("id_vehiculo").order_by("-hora_inicio")
+    ).select_related("id_vehiculo").order_by("-fecha", "-id")
 
     if form.is_valid():
         from django.db.models.functions import Lower
@@ -1066,7 +1066,7 @@ def detalle_usuario(request, usuario_id):
 
     tickets_qs = Ticket.objects.filter(
         id_usuario=usuario_detalle
-    ).select_related("id_vehiculo").order_by("-hora_inicio")
+    ).select_related("id_vehiculo").order_by("-fecha", "-id")
     
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
 
@@ -1161,7 +1161,7 @@ def monitor_tickets_activos(request):
     tickets_qs = Ticket.objects.filter(
         estado__in=[Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO],
         hora_inicio__gte=date.today(),
-    ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("hora_inicio")
+    ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-fecha", "-id")
 
     if form.is_valid():
         from django.db.models.functions import Lower
@@ -1247,7 +1247,7 @@ def historial_tickets(request):
     form = FiltroTicketsForm(request.GET or None)
     tickets_qs = Ticket.objects.filter(
         Q(estado=Ticket.ESTADO_CANCELADO) | Q(hora_inicio__lt=date.today())
-    ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-hora_inicio")
+    ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-fecha", "-id")
 
     if form.is_valid():
         from django.db.models.functions import Lower
@@ -1311,7 +1311,7 @@ def descargar_historial_csv(request):
     form = FiltroTicketsForm(request.GET or None)
     tickets_qs = Ticket.objects.filter(
         Q(estado=Ticket.ESTADO_CANCELADO) | Q(hora_inicio__lt=date.today())
-    ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-hora_inicio")
+    ).select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo").order_by("-fecha", "-id")
 
     if form.is_valid():
         from django.db.models.functions import Lower

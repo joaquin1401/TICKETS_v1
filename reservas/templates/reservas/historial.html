@@ -67,6 +67,7 @@
       <thead>
         <tr>
           <th>#</th>
+          <th>Creado</th>
           <th>Destino</th>
           <th>Distancia Est.</th>
           <th>Distancia Real</th>
@@ -87,6 +88,7 @@
         {% for t in tickets %}
         <tr>
           <td><span class="text-mono text-muted">#{{ t.pk }}</span></td>
+          <td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
           <td><span class="primary">{{ t.destino }}</span></td>
           <td>
             {% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}

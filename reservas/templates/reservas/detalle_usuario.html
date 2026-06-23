@@ -81,6 +81,8 @@
     <table>
       <thead>
         <tr>
+          <th>#</th>
+          <th>Creado</th>
           <th>Vehículo</th>
           <th>Conductor</th>
           <th>Destino</th>
@@ -99,6 +101,8 @@
       <tbody>
         {% for t in tickets %}
         <tr>
+          <td class="text-mono text-muted">#{{ t.pk }}</td>
+          <td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</td>
           <td>{% if t.conductor %}{{ t.conductor.nombre_completo }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td><span class="primary">{{ t.destino }}</span></td>

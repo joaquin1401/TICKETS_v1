@@ -319,7 +319,7 @@ class Ticket(models.Model):
     estado = models.CharField(
         max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE
     )
-    fecha = models.DateField(auto_now_add=True)
+    fecha = models.DateTimeField(auto_now_add=True)
     observacion = models.TextField(
         blank=True,
         help_text="Se completa automáticamente si el ticket es cancelado por jerarquía"
@@ -328,7 +328,7 @@ class Ticket(models.Model):
     class Meta:
         verbose_name = "Ticket"
         verbose_name_plural = "Tickets"
-        ordering = ["-hora_inicio"]
+        ordering = ["-fecha"]
 
     def __str__(self):
         return f"Ticket #{self.pk} - {self.id_usuario} -> {self.destino} ({self.estado})"
