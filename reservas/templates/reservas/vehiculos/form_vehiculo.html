@@ -34,7 +34,13 @@
           </div>
         </div>
         <div class="form-row">
-          <div class="form-group" style="width: 100%;">
+          <div class="form-group">
+            <label class="form-label">Patente</label>
+            <input type="text" name="patente" class="form-control" placeholder="Ej: AB 123 CD"
+                   value="{{ form.patente.value|default:'' }}">
+            {% if form.patente.errors %}<p class="form-error">{{ form.patente.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
             <label class="form-label">Capacidad <span style="color:var(--danger);">*</span></label>
             <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="Ej: 5"
                    value="{{ form.cant_pasajeros.value|default:'' }}">
@@ -42,7 +48,7 @@
           </div>
         </div>
         
-        <div class="form-group" style="margin-top: 10px; margin-bottom: 16px;">
+        <div class="form-group" style="margin-top: 10px; margin-bottom: 8px;">
           <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
             <input type="checkbox" name="exclusivo_decanato"
                    {% if form.exclusivo_decanato.value %}checked{% endif %}
@@ -50,6 +56,16 @@
             <span style="font-size:13px;color:var(--text-dim);">Vehículo de uso exclusivo para el Decano</span>
           </label>
           {% if form.exclusivo_decanato.errors %}<p class="form-error">{{ form.exclusivo_decanato.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+            <input type="checkbox" name="requiere_chofer"
+                   {% if form.requiere_chofer.value %}checked{% endif %}
+                   style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;">
+            <span style="font-size:13px;color:var(--text-dim);">Requiere Chofer asignado obligatoriamente</span>
+          </label>
+          {% if form.requiere_chofer.errors %}<p class="form-error">{{ form.requiere_chofer.errors.0 }}</p>{% endif %}
         </div>
 
         {% if vehiculo %}
