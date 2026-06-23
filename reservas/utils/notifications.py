@@ -3,7 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from django_q.tasks import async_task
-from .models import NotificationLog
+from ..models import NotificationLog
 
 
 def notify_reservation_created(ticket):

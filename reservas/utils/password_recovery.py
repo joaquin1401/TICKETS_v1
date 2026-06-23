@@ -16,7 +16,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.urls import reverse
 
-from .models import RecuperacionPassword
+from ..models import RecuperacionPassword
 
 logger = logging.getLogger(__name__)
 

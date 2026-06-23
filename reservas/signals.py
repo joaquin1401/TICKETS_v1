@@ -4,7 +4,7 @@ from django.utils import timezone
 import logging
 
 from .models import Ticket
-from .notifications import notify_reservation_created, notify_reservation_cancelled
+from .utils.notifications import notify_reservation_created, notify_reservation_cancelled
 
 logger = logging.getLogger(__name__)
 

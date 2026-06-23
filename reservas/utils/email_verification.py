@@ -21,7 +21,7 @@ Dependencias:
     - django.urls.reverse          (para construir el enlace absoluto)
 
 Integración con views.py:
-    from .email_verification import (
+    from .utils.email_verification import (
         crear_verificacion,
         enviar_correo_verificacion,
         verificar_por_codigo,
@@ -38,7 +38,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.urls import reverse
 
-from .models import VerificacionCorreo
+from ..models import VerificacionCorreo
 
 logger = logging.getLogger(__name__)
 

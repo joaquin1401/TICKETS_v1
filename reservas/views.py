@@ -31,13 +31,13 @@ from .forms import (
     VerificacionCodigoForm,          # [NUEVO] formulario de código de 6 dígitos
     AdminCrearUsuarioForm, AdminEditarUsuarioForm,           # Formulario para admin
 )
-from .email_verification import (    # [NUEVO] servicio de verificación de correo
+from .utils.email_verification import (    # [NUEVO] servicio de verificación de correo
     crear_verificacion,
     enviar_correo_verificacion,
     verificar_por_codigo,
     verificar_por_token,
 )
-from .services import (
+from .utils.services import (
     crear_ticket_con_reglas, ResultadoCreacion,
     get_tickets_del_mes, get_tickets_del_dia,
 )
@@ -200,7 +200,7 @@ def registro(request):
             - POST: Procesa envío de datos.
 
     Returns:
-        HttpResponse: Plantilla 'reservas/registro.html' con formulario
+        HttpResponse: Plantilla 'reservas/auth/registro.html' con formulario
             (GET) o redirige a verificar_correo tras éxito (POST).
 
     Proceso:
@@ -255,7 +255,7 @@ def registro(request):
             return redirect("verificar_correo")
     else:
         form = RegistroForm()
-    return render(request, "reservas/registro.html", {"form": form})
+    return render(request, "reservas/auth/registro.html", {"form": form})
 
 
 def login_view(request):
@@ -301,11 +301,11 @@ def login_view(request):
                 usuario = Usuario.objects.select_related("id_cargo").get(correo=correo)
             except Usuario.DoesNotExist:
                 messages.error(request, "Correo o contraseña incorrectos.")
-                return render(request, "reservas/login.html", {"form": form})
+                return render(request, "reservas/auth/login.html", {"form": form})
 
             if not usuario.check_password(contrasena):
                 messages.error(request, "Correo o contraseña incorrectos.")
-                return render(request, "reservas/login.html", {"form": form})
+                return render(request, "reservas/auth/login.html", {"form": form})
 
             # [NUEVO] Verificación de correo: bloquear login si el usuario
             # completó el registro pero todavía no verificó su email.
@@ -322,11 +322,11 @@ def login_view(request):
 
             if usuario.rechazado:
                 messages.error(request, "Tu solicitud de acceso fue rechazada. Contactá al administrador.")
-                return render(request, "reservas/login.html", {"form": form})
+                return render(request, "reservas/auth/login.html", {"form": form})
 
             if not usuario.valido:
                 messages.warning(request, "Tu cuenta está pendiente de aprobación por un administrador.")
-                return render(request, "reservas/login.html", {"form": form})
+                return render(request, "reservas/auth/login.html", {"form": form})
 
             # Establecer sesión
             request.session["usuario_id"] = usuario.pk
@@ -336,7 +336,7 @@ def login_view(request):
             return redirect("inicio")
     else:
         form = LoginForm()
-    return render(request, "reservas/login.html", {"form": form})
+    return render(request, "reservas/auth/login.html", {"form": form})
 
 
 def logout_view(request):
@@ -506,7 +506,7 @@ def inicio(request):
     else:
         mes_siguiente = (anio, mes + 1)
 
-    return render(request, "reservas/inicio.html", {
+    return render(request, "reservas/tickets/inicio.html", {
         "form": form,
         "usuario": usuario,
         "vehiculo_cal": vehiculo_cal,
@@ -541,7 +541,7 @@ def historial(request):
         request (HttpRequest): Objeto de solicitud (GET).
 
     Returns:
-        HttpResponse: Plantilla 'reservas/historial.html' con:
+        HttpResponse: Plantilla 'reservas/tickets/historial.html' con:
             - tickets: QuerySet de tickets del usuario.
             - usuario: Instancia del usuario logueado.
     """
@@ -592,7 +592,7 @@ def historial(request):
 
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
 
-    return render(request, "reservas/historial.html", {
+    return render(request, "reservas/tickets/historial.html", {
         "form": form,
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
@@ -616,7 +616,7 @@ def detalle_ticket(request, ticket_id):
         ticket_id (int): PK del ticket.
 
     Returns:
-        HttpResponse: Plantilla 'reservas/detalle_ticket.html' con ticket.
+        HttpResponse: Plantilla 'reservas/tickets/detalle_ticket.html' con ticket.
 
     Raises:
         Http404: Si el ticket no existe o el usuario normal intenta
@@ -637,7 +637,7 @@ def detalle_ticket(request, ticket_id):
     if ticket.estado == Ticket.ESTADO_APROBADO and ticket.hora_inicio >= timezone.now() + timezone.timedelta(days=5):
         puede_cancelar = True
 
-    return render(request, "reservas/detalle_ticket.html", {
+    return render(request, "reservas/tickets/detalle_ticket.html", {
         "ticket": ticket,
         "usuario": usuario,
         "puede_cancelar": puede_cancelar,
@@ -654,7 +654,7 @@ def cancelar_ticket(request, ticket_id):
     (5 días de antelación) a la capa de servicios.
     """
     from django.contrib import messages
-    from .services import cancelar_ticket_usuario
+    from .utils.services import cancelar_ticket_usuario
     
     if request.method != "POST":
         return redirect("inicio")
@@ -735,7 +735,7 @@ def chofer_dashboard(request):
         "count_futuros": tickets_futuros_qs.count(),
         "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count(),
     }
-    return render(request, "reservas/chofer_dashboard.html", context)
+    return render(request, "reservas/tickets/chofer_dashboard.html", context)
 
 
 @login_requerido
@@ -773,7 +773,7 @@ def chofer_finalizados(request):
         "pagination_query": pagination_query,
         "count_finalizados": tickets_finalizados_qs.count(),
     }
-    return render(request, "reservas/chofer_finalizados.html", context)
+    return render(request, "reservas/tickets/chofer_finalizados.html", context)
 
 
 @login_requerido
@@ -904,7 +904,7 @@ def panel_validacion(request):
             - accion (str): "aprobar" o "rechazar".
 
     Returns:
-        HttpResponse: Plantilla 'reservas/panel_validacion.html'
+        HttpResponse: Plantilla 'reservas/usuarios/panel_validacion.html'
             - pendientes: QuerySet de usuarios pendientes.
             - usuario: Instancia del usuario logueado (admin).
 
@@ -971,7 +971,7 @@ def panel_validacion(request):
 
         return redirect("panel_validacion")
 
-    return render(request, "reservas/panel_validacion.html", {
+    return render(request, "reservas/usuarios/panel_validacion.html", {
         "pendientes": pendientes,
         "usuario": get_usuario_sesion(request),
     })
@@ -993,7 +993,7 @@ def usuarios(request):
             - cargo (int): PK de cargo para filtrar.
 
     Returns:
-        HttpResponse: Plantilla 'reservas/usuarios.html' con:
+        HttpResponse: Plantilla 'reservas/usuarios/usuarios.html' con:
             - form: FiltroUsuariosForm.
             - usuarios: QuerySet filtrado de usuarios válidos.
             - usuario: Instancia del usuario logueado (admin).
@@ -1024,7 +1024,7 @@ def usuarios(request):
 
     page_obj, pagination_query = paginate_queryset(request, usuarios)
 
-    return render(request, "reservas/usuarios.html", {
+    return render(request, "reservas/usuarios/usuarios.html", {
         "form": form,
         "usuarios": page_obj.object_list,
         "page_obj": page_obj,
@@ -1070,7 +1070,7 @@ def detalle_usuario(request, usuario_id):
     
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
 
-    return render(request, "reservas/detalle_usuario.html", {
+    return render(request, "reservas/usuarios/detalle_usuario.html", {
         "usuario_detalle": usuario_detalle,
         "form": form,
         "tickets": page_obj.object_list,
@@ -1097,7 +1097,7 @@ def admin_crear_usuario(request):
     else:
         form = AdminCrearUsuarioForm()
     
-    return render(request, "reservas/admin_crear_usuario.html", {
+    return render(request, "reservas/usuarios/admin_crear_usuario.html", {
         "form": form,
         "usuario": get_usuario_sesion(request),
     })
@@ -1116,14 +1116,14 @@ def usuarios_rechazados(request):
         request (HttpRequest): Objeto de solicitud (GET).
 
     Returns:
-        HttpResponse: Plantilla 'reservas/usuarios_rechazados.html' con:
+        HttpResponse: Plantilla 'reservas/usuarios/usuarios_rechazados.html' con:
             - rechazados: QuerySet de usuarios rechazados.
             - usuario: Instancia del usuario logueado (admin).
     """
     rechazados_qs = Usuario.objects.filter(rechazado=True).select_related("id_cargo")
     page_obj, pagination_query = paginate_queryset(request, rechazados_qs)
 
-    return render(request, "reservas/usuarios_rechazados.html", {
+    return render(request, "reservas/usuarios/usuarios_rechazados.html", {
         "rechazados": page_obj.object_list,
         "page_obj": page_obj,
         "pagination_query": pagination_query,
@@ -1145,7 +1145,7 @@ def monitor_tickets_activos(request):
         request (HttpRequest): Objeto de solicitud (GET).
 
     Returns:
-        HttpResponse: Plantilla 'reservas/monitor_activos.html' con:
+        HttpResponse: Plantilla 'reservas/tickets/monitor_activos.html' con:
             - tickets: QuerySet de tickets aprobados futuros.
             - usuario: Instancia del usuario logueado (admin).
 
@@ -1208,7 +1208,7 @@ def monitor_tickets_activos(request):
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
     vehiculos_en_uso = tickets_qs.values("id_vehiculo").distinct().count()
 
-    return render(request, "reservas/monitor_activos.html", {
+    return render(request, "reservas/tickets/monitor_activos.html", {
         "form": form,
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
@@ -1232,7 +1232,7 @@ def historial_tickets(request):
         request (HttpRequest): Objeto de solicitud (GET).
 
     Returns:
-        HttpResponse: Plantilla 'reservas/historial_tickets.html' con:
+        HttpResponse: Plantilla 'reservas/tickets/historial_tickets.html' con:
             - tickets: QuerySet de tickets históricos/cancelados.
             - usuario: Instancia del usuario logueado (admin).
 
@@ -1293,7 +1293,7 @@ def historial_tickets(request):
 
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
 
-    return render(request, "reservas/historial_tickets.html", {
+    return render(request, "reservas/tickets/historial_tickets.html", {
         "form": form,
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
@@ -1410,7 +1410,7 @@ def listado_vehiculos(request):
         request (HttpRequest): Objeto de solicitud (GET).
 
     Returns:
-        HttpResponse: Plantilla 'reservas/listado_vehiculos.html' con:
+        HttpResponse: Plantilla 'reservas/vehiculos/listado_vehiculos.html' con:
             - vehiculos: QuerySet de todos los vehículos.
             - usuario: Instancia del usuario logueado (admin).
     """
@@ -1418,7 +1418,7 @@ def listado_vehiculos(request):
     vehiculos_qs = Vehiculo.objects.filter(exclusivo_decanato=False).order_by("marca", "modelo")
     page_obj, pagination_query = paginate_queryset(request, vehiculos_qs)
 
-    return render(request, "reservas/listado_vehiculos.html", {
+    return render(request, "reservas/vehiculos/listado_vehiculos.html", {
         "vehiculos_decano": vehiculos_decano,
         "vehiculos": page_obj.object_list,
         "page_obj": page_obj,
@@ -1444,7 +1444,7 @@ def alta_vehiculo(request):
             - POST: Procesa creación de vehículo.
 
     Returns:
-        HttpResponse: Plantilla 'reservas/form_vehiculo.html' con:
+        HttpResponse: Plantilla 'reservas/vehiculos/form_vehiculo.html' con:
             - form: VehiculoForm.
             - titulo: "Agregar vehículo".
             - usuario: Instancia del usuario logueado (admin).
@@ -1463,7 +1463,7 @@ def alta_vehiculo(request):
             return redirect("listado_vehiculos")
     else:
         form = VehiculoForm()
-    return render(request, "reservas/form_vehiculo.html", {
+    return render(request, "reservas/vehiculos/form_vehiculo.html", {
         "form": form,
         "titulo": "Agregar vehículo",
         "usuario": get_usuario_sesion(request),
@@ -1486,7 +1486,7 @@ def edicion_vehiculo(request, vehiculo_id):
         vehiculo_id (int): PK del vehículo.
 
     Returns:
-        HttpResponse: Plantilla 'reservas/form_vehiculo.html' con:
+        HttpResponse: Plantilla 'reservas/vehiculos/form_vehiculo.html' con:
             - form: VehiculoForm pre-poblado.
             - titulo: "Editar vehículo: {marca} {modelo}".
             - vehiculo: Instancia del vehículo.
@@ -1514,7 +1514,7 @@ def edicion_vehiculo(request, vehiculo_id):
             return redirect("listado_vehiculos")
     else:
         form = VehiculoForm(instance=vehiculo)
-    return render(request, "reservas/form_vehiculo.html", {
+    return render(request, "reservas/vehiculos/form_vehiculo.html", {
         "form": form,
         "titulo": f"Editar vehículo: {vehiculo}",
         "vehiculo": vehiculo,
@@ -1554,7 +1554,7 @@ def reporte_analiticas(request):
     """
     from django.db.models import Count, Sum
     import json
-    from .chart_utils import generar_grafico_barras_horizontal, generar_grafico_torta
+    from .utils.chart_utils import generar_grafico_barras_horizontal, generar_grafico_torta
 
     from django.db.models.functions import TruncMonth
     from django.utils import timezone
@@ -1769,7 +1769,7 @@ def reporte_analiticas(request):
     cargos_lista = Cargo.objects.all().order_by("prioridad")
     vehiculos_lista = Vehiculo.objects.all().order_by("marca", "modelo")
 
-    return render(request, "reservas/analiticas.html", {
+    return render(request, "reservas/analiticas/analiticas.html", {
         "usuario":                   usuario,
         "rango":                     rango,
         "rango_label":               rango_label,
@@ -1893,7 +1893,7 @@ def analiticas_vehiculo(request, vehiculo_id):
 
     vehiculos_lista = Vehiculo.objects.all().order_by("marca", "modelo")
 
-    return render(request, "reservas/analiticas_vehiculo.html", {
+    return render(request, "reservas/analiticas/analiticas_vehiculo.html", {
         "usuario":             usuario,
         "vehiculo":            vehiculo,
         "rango":               rango,
@@ -1933,7 +1933,7 @@ def reporte_analiticas_pdf(request):
     from datetime import timedelta
     from weasyprint import HTML
     from django.db.models import Sum
-    from .chart_utils import generar_grafico_barras_horizontal, generar_grafico_torta
+    from .utils.chart_utils import generar_grafico_barras_horizontal, generar_grafico_torta
     
 
     usuario = get_usuario_sesion(request)
@@ -2103,7 +2103,7 @@ def reporte_analiticas_pdf(request):
         "filtro_cargo":              filtro_cargo,
     }
 
-    html_string = render_to_string("reservas/analiticas_pdf.html", context)
+    html_string = render_to_string("reservas/analiticas/analiticas_pdf.html", context)
     pdf_bytes = HTML(string=html_string).write_pdf()
 
     filename = f"analiticas_{rango}_{hoy.strftime('%Y%m%d')}.pdf"
@@ -2135,7 +2135,7 @@ def verificar_correo(request):
             - POST (accion="reenviar"): Regenera código/token y reenvía el correo.
 
     Returns:
-        HttpResponse: Plantilla 'reservas/verificar_correo.html' con:
+        HttpResponse: Plantilla 'reservas/auth/verificar_correo.html' con:
             - form:   VerificacionCodigoForm (vacío o con errores).
             - correo: Email del usuario (para mostrarlo en pantalla).
         O redirect a login (verificación exitosa) o registro (sesión perdida).
@@ -2207,7 +2207,7 @@ def verificar_correo(request):
     except VerificacionCorreo.DoesNotExist:
         segundos_restantes = 0
 
-    return render(request, "reservas/verificar_correo.html", {
+    return render(request, "reservas/auth/verificar_correo.html", {
         "form": form,
         "correo": usuario.correo,
         "segundos_restantes": segundos_restantes,
@@ -2265,7 +2265,7 @@ def verificar_correo_enlace(request, token):
 
 def solicitar_recuperacion(request):
     from .forms import SolicitarRecuperacionForm
-    from .password_recovery import crear_recuperacion, enviar_correo_recuperacion
+    from .utils.password_recovery import crear_recuperacion, enviar_correo_recuperacion
 
     if request.method == "POST":
         form = SolicitarRecuperacionForm(request.POST)
@@ -2286,12 +2286,12 @@ def solicitar_recuperacion(request):
     else:
         form = SolicitarRecuperacionForm()
 
-    return render(request, "reservas/solicitar_recuperacion.html", {"form": form})
+    return render(request, "reservas/auth/solicitar_recuperacion.html", {"form": form})
 
 
 def verificar_recuperacion(request):
     from .forms import VerificarRecuperacionForm
-    from .password_recovery import verificar_recuperacion_por_codigo, crear_recuperacion, enviar_correo_recuperacion
+    from .utils.password_recovery import verificar_recuperacion_por_codigo, crear_recuperacion, enviar_correo_recuperacion
     from .models import RecuperacionPassword
     from django.utils import timezone
 
@@ -2334,7 +2334,7 @@ def verificar_recuperacion(request):
     except RecuperacionPassword.DoesNotExist:
         segundos_restantes = 0
 
-    return render(request, "reservas/verificar_recuperacion.html", {
+    return render(request, "reservas/auth/verificar_recuperacion.html", {
         "form": form,
         "correo": usuario.correo,
         "segundos_restantes": segundos_restantes,
@@ -2342,7 +2342,7 @@ def verificar_recuperacion(request):
 
 
 def verificar_recuperacion_enlace(request, token):
-    from .password_recovery import verificar_recuperacion_por_token
+    from .utils.password_recovery import verificar_recuperacion_por_token
 
     resultado, usuario = verificar_recuperacion_por_token(token)
     
@@ -2358,7 +2358,7 @@ def verificar_recuperacion_enlace(request, token):
 
 def nueva_contrasena(request):
     from .forms import NuevaContrasenaForm
-    from .password_recovery import consumir_recuperacion
+    from .utils.password_recovery import consumir_recuperacion
 
     uid = request.session.get("recuperacion_uid")
     can_reset = request.session.get("can_reset_password")
@@ -2388,7 +2388,7 @@ def nueva_contrasena(request):
     else:
         form = NuevaContrasenaForm()
 
-    return render(request, "reservas/nueva_contrasena.html", {"form": form})
+    return render(request, "reservas/auth/nueva_contrasena.html", {"form": form})
 
 
 @login_requerido
@@ -2396,7 +2396,7 @@ def api_calcular_distancia(request):
     """
     API endpoint para calcular la distancia desde UTN FRRE al destino dado.
     """
-    from .services import calcular_distancia_osrm
+    from .utils.services import calcular_distancia_osrm
     destino = request.GET.get("q", "")
     if not destino:
         return JsonResponse({"distancia_est": 0.0})

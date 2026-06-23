@@ -17,7 +17,7 @@ from django.utils import timezone
 import math
 import requests
 import logging
-from .models import Ticket
+from ..models import Ticket
 
 logger = logging.getLogger(__name__)
 
@@ -237,7 +237,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         )
 
     # ── Regla: Vehículo exclusivo del Decanato ───────────────────────────────────────
-    from .models import Cargo
+    from ..models import Cargo
     if vehiculo.exclusivo_decanato and usuario.id_cargo.nombre != Cargo.DECANO:
         return ResultadoCreacion(
             estado=ResultadoCreacion.BLOQUEADO,
@@ -259,7 +259,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
     kwargs["requiere_chofer"] = requiere_chofer
 
     if requiere_chofer:
-        from .models import Usuario, Cargo
+        from ..models import Usuario, Cargo
         total_choferes = Usuario.objects.filter(id_cargo__nombre=Cargo.CHOFER, valido=True).count()
         
         tickets_chofer_conflicto = Ticket.objects.filter(

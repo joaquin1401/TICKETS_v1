@@ -1,14 +1,25 @@
 {% extends "reservas/base.html" %}
-{% block title %}Historial — Sistema de Reserva de Vehículos{% endblock %}
-{% block breadcrumb %}Historial de Tickets{% endblock %}
+{% block title %}Tickets Activos — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}Monitor de Tickets{% endblock %}
 
 {% block content %}
 <div class="page-header">
   <div>
-    <h1>Historial de Tickets</h1>
-    <p class="sub">Tickets históricos y cancelados</p>
+    <h1>Monitor de Tickets Activos</h1>
+    <p class="sub">Reservas vigentes y futuras de toda la empresa</p>
   </div>
-  <a href="{% url 'monitor_tickets_activos' %}" class="btn btn-outline">← Tickets activos</a>
+  <a href="{% url 'historial_tickets' %}" class="btn btn-outline">Ver historial →</a>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Reservas activas</div>
+    <div class="stat-value">{{ total_tickets }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Vehículos en uso</div>
+    <div class="stat-value neutral">{{ vehiculos_en_uso }}</div>
+  </div>
 </div>
 
 <div class="card" style="margin-bottom:16px;">
@@ -19,12 +30,6 @@
         <input type="text" name="busqueda" class="form-control"
                placeholder="Buscar solicitante o destino..."
                value="{{ form.busqueda.value|default:'' }}">
-      </div>
-      <div style="flex:1;min-width:180px;">
-        <label class="form-label">Conductor</label>
-        <input type="text" name="conductor" class="form-control"
-               placeholder="Buscar conductor..."
-               value="{{ form.conductor.value|default:'' }}">
       </div>
       <div style="min-width:180px;">
         <label class="form-label">Vehículo</label>
@@ -58,12 +63,11 @@
         <label class="form-label">Hasta</label>
         <input type="date" name="fecha_fin" class="form-control" value="{{ request.GET.fecha_fin|default:'' }}">
       </div>
-      <div class="filters-form-actions" style="display: flex; gap: 10px; width: 100%;">
+      <div class="filters-form-actions">
         <button type="submit" class="btn btn-primary">Filtrar</button>
         {% if request.GET %}
-        <a href="{% url 'historial_tickets' %}" class="btn btn-outline">Limpiar</a>
+        <a href="{% url 'monitor_tickets_activos' %}" class="btn btn-outline">Limpiar</a>
         {% endif %}
-        <a href="{% url 'descargar_historial_csv' %}?{{ request.GET.urlencode }}" class="btn btn-outline" style="margin-left: auto;" title="Descargar con los filtros actuales aplicados">↓ Descargar CSV</a>
       </div>
     </form>
   </div>
@@ -71,8 +75,8 @@
 
 <div class="card">
   <div class="card-header">
-    <span class="card-title">◌ Historial</span>
-    <span class="badge badge-neutral">{{ total_tickets }} registros</span>
+    <span class="card-title">◉ Tickets vigentes</span>
+    <span class="badge badge-success">En curso / Futuros</span>
   </div>
   <div class="table-wrap">
     {% if tickets %}
@@ -84,7 +88,6 @@
           <th>Solicitante</th>
           <th>Cargo</th>
           <th>Vehículo</th>
-          <th>Conductor</th>
           <th>Destino</th>
           <th>Distancia Est.</th>
           <th>Distancia Real</th>
@@ -92,10 +95,9 @@
           <th>Km Fin</th>
           <th>Salida Est.</th>
           <th>Salida Real</th>
-          <th>Llegada Est.</th>
-          <th>Llegada Real</th>
-          <th>Estado</th>
-          <th>Observación</th>
+          <th>Regreso Est.</th>
+          <th>Regreso Real</th>
+          <th>Pasajeros</th>
           <th></th>
         </tr>
       </thead>
@@ -105,9 +107,8 @@
           <td class="text-mono text-muted">#{{ t.pk }}</td>
           <td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
           <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
-          <td><span class="badge badge-neutral">{{ t.id_usuario.id_cargo.nombre }}</span></td>
+          <td><span class="badge badge-warning">{{ t.id_usuario.id_cargo.nombre }}</span></td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</td>
-          <td>{% if t.conductor %}{{ t.conductor.nombre_completo }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{{ t.destino }}</td>
           <td>
             {% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}
@@ -121,31 +122,22 @@
           <td>
             {% if t.kilometraje_fin %}{{ t.kilometraje_fin }} km{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
-          <td>{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
+          <td class="text-mono">
+            {{ t.hora_inicio|date:"d/m H:i" }}
+          </td>
+          <td class="text-mono">
+            {% if t.hora_inicio_real %}{{ t.hora_inicio_real|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-mono">
+            {% if t.hora_fin %}{{ t.hora_fin|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="text-mono">
+            {% if t.hora_fin_real %}{{ t.hora_fin_real|date:"d/m H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td>{{ t.cant_pasajeros }}</td>
           <td>
-            {% if t.hora_inicio_real %}{{ t.hora_inicio_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
+            <a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a>
           </td>
-          <td>
-            {% if t.hora_fin %}{{ t.hora_fin|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.hora_fin_real %}{{ t.hora_fin_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">
-              {{ t.estado }}
-            </span>
-          </td>
-          <td style="max-width:120px;">
-            {% if t.observacion %}
-            <div style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ t.observacion }}">
-              {{ t.observacion }}
-            </div>
-            {% else %}
-            <span class="text-muted">—</span>
-            {% endif %}
-          </td>
-          <td><a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -153,10 +145,10 @@
     {% else %}
     <div class="empty-state">
       <div class="icon">◌</div>
-      <p>No hay registros históricos.</p>
+      <p>No hay tickets activos en este momento.</p>
     </div>
     {% endif %}
   </div>
-  {% include "reservas/_pagination.html" %}
+  {% include "reservas/includes/_pagination.html" %}
 </div>
 {% endblock %}

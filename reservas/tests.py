@@ -22,7 +22,7 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
 from .models import Cargo, Usuario, Vehiculo, Ticket
-from .services import crear_ticket_con_reglas, cancelar_ticket_usuario, ResultadoCreacion
+from .utils.services import crear_ticket_con_reglas, cancelar_ticket_usuario, ResultadoCreacion
 
 class TestReglasNegocioTickets(TestCase):
     def setUp(self):
@@ -225,7 +225,7 @@ class TestReservasMultiDia(TestCase):
     def test_get_tickets_del_mes_multi_dia(self):
         """Prueba que get_tickets_del_mes recupere tickets que se solapan con el mes consultado."""
         from datetime import datetime
-        from .services import get_tickets_del_mes
+        from .utils.services import get_tickets_del_mes
         
         # Reserva que empieza el mes anterior (Mayo 30) y termina este mes (Junio 2)
         ticket_anterior = Ticket.objects.create(
@@ -271,7 +271,7 @@ class TestReservasMultiDia(TestCase):
     def test_get_tickets_del_dia_multi_dia(self):
         """Prueba que get_tickets_del_dia recupere un ticket en cualquier día del rango reservado."""
         from datetime import datetime, date
-        from .services import get_tickets_del_dia
+        from .utils.services import get_tickets_del_dia
         
         ticket = Ticket.objects.create(
             id_usuario=self.usuario,
