@@ -115,8 +115,8 @@
           <input type="checkbox" name="para_tercero" id="paraTerceroCheckbox" {% if form.para_tercero.value %}checked{% endif %} style="width: auto;">
           <label class="form-label" for="paraTerceroCheckbox" style="margin: 0; cursor: pointer;">Estoy solicitando un ticket para otra persona</label>
         </div>
-        <div id="datosTerceroContainer" style="display: none; background: var(--bg-color, #f8f9fa); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color);">
-          <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0; margin-bottom: 10px;">Por favor, complete los campos con los datos de la persona para la cual se está solicitando el ticket.</p>
+        <div id="datosTerceroContainer" style="display: none; background: var(--surface2); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
+          <p style="font-size: 0.85rem; color: var(--text); margin-top: 0; margin-bottom: 10px;">Por favor, complete los campos con los datos de la persona para la cual se está solicitando el ticket.</p>
           <div class="form-group" style="margin-bottom: 10px;">
             <label class="form-label">Nombre <span style="color:var(--danger);">*</span></label>
             <input type="text" name="tercero_nombre" id="terceroNombreInput" class="form-control" placeholder="Nombre completo" value="{{ form.tercero_nombre.value|default:'' }}">
