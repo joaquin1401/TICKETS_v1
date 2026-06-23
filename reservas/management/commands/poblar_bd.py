@@ -78,6 +78,23 @@ class Command(BaseCommand):
         """
         
         import sys
+        from django.conf import settings
+        
+        # Prevenir el envío masivo de correos al ejecutar este script
+        settings.EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
+        # Bloquear el encolado de tareas asíncronas de django_q (incluyendo envíos de emails)
+        from unittest.mock import patch
+        
+        patcher1 = patch('django_q.tasks.async_task', return_value="dummy")
+        patcher1.start()
+        
+        try:
+            import reservas.utils.notifications
+            patcher2 = patch('reservas.utils.notifications.async_task', return_value="dummy")
+            patcher2.start()
+        except (ImportError, AttributeError):
+            pass
+
         if hasattr(sys.stdout, 'reconfigure'):
             sys.stdout.reconfigure(encoding='utf-8')
             
