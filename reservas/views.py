@@ -711,13 +711,14 @@ def chofer_dashboard(request):
         .order_by('hora_inicio')
     )
 
-    # Viajes futuros: aprobados, sin conductor, con hora_inicio después de hoy
+    # Viajes futuros: aprobados, sin conductor, con hora_inicio después de hoy, y dentro de los próximos 7 días
     tickets_futuros_qs = (
         Ticket.objects
         .filter(
             estado=Ticket.ESTADO_APROBADO,
             conductor__isnull=True,
             hora_inicio__date__gt=hoy,
+            hora_inicio__date__lte=hoy + timedelta(days=7),
         )
         .select_related('id_vehiculo')
         .order_by('hora_inicio')
@@ -734,47 +735,8 @@ def chofer_dashboard(request):
         "count_en_curso": tickets_en_curso.count(),
         "count_hoy": tickets_hoy.count(),
         "count_futuros": tickets_futuros_qs.count(),
-        "count_finalizados": Ticket.objects.filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario).count(),
     }
     return render(request, "reservas/tickets/chofer_dashboard.html", context)
-
-
-@login_requerido
-@chofer_requerido
-def chofer_disponibles(request):
-    """Redirige al dashboard principal (compatibilidad con links existentes)."""
-    return redirect("chofer_dashboard")
-
-
-@login_requerido
-@chofer_requerido
-def chofer_en_curso(request):
-    """Redirige al dashboard principal."""
-    return redirect("chofer_dashboard")
-
-
-@login_requerido
-@chofer_requerido
-def chofer_finalizados(request):
-    usuario = get_usuario_sesion(request)
-    from django.utils import timezone
-
-    tickets_finalizados_qs = (
-        Ticket.objects
-        .filter(estado=Ticket.ESTADO_FINALIZADO, conductor=usuario)
-        .select_related('id_vehiculo')
-        .order_by('-hora_inicio')
-    )
-    page_obj, pagination_query = paginate_queryset(request, tickets_finalizados_qs)
-
-    context = {
-        "usuario": usuario,
-        "tickets_finalizados": page_obj.object_list,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "count_finalizados": tickets_finalizados_qs.count(),
-    }
-    return render(request, "reservas/tickets/chofer_finalizados.html", context)
 
 
 @login_requerido
@@ -875,7 +837,7 @@ def finalizar_ticket(request, ticket_id):
     else:
         messages.error(request, "No tenés permisos para finalizar este ticket.")
 
-    return redirect(request.META.get('HTTP_REFERER', 'chofer_finalizados'))
+    return redirect(request.META.get('HTTP_REFERER', 'chofer_dashboard'))
 
 
 

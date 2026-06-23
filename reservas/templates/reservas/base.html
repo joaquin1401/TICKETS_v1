@@ -32,9 +32,6 @@
       <a href="{% url 'chofer_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_dashboard' %}active{% endif %}">
         <span class="icon">◉</span> Panel de Chofer
       </a>
-      <a href="{% url 'chofer_finalizados' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_finalizados' %}active{% endif %}">
-        <span class="icon">◌</span> Historial
-      </a>
     </div>
     {% else %}
     <div class="sidebar-section">
@@ -63,9 +60,6 @@
       </a>
       <a href="{% url 'chofer_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_dashboard' %}active{% endif %}">
         <span class="icon">◉</span> Panel Chofer
-      </a>
-      <a href="{% url 'chofer_finalizados' %}" class="nav-item {% if request.resolver_match.url_name == 'chofer_finalizados' %}active{% endif %}">
-        <span class="icon">◌</span> Historial Chofer
       </a>
       <a href="{% url 'monitor_tickets_activos' %}"
         class="nav-item {% if request.resolver_match.url_name == 'monitor_tickets_activos' %}active{% endif %}">
