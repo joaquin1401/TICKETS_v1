@@ -103,6 +103,7 @@ urlpatterns = [
     path("admin-panel/vehiculos/", views.listado_vehiculos, name="listado_vehiculos"),
     path("admin-panel/vehiculos/nueva/", views.alta_vehiculo, name="alta_vehiculo"),
     path("admin-panel/vehiculos/<int:vehiculo_id>/editar/", views.edicion_vehiculo, name="edicion_vehiculo"),
+    path("admin-panel/configuracion/", views.configuracion_global, name="configuracion_global"),
 
 
     # NUEVO — Verificación de correo electrónico (extensión de HU 1.1)

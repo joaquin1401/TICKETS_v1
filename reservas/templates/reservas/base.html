@@ -77,6 +77,10 @@
         class="nav-item {% if 'vehiculos' in request.resolver_match.url_name or 'vehiculo' in request.resolver_match.url_name %}active{% endif %}">
         <span class="icon">◧</span> Vehículos
       </a>
+      <a href="{% url 'configuracion_global' %}"
+        class="nav-item {% if request.resolver_match.url_name == 'configuracion_global' %}active{% endif %}">
+        <span class="icon">⚙️</span> Configuración
+      </a>
     </div>
     {% endif %}
 

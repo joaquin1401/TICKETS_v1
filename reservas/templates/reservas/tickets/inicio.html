@@ -319,6 +319,14 @@
           // formInputs.forEach(input => localStorage.removeItem('form_' + input.name));
         });
 
+        // Aplicar fecha mínima (anticipación de 5 días)
+        {% if not request.session.es_admin and fecha_minima_str %}
+        const horaInicioInput = document.querySelector('input[name="hora_inicio"]');
+        if (horaInicioInput) {
+            horaInicioInput.min = '{{ fecha_minima_str }}';
+        }
+        {% endif %}
+
         // Autocompletado de distancia
         let timeoutId = null;
         const distanciaHelper = document.getElementById('distanciaHelper');
@@ -443,6 +451,8 @@
           {% for day in week %}
           {% if day == 0 %}
           <div class="cal-day empty"></div>
+          {% elif not request.session.es_admin and day in dias_inhabilitados %}
+          <div class="cal-day disabled-day" style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;" title="No disponible (se requiere anticipación)">{{ day }}</div>
           {% else %}
           <div class="cal-day
                   {% for rd in dias_con_reservas %}{% if rd.day == day and rd.month == mes and rd.year == anio %}has-reservas{% endif %}{% endfor %}

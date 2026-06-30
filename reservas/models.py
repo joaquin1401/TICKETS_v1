@@ -532,3 +532,38 @@ class RecuperacionPassword(models.Model):
             not self.usado
             and timezone.now() < self.creado_en + timedelta(minutes=30)
         )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Configuración Global
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ConfiguracionGlobal(models.Model):
+    """
+    Modelo Singleton para almacenar configuraciones globales del sistema.
+    Solo existirá un registro activo.
+    """
+    dias_anticipacion_reservas = models.PositiveIntegerField(
+        default=3,
+        help_text="Días mínimos de anticipación requeridos para hacer una reserva (usuarios normales)"
+    )
+    
+    class Meta:
+        verbose_name = "Configuración Global"
+        verbose_name_plural = "Configuraciones Globales"
+        
+    def __str__(self):
+        return "Configuración del Sistema"
+        
+    def save(self, *args, **kwargs):
+        # Aseguramos que solo haya un registro con pk=1
+        self.pk = 1
+        super().save(*args, **kwargs)
+        
+    @classmethod
+    def get_solo(cls):
+        """
+        Devuelve la instancia única de configuración o la crea si no existe.
+        """
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj

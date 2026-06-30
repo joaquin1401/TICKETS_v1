@@ -1,0 +1,42 @@
+{% extends "reservas/base.html" %}
+{% block title %}Configuración Global — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}Administración / Configuración Global{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Configuración Global</h1>
+    <p class="sub">Administrar parámetros globales del sistema</p>
+  </div>
+</div>
+
+<div style="max-width:520px;">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">⚙️ Configuración del Sistema</span>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+          <label class="form-label">Días de anticipación para reservas (Usuarios) <span style="color:var(--danger);">*</span></label>
+          <input type="number" name="dias_anticipacion_reservas" class="form-control" min="0" placeholder="Ej: 3"
+                 value="{{ form.dias_anticipacion_reservas.value|default:'3' }}">
+          <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">Días mínimos de anticipación requeridos para que los usuarios puedan solicitar una reserva.</p>
+          {% if form.dias_anticipacion_reservas.errors %}<p class="form-error">{{ form.dias_anticipacion_reservas.errors.0 }}</p>{% endif %}
+        </div>
+        
+        {% if form.non_field_errors %}
+        <p class="form-error" style="margin-bottom:12px;">{{ form.non_field_errors.0 }}</p>
+        {% endif %}
+
+        <div style="display:flex;gap:10px;margin-top:16px;">
+          <button type="submit" class="btn btn-primary btn-lg">
+            Guardar configuración
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

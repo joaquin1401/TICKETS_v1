@@ -14,7 +14,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Usuario, Cargo, Vehiculo, Ticket
+from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal
 
 
 # ══════════════════════════════════════════════
@@ -326,8 +326,9 @@ class TicketForm(forms.ModelForm):
                 if hora_inicio > ahora + timedelta(days=60):
                     self.add_error("hora_inicio", "No se pueden realizar reservas con más de 2 meses (60 días) de antelación.")
                     
-                if hora_inicio < ahora + timedelta(days=3):
-                    self.add_error("hora_inicio", "Debe reservar con al menos 3 días de anticipación.")
+                dias_anticipacion = ConfiguracionGlobal.get_solo().dias_anticipacion_reservas
+                if hora_inicio < ahora + timedelta(days=dias_anticipacion):
+                    self.add_error("hora_inicio", f"Debe reservar con al menos {dias_anticipacion} días de anticipación.")
 
         if hora_inicio and hora_fin:
             if hora_fin <= hora_inicio:
@@ -595,3 +596,14 @@ class NuevaContrasenaForm(forms.Form):
         if c1 and c2 and c1 != c2:
             raise forms.ValidationError("Las contraseñas no coinciden.")
         return cleaned_data
+
+class ConfiguracionGlobalForm(forms.ModelForm):
+    class Meta:
+        model = ConfiguracionGlobal
+        fields = ["dias_anticipacion_reservas"]
+        labels = {
+            "dias_anticipacion_reservas": "Días de anticipación para reservas (Usuarios)",
+        }
+        widgets = {
+            "dias_anticipacion_reservas": forms.NumberInput(attrs={"class": "form-control"}),
+        }

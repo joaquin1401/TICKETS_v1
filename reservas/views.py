@@ -25,12 +25,13 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
 
-from .models import Usuario, Vehiculo, Ticket, Cargo
+from .models import Usuario, Vehiculo, Ticket, Cargo, ConfiguracionGlobal
 from .forms import (
     RegistroForm, LoginForm, TicketForm, VehiculoSelectorForm,
     FiltroUsuariosForm, FiltroTicketsForm, VehiculoForm,
     VerificacionCodigoForm,          # [NUEVO] formulario de código de 6 dígitos
     AdminCrearUsuarioForm, AdminEditarUsuarioForm,           # Formulario para admin
+    ConfiguracionGlobalForm,
 )
 from .utils.email_verification import (    # [NUEVO] servicio de verificación de correo
     crear_verificacion,
@@ -499,6 +500,21 @@ def inicio(request):
     cal = calendar.monthcalendar(anio, mes)
     nombre_mes = date(anio, mes, 1).strftime("%B %Y").capitalize()
 
+    dias_anticipacion = ConfiguracionGlobal.get_solo().dias_anticipacion_reservas
+    from django.utils import timezone
+    fecha_minima = timezone.now().date() + timedelta(days=dias_anticipacion)
+    fecha_minima_str = (timezone.now() + timedelta(days=dias_anticipacion)).strftime("%Y-%m-%dT%H:%M")
+    
+    dias_inhabilitados = []
+    if not es_admin:
+        if date(anio, mes, 1) < fecha_minima:
+            for d in range(1, 32):
+                try:
+                    if date(anio, mes, d) < fecha_minima:
+                        dias_inhabilitados.append(d)
+                except ValueError:
+                    pass
+
     if mes == 1:
         mes_anterior = (anio - 1, 12)
     else:
@@ -527,6 +543,8 @@ def inicio(request):
         "total_tickets": total_tickets,
         "dia_seleccionado": int(dia_str) if dia_str and dia_str.isdigit() else None,
         "exclusivos_ids": list(Vehiculo.objects.filter(exclusivo_decanato=True).values_list('id', flat=True)),
+        "dias_inhabilitados": dias_inhabilitados,
+        "fecha_minima_str": fecha_minima_str,
     })
 
 
@@ -2381,3 +2399,30 @@ def api_calcular_distancia(request):
         
     km = calcular_distancia_osrm(destino)
     return JsonResponse({"distancia_est": km})
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Configuración Global
+# ══════════════════════════════════════════════════════════════════════════════
+
+@login_requerido
+@admin_requerido
+def configuracion_global(request):
+    """
+    Vista para administrar las configuraciones globales del sistema.
+    """
+    usuario = get_usuario_sesion(request)
+    config = ConfiguracionGlobal.get_solo()
+    
+    if request.method == "POST":
+        form = ConfiguracionGlobalForm(request.POST, instance=config)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "La configuración se actualizó correctamente.")
+            return redirect("configuracion_global")
+    else:
+        form = ConfiguracionGlobalForm(instance=config)
+        
+    return render(request, "reservas/admin/configuracion.html", {
+        "form": form,
+        "usuario": usuario,
+    })
