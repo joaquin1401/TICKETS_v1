@@ -290,6 +290,7 @@ class TicketForm(forms.ModelForm):
         - hora_fin es opcional (required=False).
         """
         self.es_admin = kwargs.pop('es_admin', False)
+        self.es_usuario_general = kwargs.pop('es_usuario_general', False)
         super().__init__(*args, **kwargs)
         # Solo mostrar vehículos activos
         self.fields["id_vehiculo"].queryset = Vehiculo.objects.filter(activo=True)
@@ -342,6 +343,9 @@ class TicketForm(forms.ModelForm):
                 desc = cleaned.get("descripcion", "")
                 nueva_desc = f"{desc}\n\n[Solicitado para tercero]\nNombre: {tercero_nombre}\nContacto: {tercero_contacto}"
                 cleaned["descripcion"] = nueva_desc
+
+        if self.es_usuario_general:
+            cleaned["requiere_chofer"] = True
 
         return cleaned
 

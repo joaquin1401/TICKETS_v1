@@ -105,8 +105,13 @@
           {% if form.descripcion.errors %}<p class="form-error">{{ form.descripcion.errors.0 }}</p>{% endif %}
         </div>
         <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" name="requiere_chofer" id="requiereChoferCheckbox" {% if form.requiere_chofer.value %}checked{% endif %} style="width: auto;">
+          <input type="checkbox" name="requiere_chofer" id="requiereChoferCheckbox" 
+                 {% if form.requiere_chofer.value or usuario.id_cargo.nombre == 'Usuario' %}checked{% endif %} 
+                 {% if usuario.id_cargo.nombre == 'Usuario' %}disabled{% endif %} style="width: auto;">
           <label class="form-label" for="requiereChoferCheckbox" style="margin: 0; cursor: pointer;">Solicitar chofer</label>
+          {% if usuario.id_cargo.nombre == 'Usuario' %}
+            <input type="hidden" name="requiere_chofer" value="on">
+          {% endif %}
         </div>
         <div id="choferWarning" style="display: none; color: var(--warning); font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px; background: rgba(232, 160, 32, 0.1); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--warning);">
           El vehículo seleccionado requiere obligatoriamente la asignación de un chofer autorizado para su uso.
@@ -269,6 +274,7 @@
           const reqChofer = selectedOption.getAttribute('data-req-chofer') === 'true';
           const choferCheckbox = document.getElementById('requiereChoferCheckbox');
           const choferWarning = document.getElementById('choferWarning');
+          const isUsuarioGeneral = '{{ usuario.id_cargo.nombre }}' === 'Usuario';
           
           if (choferCheckbox && choferWarning) {
             if (reqChofer) {
@@ -276,8 +282,14 @@
               choferCheckbox.disabled = true;
               choferWarning.style.display = 'block';
             } else {
-              choferCheckbox.disabled = false;
-              choferWarning.style.display = 'none';
+              if (isUsuarioGeneral) {
+                choferCheckbox.checked = true;
+                choferCheckbox.disabled = true;
+                choferWarning.style.display = 'none';
+              } else {
+                choferCheckbox.disabled = false;
+                choferWarning.style.display = 'none';
+              }
             }
           }
         }

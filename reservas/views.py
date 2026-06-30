@@ -377,10 +377,11 @@ def inicio(request):
     """
     usuario = get_usuario_sesion(request)
     es_admin = usuario.id_cargo.prioridad == 0
-    form = TicketForm(es_admin=es_admin)
+    es_usuario_general = usuario.id_cargo.nombre == Cargo.USUARIO
+    form = TicketForm(es_admin=es_admin, es_usuario_general=es_usuario_general)
 
     if request.method == "POST":
-        form = TicketForm(request.POST, es_admin=es_admin)
+        form = TicketForm(request.POST, es_admin=es_admin, es_usuario_general=es_usuario_general)
         if form.is_valid():
             cd = form.cleaned_data
             hora_fin = cd.get("hora_fin") or (cd["hora_inicio"] + timedelta(hours=2))
@@ -424,7 +425,7 @@ def inicio(request):
         try:
             vehiculo_cal = Vehiculo.objects.get(pk=vehiculo_id, activo=True)
             if request.method == "GET":
-                form = TicketForm(initial={"id_vehiculo": vehiculo_cal}, es_admin=es_admin)
+                form = TicketForm(initial={"id_vehiculo": vehiculo_cal}, es_admin=es_admin, es_usuario_general=es_usuario_general)
 
             tickets_mes = get_tickets_del_mes(vehiculo_cal, anio, mes)
             dias_con_reservas = set()
