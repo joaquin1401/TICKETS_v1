@@ -567,3 +567,19 @@ class ConfiguracionGlobal(models.Model):
         """
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
+
+class Feriado(models.Model):
+    """
+    Representa un día feriado o no laborable donde no se permiten reservas de vehículos.
+    """
+    fecha = models.DateField(unique=True)
+    descripcion = models.CharField(max_length=255, blank=True, help_text="Descripción opcional del feriado")
+
+    class Meta:
+        verbose_name = "Feriado"
+        verbose_name_plural = "Feriados"
+        ordering = ["fecha"]
+
+    def __str__(self):
+        desc = f" - {self.descripcion}" if self.descripcion else ""
+        return f"{self.fecha.strftime('%d/%m/%Y')}{desc}"

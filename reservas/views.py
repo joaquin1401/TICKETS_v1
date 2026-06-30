@@ -25,7 +25,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.db.models import Q
 
-from .models import Usuario, Vehiculo, Ticket, Cargo, ConfiguracionGlobal
+from .models import Usuario, Vehiculo, Ticket, Cargo, ConfiguracionGlobal, Feriado
 from .forms import (
     RegistroForm, LoginForm, TicketForm, VehiculoSelectorForm,
     FiltroUsuariosForm, FiltroTicketsForm, VehiculoForm,
@@ -506,14 +506,17 @@ def inicio(request):
     fecha_minima_str = (timezone.now() + timedelta(days=dias_anticipacion)).strftime("%Y-%m-%dT%H:%M")
     
     dias_inhabilitados = []
-    if not es_admin:
-        if date(anio, mes, 1) < fecha_minima:
-            for d in range(1, 32):
-                try:
-                    if date(anio, mes, d) < fecha_minima:
-                        dias_inhabilitados.append(d)
-                except ValueError:
-                    pass
+    
+    feriados_del_mes = Feriado.objects.filter(fecha__year=anio, fecha__month=mes).values_list('fecha__day', flat=True)
+    dias_feriados = list(feriados_del_mes)
+    
+    for d in range(1, 32):
+        try:
+            curr_date = date(anio, mes, d)
+            if not es_admin and curr_date < fecha_minima:
+                dias_inhabilitados.append(d)
+        except ValueError:
+            pass
 
     if mes == 1:
         mes_anterior = (anio - 1, 12)
@@ -544,6 +547,7 @@ def inicio(request):
         "dia_seleccionado": int(dia_str) if dia_str and dia_str.isdigit() else None,
         "exclusivos_ids": list(Vehiculo.objects.filter(exclusivo_decanato=True).values_list('id', flat=True)),
         "dias_inhabilitados": dias_inhabilitados,
+        "dias_feriados": dias_feriados,
         "fecha_minima_str": fecha_minima_str,
     })
 
@@ -2409,20 +2413,138 @@ def api_calcular_distancia(request):
 def configuracion_global(request):
     """
     Vista para administrar las configuraciones globales del sistema.
+    Permite modificar días de anticipación y gestionar los feriados.
     """
     usuario = get_usuario_sesion(request)
     config = ConfiguracionGlobal.get_solo()
     
     if request.method == "POST":
-        form = ConfiguracionGlobalForm(request.POST, instance=config)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "La configuración se actualizó correctamente.")
+        action = request.POST.get("action")
+        
+        if action == "add_feriado":
+            fecha_str = request.POST.get("fecha_feriado")
+            descripcion = request.POST.get("descripcion_feriado", "").strip()
+            if fecha_str:
+                try:
+                    fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+                    if not Feriado.objects.filter(fecha=fecha).exists():
+                        Feriado.objects.create(fecha=fecha, descripcion=descripcion)
+                        messages.success(request, f"Feriado del {fecha.strftime('%d/%m/%Y')} agregado correctamente.")
+                    else:
+                        messages.error(request, "Ya existe un feriado en esa fecha.")
+                except ValueError:
+                    messages.error(request, "Formato de fecha inválido.")
+            else:
+                messages.error(request, "La fecha es requerida.")
             return redirect("configuracion_global")
+            
+        elif action == "delete_feriado":
+            feriado_id = request.POST.get("feriado_id")
+            if feriado_id:
+                Feriado.objects.filter(pk=feriado_id).delete()
+                messages.success(request, "Feriado eliminado.")
+            return redirect("configuracion_global")
+            
+        elif action == "upload_csv_feriados":
+            csv_file = request.FILES.get("csv_feriados")
+            if not csv_file:
+                messages.error(request, "Debe seleccionar un archivo CSV.")
+            elif not csv_file.name.endswith('.csv'):
+                messages.error(request, "El archivo debe tener extensión .csv.")
+            else:
+                try:
+                    import csv
+                    from io import StringIO
+                    decoded_file = csv_file.read().decode('utf-8', errors='ignore')
+                    reader = csv.reader(StringIO(decoded_file), delimiter=',')
+                    agregados = 0
+                    repetidos = 0
+                    errores = 0
+                    for index, row in enumerate(reader):
+                        # Asume formato: YYYY-MM-DD, Descripcion
+                        if index == 0 and ("fecha" in str(row).lower() or "date" in str(row).lower()):
+                            continue # saltar encabezado
+                        if len(row) >= 1:
+                            try:
+                                fecha_str = row[0].strip()
+                                if not fecha_str: continue
+                                desc = row[1].strip() if len(row) > 1 else ""
+                                fecha_obj = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+                                feriado, created = Feriado.objects.get_or_create(
+                                    fecha=fecha_obj,
+                                    defaults={'descripcion': desc}
+                                )
+                                if created:
+                                    agregados += 1
+                                else:
+                                    repetidos += 1
+                            except ValueError:
+                                errores += 1
+                    
+                    if agregados > 0 and repetidos == 0:
+                        msg = f"Se importaron {agregados} feriados exitosamente."
+                        if errores > 0: msg += f" ({errores} errores de formato)."
+                        messages.success(request, msg)
+                    elif agregados > 0 and repetidos > 0:
+                        msg = f"Se agregaron {agregados} fecha(s) nueva(s) correctamente, pero {repetidos} fecha(s) fue(ron) ignorada(s) porque ya estaba(n) registrada(s)."
+                        if errores > 0: msg += f" ({errores} errores de formato)."
+                        messages.warning(request, msg)
+                    elif agregados == 0 and repetidos > 0:
+                        msg = f"No se agregaron fechas nuevas. Las fechas del archivo ya estaban registradas."
+                        if errores > 0: msg += f" ({errores} errores de formato)."
+                        messages.error(request, msg)
+                    else:
+                        msg = "No se encontraron fechas válidas en el archivo CSV."
+                        if errores > 0: msg += f" ({errores} filas ignoradas por error de formato)."
+                        messages.error(request, msg)
+                except Exception as e:
+                    messages.error(request, f"Error al procesar el archivo CSV: {str(e)}")
+            return redirect("configuracion_global")
+
+        elif action == "sync_feriados":
+            try:
+                import holidays
+                anio = date.today().year
+                
+                # Se agregan los de Argentina en general, y los de Chaco ('H')
+                ar_holidays = holidays.AR(subdiv='H', years=anio)
+                agregados = 0
+                repetidos = 0
+                for dt, name in ar_holidays.items():
+                    feriado, created = Feriado.objects.get_or_create(
+                        fecha=dt,
+                        defaults={'descripcion': name}
+                    )
+                    if created:
+                        agregados += 1
+                    else:
+                        repetidos += 1
+                
+                if agregados > 0 and repetidos == 0:
+                    messages.success(request, f"Se sincronizaron los feriados del año {anio} exitosamente. Se agregaron {agregados} feriados nuevos.")
+                elif agregados > 0 and repetidos > 0:
+                    messages.warning(request, f"Se agregaron {agregados} feriados nuevos del {anio}, pero {repetidos} ya estaban registrados.")
+                elif agregados == 0 and repetidos > 0:
+                    messages.error(request, f"No se agregaron feriados nuevos del {anio}. Todos ya estaban registrados en el sistema.")
+                else:
+                    messages.error(request, f"No se encontraron feriados para el año {anio}.")
+            except Exception as e:
+                messages.error(request, f"Error al sincronizar feriados: {str(e)}")
+            return redirect("configuracion_global")
+            
+        else:
+            form = ConfiguracionGlobalForm(request.POST, instance=config)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "La configuración se actualizó correctamente.")
+                return redirect("configuracion_global")
     else:
         form = ConfiguracionGlobalForm(instance=config)
+        
+    feriados = Feriado.objects.filter(fecha__year__gte=date.today().year).order_by("fecha")
         
     return render(request, "reservas/admin/configuracion.html", {
         "form": form,
         "usuario": usuario,
+        "feriados": feriados,
     })

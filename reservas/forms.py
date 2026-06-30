@@ -14,7 +14,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal
+from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado
 
 
 # ══════════════════════════════════════════════
@@ -319,6 +319,13 @@ class TicketForm(forms.ModelForm):
         ahora = timezone.now()
 
         if hora_inicio:
+            # Validación de días feriados
+            if Feriado.objects.filter(fecha=hora_inicio.date()).exists():
+                self.add_error("hora_inicio", "No se pueden realizar reservas que inicien en días feriados.")
+            
+            if hora_fin and Feriado.objects.filter(fecha=hora_fin.date()).exists():
+                self.add_error("hora_fin", "No se pueden realizar reservas que finalicen en días feriados.")
+
             if not self.es_admin:
                 if hora_inicio <= ahora:
                     raise ValidationError("La fecha de inicio debe ser en el futuro.")

@@ -451,6 +451,8 @@
           {% for day in week %}
           {% if day == 0 %}
           <div class="cal-day empty"></div>
+          {% elif day in dias_feriados %}
+          <div class="cal-day disabled-day" style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;" title="Feriado (No disponible)">{{ day }}</div>
           {% elif not request.session.es_admin and day in dias_inhabilitados %}
           <div class="cal-day disabled-day" style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;" title="No disponible (se requiere anticipación)">{{ day }}</div>
           {% else %}
@@ -464,7 +466,7 @@
         </div>
         <div class="legend">
           <div class="legend-item">
-            <div class="legend-dot reservado"></div> Con reservas
+            <div class="legend-dot reservado"></div> Con algunas reservas
           </div>
           <div class="legend-item">
             <div class="legend-dot libre"></div> Libre
