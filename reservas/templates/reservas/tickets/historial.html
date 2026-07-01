@@ -69,16 +69,9 @@
           <th>#</th>
           <th>Creado</th>
           <th>Destino</th>
-          <th>Distancia Est.</th>
-          <th>Distancia Real</th>
-          <th>Km Inicio</th>
-          <th>Km Fin</th>
           <th>Vehículo</th>
-          <th>Conductor</th>
-          <th>Salida Est.</th>
-          <th>Salida Real</th>
-          <th>Llegada Est.</th>
-          <th>Llegada Real</th>
+          <th>Salida</th>
+          <th>Llegada</th>
           <th>Pasajeros</th>
           <th>Estado</th>
           <th></th>
@@ -90,26 +83,9 @@
           <td><span class="text-mono text-muted">#{{ t.pk }}</span></td>
           <td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
           <td><span class="primary">{{ t.destino }}</span></td>
-          <td>
-            {% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.distancia_real %}{{ t.distancia_real }} km{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.kilometraje_inicio %}{{ t.kilometraje_inicio }} km{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.kilometraje_fin %}{{ t.kilometraje_fin }} km{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</td>
-          <td>{% if t.conductor %}{{ t.conductor.nombre_completo }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-          <td>{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
           <td>
             {% if t.hora_inicio_real %}{{ t.hora_inicio_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.hora_fin %}{{ t.hora_fin|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td>
             {% if t.hora_fin_real %}{{ t.hora_fin_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}

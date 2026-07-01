@@ -48,8 +48,14 @@
       <div class="form-row">
         {% if ticket.distancia_est > 0 %}
         <div class="detail-field">
-          <div class="detail-field-label">Distancia Estimada</div>
+          <div class="detail-field-label">Distancia Est.</div>
           <div class="detail-field-value">{{ ticket.distancia_est }} km</div>
+        </div>
+        {% endif %}
+        {% if ticket.distancia_real %}
+        <div class="detail-field">
+          <div class="detail-field-label">Distancia Real</div>
+          <div class="detail-field-value">{{ ticket.distancia_real }} km</div>
         </div>
         {% endif %}
         {% if ticket.kilometraje_inicio %}
@@ -100,6 +106,22 @@
           <div class="detail-field-value text-mono">{{ ticket.fecha|date:"d/m/Y" }}</div>
         </div>
       </div>
+      <div class="form-row">
+        <div class="detail-field">
+          <div class="detail-field-label">¿Requiere Chofer?</div>
+          <div class="detail-field-value">{{ ticket.requiere_chofer|yesno:"Sí,No" }}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Conductor Asignado</div>
+          <div class="detail-field-value">{% if ticket.conductor %}{{ ticket.conductor.nombre_completo }}{% else %}<span class="text-muted">Sin asignar</span>{% endif %}</div>
+        </div>
+      </div>
+      {% if ticket.para_tercero %}
+      <div class="detail-field">
+        <div class="detail-field-label">Reserva para terceros</div>
+        <div class="detail-field-value">Sí, este vehículo será utilizado por otra persona.</div>
+      </div>
+      {% endif %}
       {% if ticket.descripcion %}
       <div class="detail-field">
         <div class="detail-field-label">Descripción</div>
