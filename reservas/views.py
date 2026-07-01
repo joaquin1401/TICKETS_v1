@@ -565,7 +565,9 @@ def inicio(request):
     cal = calendar.monthcalendar(anio, mes)
     nombre_mes = date(anio, mes, 1).strftime("%B %Y").capitalize()
 
-    dias_anticipacion = ConfiguracionGlobal.get_solo().dias_anticipacion_reservas
+    config = ConfiguracionGlobal.get_solo()
+    dias_anticipacion = config.dias_anticipacion_reservas
+    dias_cancelacion = config.dias_anticipacion_cancelacion
     from django.utils import timezone
     fecha_minima = timezone.now().date() + timedelta(days=dias_anticipacion)
     fecha_minima_str = (timezone.now() + timedelta(days=dias_anticipacion)).strftime("%Y-%m-%dT%H:%M")
@@ -615,6 +617,8 @@ def inicio(request):
         "dias_inhabilitados": dias_inhabilitados,
         "dias_feriados": dias_feriados,
         "fecha_minima_str": fecha_minima_str,
+        "dias_anticipacion": dias_anticipacion,
+        "dias_cancelacion": dias_cancelacion,
     })
 
 

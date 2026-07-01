@@ -45,7 +45,20 @@
 </div>
 
 <div class="inicio-grid">
-  <!-- Formulario de reserva rápida -->
+  <div style="display: flex; flex-direction: column; gap: 20px;">
+    <!-- Reglas de reserva -->
+    <div style="background: var(--surface2); padding: 16px; border-radius: 8px; border: 1px solid var(--border); border-left: 4px solid var(--primary);">
+      <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 0.95rem; color: var(--text); display: flex; align-items: center; gap: 6px;">
+        📌 Reglas para reservas
+      </h4>
+      <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: var(--text); line-height: 1.6;">
+        <li>Las reservas deben solicitarse con al menos <strong>{{ dias_anticipacion }} días</strong> de antelación.</li>
+        <li>Podés cancelar una reserva hasta <strong>{{ dias_cancelacion }} días</strong> antes de la fecha de salida.</li>
+        <li>Los vehículos que requieren chofer quedarán sujetos a la disponibilidad del conductor.</li>
+      </ul>
+    </div>
+
+    <!-- Formulario de reserva rápida -->
   <div class="card quick-form">
     <div class="card-header">
       <span class="card-title">⬡ Nueva reserva</span>
@@ -450,6 +463,7 @@
         });
       </script>
     </div>
+  </div>
   </div>
 
   <!-- Panel lateral con Calendario y Timeline -->
