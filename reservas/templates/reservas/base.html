@@ -116,7 +116,7 @@
       {% if messages %}
       <div class="alerts">
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">
+        <div class="alert alert-{{ message.level_tag }} {{ message.extra_tags|default:'' }}">
           {% if 'success' in message.tags %}✓{% elif 'error' in message.tags or 'danger' in message.tags %}✕{% elif 'warning' in message.tags %}⚠{% else %}ℹ{% endif %}
           {{ message }}
         </div>

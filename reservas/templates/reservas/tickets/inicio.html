@@ -16,9 +16,9 @@
     display: none; justify-content: center; align-items: center;
   }
   .map-modal {
-    background: var(--card-bg); width: 90%; max-width: 500px;
-    border-radius: var(--radius-lg); padding: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    background: var(--surface); width: 90%; max-width: 500px;
+    border-radius: 8px; padding: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
   }
   @media (min-width: 768px) {
     .map-modal { max-width: 800px; }
@@ -149,10 +149,13 @@
             <button type="button" class="close-modal" id="closeMapBtn">&times;</button>
           </div>
           <div id="map"></div>
-          <div style="margin-top: 12px; padding: 10px; background: var(--bg-color, #f8f9fa); color: #000; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.9rem;">
+          <div style="margin-top: 12px; padding: 10px; background: var(--surface2); color: var(--text); border-radius: 6px; border: 1px solid var(--border); font-size: 0.9rem;">
             <strong>Destino:</strong> <span id="modalAddressDisplay" style="font-weight: 500;">Buscando ubicación...</span>
           </div>
           <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px; margin-bottom: 0;">Hacé clic o arrastrá el marcador para autocompletar la dirección de destino.</p>
+          <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+            <button type="button" class="btn btn-primary" id="confirmMapBtn">Confirmar Ubicación</button>
+          </div>
         </div>
       </div>
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -220,6 +223,7 @@
         const mapModal = document.getElementById('mapModal');
         const openMapBtn = document.getElementById('openMapBtn');
         const closeMapBtn = document.getElementById('closeMapBtn');
+        const confirmMapBtn = document.getElementById('confirmMapBtn');
 
         openMapBtn.addEventListener('click', function() {
             mapModal.style.display = 'flex';
@@ -230,13 +234,16 @@
             }
         });
 
-        closeMapBtn.addEventListener('click', function() {
+        function closeMap() {
             mapModal.style.display = 'none';
-        });
+        }
+
+        closeMapBtn.addEventListener('click', closeMap);
+        confirmMapBtn.addEventListener('click', closeMap);
 
         mapModal.addEventListener('click', function(e) {
             if (e.target === mapModal) {
-                mapModal.style.display = 'none';
+                closeMap();
             }
         });
         const vehiculoSelect = document.querySelector('select[name="id_vehiculo"]');
@@ -417,6 +424,21 @@
             paraTerceroCheckbox.addEventListener('change', toggleTerceros);
             toggleTerceros(); // Llamada inicial
         }
+
+        // Scroll to calendar on mobile after selecting vehicle or navigating months
+        document.addEventListener("DOMContentLoaded", function() {
+            if (window.innerWidth <= 768) {
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.has('vehiculo')) {
+                    const calSection = document.getElementById('calendario-section');
+                    if (calSection) {
+                        setTimeout(() => {
+                            calSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 200);
+                    }
+                }
+            }
+        });
       </script>
     </div>
   </div>
@@ -424,7 +446,7 @@
   <!-- Panel lateral con Calendario y Timeline -->
   <div style="display:flex;flex-direction:column;gap:16px;">
     <!-- Calendario mensual -->
-    <div class="card">
+    <div class="card" id="calendario-section">
       <div class="card-header">
         {% if vehiculo_cal %}
         <div class="cal-header" style="width:100%;margin:0;">

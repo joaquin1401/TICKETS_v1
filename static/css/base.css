@@ -19,6 +19,7 @@
   --serif:     'DM Serif Display', serif;
   --radius:    6px;
   --sidebar-w: 240px;
+  color-scheme: dark;
 }
 
 html, body { height: 100%; }
@@ -344,7 +345,17 @@ tbody td .primary { color: var(--text); font-weight: 500; }
 }
 .form-control:focus { border-color: var(--accent); }
 .form-control::placeholder { color: var(--text-muted); }
-select.form-control { cursor: pointer; }
+select.form-control {
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url('../img/select-arrow.svg');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 10px;
+  padding-right: 32px;
+}
 textarea.form-control { resize: vertical; min-height: 80px; }
 .form-error { font-size: 11px; color: var(--danger); margin-top: 4px; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
