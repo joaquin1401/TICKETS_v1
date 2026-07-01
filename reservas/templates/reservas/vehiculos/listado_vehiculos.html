@@ -48,7 +48,7 @@
           <td class="text-mono text-muted">{{ v.pk }}</td>
           <td><span class="primary">{{ v.marca }}</span></td>
           <td>{{ v.modelo }}</td>
-          <td>{{ v.patente|default:'S/P' }}</td>
+          <td>{{ v.patente }}</td>
           <td>{{ v.cant_pasajeros }} pas.</td>
           <td>
             {% if v.exclusivo_decanato %}
@@ -113,7 +113,7 @@
           <td class="text-mono text-muted">{{ v.pk }}</td>
           <td><span class="primary">{{ v.marca }}</span></td>
           <td>{{ v.modelo }}</td>
-          <td>{{ v.patente|default:'S/P' }}</td>
+          <td>{{ v.patente }}</td>
           <td>{{ v.cant_pasajeros }} pas.</td>
           <td>
             {% if v.exclusivo_decanato %}

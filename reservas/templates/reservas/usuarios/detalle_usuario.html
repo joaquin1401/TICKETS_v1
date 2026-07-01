@@ -107,7 +107,7 @@
           <td class="text-mono text-muted">#{{ t.pk }}</td>
           <td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
           <td><span class="primary">{{ t.destino }}</span></td>
-          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</td>
+          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {{ t.id_vehiculo.patente }}</td>
           <td class="text-mono">{% if t.hora_inicio_real %}{{ t.hora_inicio_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td class="text-mono">{% if t.hora_fin_real %}{{ t.hora_fin_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{{ t.cant_pasajeros }}</td>

@@ -48,7 +48,7 @@
       <option value="">Ir a vehículo…</option>
       {% for v in vehiculos_lista %}
       <option value="{% url 'analiticas_vehiculo' v.pk %}?rango={{ rango }}">
-        {{ v.marca }} {{ v.modelo }}{% if v.patente %} · {{ v.patente }}{% endif %}
+        {{ v.marca }} {{ v.modelo }} · {{ v.patente }}
       </option>
       {% endfor %}
     </select>
@@ -218,7 +218,7 @@
             <span class="primary">{{ sv.vehiculo.marca }} {{ sv.vehiculo.modelo }}</span>
           </div>
           <div class="vehicle-sub">
-            {% if sv.vehiculo.patente %}{{ sv.vehiculo.patente }} · {% endif %}
+            {{ sv.vehiculo.patente }} ·
             {{ sv.vehiculo.cant_pasajeros }} pas.
             {% if not sv.vehiculo.activo %} · <span style="color:var(--danger);">Inactivo</span>{% endif %}
           </div>

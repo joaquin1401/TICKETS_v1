@@ -38,7 +38,7 @@
       <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">
         {{ t.destino }}
       </h3>
-      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {{ t.id_vehiculo.patente }}</p>
       {% if t.distancia_est > 0 %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Distancia Est. (ida/vuelta):</strong> {{ t.distancia_est }} km</p>{% endif %}
       {% if t.kilometraje_inicio %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Km Inicio:</strong> {{ t.kilometraje_inicio }} km</p>{% endif %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
@@ -93,7 +93,7 @@
       <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">
         {{ t.destino }}
       </h3>
-      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {{ t.id_vehiculo.patente }}</p>
       {% if t.distancia_est > 0 %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Distancia Est. (ida/vuelta):</strong> {{ t.distancia_est }} km</p>{% endif %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
       {% if t.hora_fin %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Llegada est.:</strong> {{ t.hora_fin|date:"d/m/Y H:i" }}</p>{% endif %}
@@ -136,7 +136,7 @@
       <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px;" class="primary">
         {{ t.destino }}
       </h3>
-      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</p>
+      <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Vehículo:</strong> {{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {{ t.id_vehiculo.patente }}</p>
       {% if t.distancia_est > 0 %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Distancia Est. (ida/vuelta):</strong> {{ t.distancia_est }} km</p>{% endif %}
       <p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Salida:</strong> {{ t.hora_inicio|date:"d/m/Y H:i" }}</p>
       {% if t.hora_fin %}<p style="margin: 4px 0; font-size: 14px; color: var(--text);"><strong>Llegada est.:</strong> {{ t.hora_fin|date:"d/m/Y H:i" }}</p>{% endif %}

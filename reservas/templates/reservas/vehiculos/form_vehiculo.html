@@ -35,7 +35,7 @@
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Patente</label>
+            <label class="form-label">Patente <span style="color:var(--danger);">*</span></label>
             <input type="text" name="patente" class="form-control" placeholder="Ej: AB 123 CD"
                    value="{{ form.patente.value|default:'' }}">
             {% if form.patente.errors %}<p class="form-error">{{ form.patente.errors.0 }}</p>{% endif %}

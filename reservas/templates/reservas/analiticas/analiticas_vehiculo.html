@@ -16,7 +16,7 @@
     <h1>{{ vehiculo.marca }} {{ vehiculo.modelo }}</h1>
     <p class="report-period">
       Período: <strong>{{ rango_label }}</strong>
-      {% if vehiculo.patente %} · Patente: <strong>{{ vehiculo.patente }}</strong>{% endif %}
+      · Patente: <strong>{{ vehiculo.patente }}</strong>
     </p>
   </div>
   <div class="report-header-actions no-print">
@@ -34,7 +34,7 @@
       {% for v in vehiculos_lista %}
       <option value="{% url 'analiticas_vehiculo' v.pk %}?rango={{ rango }}"
         {% if v.pk == vehiculo.pk %}selected{% endif %}>
-        {{ v.marca }} {{ v.modelo }}{% if v.patente %} · {{ v.patente }}{% endif %}
+        {{ v.marca }} {{ v.modelo }} · {{ v.patente }}
       </option>
       {% endfor %}
     </select>

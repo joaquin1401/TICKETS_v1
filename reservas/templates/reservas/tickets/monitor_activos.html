@@ -108,7 +108,7 @@
           <td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
           <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
           <td><span class="badge badge-warning">{{ t.id_usuario.id_cargo.nombre }}</span></td>
-          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {% if t.id_vehiculo.patente %}{{ t.id_vehiculo.patente }}{% else %}S/P{% endif %}</td>
+          <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {{ t.id_vehiculo.patente }}</td>
           <td>{{ t.destino }}</td>
           <td>
             {% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}

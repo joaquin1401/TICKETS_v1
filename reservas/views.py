@@ -1762,11 +1762,11 @@ def reporte_analiticas(request):
     d_cargos = [c['total'] for c in solicitudes_cargo]
     chart_cargos = generar_grafico_torta(l_cargos, d_cargos)
 
-    l_veh_sol = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente'] or ''}".strip() for v in vehiculos_solicitudes]
+    l_veh_sol = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente']}" for v in vehiculos_solicitudes]
     d_veh_sol = [v['total'] for v in vehiculos_solicitudes]
     chart_vehiculos_sol = generar_grafico_barras_horizontal(l_veh_sol, d_veh_sol)
 
-    l_veh_km = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente'] or ''}".strip() for v in vehiculos_km]
+    l_veh_km = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente']}" for v in vehiculos_km]
     d_veh_km = [float(v['total_km']) for v in vehiculos_km]
     chart_vehiculos_km = generar_grafico_barras_horizontal(l_veh_km, d_veh_km, "{} km")
 
@@ -2073,11 +2073,11 @@ def reporte_analiticas_pdf(request):
     d_cargos = [c['total'] for c in solicitudes_cargo]
     chart_cargos = generar_grafico_torta(l_cargos, d_cargos)
 
-    l_veh_sol = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente'] or ''}".strip() for v in vehiculos_solicitudes]
+    l_veh_sol = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente']}" for v in vehiculos_solicitudes]
     d_veh_sol = [v['total'] for v in vehiculos_solicitudes]
     chart_vehiculos_sol = generar_grafico_barras_horizontal(l_veh_sol, d_veh_sol)
 
-    l_veh_km = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente'] or ''}".strip() for v in vehiculos_km]
+    l_veh_km = [f"{v['id_vehiculo__marca']} {v['id_vehiculo__modelo']} {v['id_vehiculo__patente']}" for v in vehiculos_km]
     d_veh_km = [float(v['total_km']) for v in vehiculos_km]
     chart_vehiculos_km = generar_grafico_barras_horizontal(l_veh_km, d_veh_km, "{} km")
 
