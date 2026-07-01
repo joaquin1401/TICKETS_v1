@@ -527,8 +527,11 @@ def cancelar_ticket_usuario(ticket, usuario):
         return False, "El ticket ya no está activo."
         
     ahora = timezone.now()
-    if ticket.hora_inicio < ahora + timedelta(days=5):
-        return False, "No se puede cancelar la reserva con menos de 5 días de anticipación."
+    from ..models import ConfiguracionGlobal
+    dias_cancelacion = ConfiguracionGlobal.get_solo().dias_anticipacion_cancelacion
+
+    if ticket.hora_inicio < ahora + timedelta(days=dias_cancelacion):
+        return False, f"No se puede cancelar la reserva con menos de {dias_cancelacion} días de anticipación."
         
     ticket.estado = Ticket.ESTADO_CANCELADO
     ticket.observacion = (

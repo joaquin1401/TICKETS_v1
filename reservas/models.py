@@ -546,6 +546,10 @@ class ConfiguracionGlobal(models.Model):
         default=3,
         help_text="Días mínimos de anticipación requeridos para hacer una reserva (usuarios normales)"
     )
+    dias_anticipacion_cancelacion = models.PositiveIntegerField(
+        default=5,
+        help_text="Días mínimos de anticipación requeridos para cancelar una reserva (usuarios normales)"
+    )
     horas_margen_entre_reservas = models.PositiveIntegerField(
         default=1,
         help_text="Horas de margen obligatorio entre la finalización de un ticket y el inicio del próximo para el mismo vehículo"

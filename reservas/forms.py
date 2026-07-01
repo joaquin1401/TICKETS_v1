@@ -610,16 +610,19 @@ class ConfiguracionGlobalForm(forms.ModelForm):
         model = ConfiguracionGlobal
         fields = [
             "dias_anticipacion_reservas",
+            "dias_anticipacion_cancelacion",
             "horas_margen_entre_reservas",
             "minutos_margen_entre_reservas",
         ]
         labels = {
             "dias_anticipacion_reservas": "Días de anticipación para reservas (Usuarios)",
+            "dias_anticipacion_cancelacion": "Días de anticipación para cancelación (Usuarios)",
             "horas_margen_entre_reservas": "Horas de margen entre reservas (mismo vehículo)",
             "minutos_margen_entre_reservas": "Minutos de margen entre reservas (mismo vehículo)",
         }
         widgets = {
             "dias_anticipacion_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "dias_anticipacion_cancelacion": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "horas_margen_entre_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "minutos_margen_entre_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
         }
