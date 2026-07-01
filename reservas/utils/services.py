@@ -73,15 +73,36 @@ def calcular_distancia_osrm(destino):
 # HU 4.1 — Detección de Colisiones
 # ══════════════════════════════════════════════
 
-def obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin, excluir_ticket_id=None):
+def _get_horas_margen():
+    """
+    Obtiene el margen configurable de horas entre reservas (mismo vehículo),
+    combinando horas y minutos configurados.
+
+    Returns:
+        float: Cantidad de horas de margen (default=1 si no hay configuración).
+    """
+    try:
+        from ..models import ConfiguracionGlobal
+        config = ConfiguracionGlobal.get_solo()
+        horas = max(0, config.horas_margen_entre_reservas or 0)
+        minutos = max(0, config.minutos_margen_entre_reservas or 0)
+        return horas + minutos / 60.0
+    except Exception:
+        return 1.0
+
+
+def obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin, excluir_ticket_id=None, horas_margen=None):
     """
     Obtiene todos los tickets APROBADOS que se solapan con un rango de horario.
 
-    La detección de solapamiento es crucial para HU 4.2 (crear con conflicto)
-    y HU 4.3 (sobrescribir por jerarquía). Un solapamiento ocurre cuando:
+    La detección incluye un margen configurable de horas entre reservas (mismo vehículo).
+    Un solapamiento con margen ocurre cuando:
 
-        ticket_existente.hora_inicio < hora_fin
-        AND ticket_existente.hora_fin   > hora_inicio
+        ticket_existente.hora_inicio < hora_fin + margen
+        AND ticket_existente.hora_fin + margen > hora_inicio
+
+    Equivale a: las franjas [hora_inicio, hora_fin) y [hora_inicio_existente, hora_fin_existente)
+    están separadas por menos de `horas_margen` horas en CUALQUIER Extremo.
 
     Args:
         vehiculo (Vehiculo): Vehículo para el cual buscar conflictos.
@@ -89,6 +110,7 @@ def obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin, excluir_ticket
         hora_fin (datetime): Fin de la franja solicitada.
         excluir_ticket_id (int, optional): ID de ticket a ignorar.
             Utilizado en ediciones para no compararse contra sí mismo.
+        horas_margen (int, optional): Horas de margen. Si es None, se lee de ConfiguracionGlobal.
 
     Returns:
         QuerySet: Tickets en conflicto (sin evaluarse, puede estar vacío).
@@ -96,17 +118,56 @@ def obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin, excluir_ticket
     Notes:
         - Solo considera tickets con estado APROBADO.
         - Los tickets PENDIENTE o CANCELADO no bloquean nuevas reservas.
-        - Se utiliza Q() para lógica AND con comparaciones de rango.
+        - El margen se aplica simétricamente: después del fin y antes del inicio.
     """
+    from datetime import timedelta
+    if horas_margen is None:
+        horas_margen = _get_horas_margen()
+    margen = timedelta(hours=horas_margen)
+
     qs = Ticket.objects.filter(
+        id_vehiculo=vehiculo,
+        estado=Ticket.ESTADO_APROBADO,
+        hora_inicio__lt=hora_fin + margen,
+        hora_fin__gt=hora_inicio - margen,
+    )
+    if excluir_ticket_id:
+        qs = qs.exclude(pk=excluir_ticket_id)
+    return qs
+
+
+def hay_conflicto_por_margen(vehiculo, hora_inicio, hora_fin, excluir_ticket_id=None, horas_margen=None):
+    """
+    Indica si el conflicto detectado es SOLO por margen, sin solapamiento real.
+
+    Esto se usa para mostrar un mensaje distinto al usuario: en vez de decir
+    'ya está reservado por X', informa que debe respetar el margen mínimo.
+    """
+    from datetime import timedelta
+
+    conflictos = list(obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin, excluir_ticket_id, horas_margen))
+    if not conflictos:
+        return False
+
+    # Si no se pasó horas_margen explícito, lo resolvemos igual que en obtener_tickets_en_conflicto
+    if horas_margen is None:
+        horas_margen = _get_horas_margen()
+    margen = timedelta(hours=horas_margen)
+
+    # Solapamiento real, SIN margen
+    solapamientos_reales = Ticket.objects.filter(
         id_vehiculo=vehiculo,
         estado=Ticket.ESTADO_APROBADO,
         hora_inicio__lt=hora_fin,
         hora_fin__gt=hora_inicio,
     )
     if excluir_ticket_id:
-        qs = qs.exclude(pk=excluir_ticket_id)
-    return qs
+        solapamientos_reales = solapamientos_reales.exclude(pk=excluir_ticket_id)
+
+    if solapamientos_reales.exists():
+        return False
+
+    return True
 
 
 def hay_conflicto(vehiculo, hora_inicio, hora_fin, excluir_ticket_id=None):
@@ -261,12 +322,16 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
     if requiere_chofer:
         from ..models import Usuario, Cargo
         total_choferes = Usuario.objects.filter(id_cargo__nombre=Cargo.CHOFER, valido=True).count()
+        es_admin = usuario.id_cargo.prioridad == 0
+        horas_margen = 0 if es_admin else _get_horas_margen()
+        from datetime import timedelta
+        margen = timedelta(hours=horas_margen)
         
         tickets_chofer_conflicto = Ticket.objects.filter(
             estado__in=[Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO],
             requiere_chofer=True,
-            hora_inicio__lt=hora_fin,
-            hora_fin__gt=hora_inicio
+            hora_inicio__lt=hora_fin + margen,
+            hora_fin__gt=hora_inicio - margen
         )
         if tickets_chofer_conflicto.count() >= total_choferes:
             if vehiculo.requiere_chofer:
@@ -298,8 +363,31 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             )
 
     tickets_conflicto = list(
-        obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin)
+        obtener_tickets_en_conflicto(
+            vehiculo, hora_inicio, hora_fin,
+            horas_margen=0 if es_admin else None
+        )
     )
+
+    # ── Si hay conflicto, diferenciar "solo margen" vs "solapamiento real" ───────
+    if tickets_conflicto and not es_admin:
+        solo_margen = hay_conflicto_por_margen(
+            vehiculo, hora_inicio, hora_fin,
+            horas_margen=0 if es_admin else None
+        )
+        if solo_margen:
+            from ..models import ConfiguracionGlobal
+            config = ConfiguracionGlobal.get_solo()
+            margen_txt = f"{config.horas_margen_entre_reservas}h"
+            if config.minutos_margen_entre_reservas:
+                margen_txt += f" {config.minutos_margen_entre_reservas}min"
+            return ResultadoCreacion(
+                estado=ResultadoCreacion.BLOQUEADO,
+                mensaje=(
+                    f"Debés esperar al menos {margen_txt} desde la finalización de la reserva existente "
+                    "para solicitar un nuevo turno para el mismo vehículo."
+                ),
+            )
 
     # ── Calcular kilometraje automáticamente ──────────────────────────────────────────
     destino = kwargs.get("destino", "")

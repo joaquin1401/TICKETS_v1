@@ -416,6 +416,7 @@ def inicio(request):
     vehiculo_cal = None
     dias_con_reservas = set()
     tickets_dia = []
+    margenes_dia = []
     fecha_timeline = None
     horas = []
     page_obj = None
@@ -451,6 +452,9 @@ def inicio(request):
                 # Max visual grid ends at 23:00, which is 17 hours * 60px = 1020px height
                 from django.utils import timezone
                 is_tz_aware = timezone.is_aware(timezone.now())
+                config_margin = ConfiguracionGlobal.get_solo()
+                margen = timedelta(hours=config_margin.horas_margen_entre_reservas, minutes=config_margin.minutos_margen_entre_reservas)
+                margen_minutes = int(margen.total_seconds() / 60)
                 
                 naive_start = datetime.combine(fecha_timeline, time.min)
                 naive_end = datetime.combine(fecha_timeline, time.max)
@@ -462,7 +466,9 @@ def inicio(request):
                     day_start = naive_start
                     day_end = naive_end
                     
-                for t in tickets_dia:
+                margenes_dia = []
+                
+                for idx, t in enumerate(tickets_dia):
                     effective_start = max(t.hora_inicio, day_start)
                     
                     if t.hora_fin:
@@ -491,6 +497,65 @@ def inicio(request):
                     else:
                         max_allowed_height = 1020 - t.top_px
                         t.height_px = min(duration_mins, max_allowed_height) if max_allowed_height > 0 else 0
+                    
+                    # Calculate margin blocks (gray areas before and after ticket)
+                    if margen_minutes > 0:
+                        # 1. Margin BEFORE ticket
+                        margin_start_before = effective_start - margen
+                        margin_end_before = effective_start
+                        
+                        if margin_end_before > day_start:
+                            m_start = max(margin_start_before, day_start)
+                            m_end = min(margin_end_before, day_end)
+                            
+                            m_start_h = m_start.hour
+                            m_start_m = m_start.minute
+                            m_duration = int((m_end - m_start).total_seconds() / 60)
+                            
+                            if m_start_h < 6:
+                                mins_cortados = ((6 - m_start_h) * 60) - m_start_m
+                                m_start_h = 6
+                                m_start_m = 0
+                                m_duration -= mins_cortados
+                                
+                            m_top_px = ((m_start_h - 6) * 60) + m_start_m
+                            
+                            if m_duration > 0 and m_top_px >= 0:
+                                max_margin_height = 1020 - m_top_px
+                                m_duration = min(m_duration, max_margin_height)
+                                margenes_dia.append({
+                                    "top_px": m_top_px,
+                                    "height_px": m_duration,
+                                })
+
+                        # 2. Margin AFTER ticket
+                        if t.hora_fin:
+                            margin_start_after = effective_end
+                            margin_end_after = effective_end + margen
+                            
+                            if margin_start_after < day_end:
+                                m_start = max(margin_start_after, day_start)
+                                m_end = min(margin_end_after, day_end)
+                                
+                                m_start_h = m_start.hour
+                                m_start_m = m_start.minute
+                                m_duration = int((m_end - m_start).total_seconds() / 60)
+                                
+                                if m_start_h < 6:
+                                    mins_cortados = ((6 - m_start_h) * 60) - m_start_m
+                                    m_start_h = 6
+                                    m_start_m = 0
+                                    m_duration -= mins_cortados
+                                    
+                                m_top_px = ((m_start_h - 6) * 60) + m_start_m
+                                
+                                if m_duration > 0 and m_top_px >= 0:
+                                    max_margin_height = 1020 - m_top_px
+                                    m_duration = min(m_duration, max_margin_height)
+                                    margenes_dia.append({
+                                        "top_px": m_top_px,
+                                        "height_px": m_duration,
+                                    })
 
                 horas = ["06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"]
                 total_tickets = page_obj.paginator.count
@@ -539,6 +604,7 @@ def inicio(request):
         "mes_anterior": mes_anterior,
         "mes_siguiente": mes_siguiente,
         "tickets_dia": tickets_dia,
+        "margenes_dia": margenes_dia,
         "fecha_timeline": fecha_timeline,
         "horas": horas,
         "page_obj": page_obj,

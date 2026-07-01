@@ -546,6 +546,14 @@ class ConfiguracionGlobal(models.Model):
         default=3,
         help_text="Días mínimos de anticipación requeridos para hacer una reserva (usuarios normales)"
     )
+    horas_margen_entre_reservas = models.PositiveIntegerField(
+        default=1,
+        help_text="Horas de margen obligatorio entre la finalización de un ticket y el inicio del próximo para el mismo vehículo"
+    )
+    minutos_margen_entre_reservas = models.PositiveIntegerField(
+        default=0,
+        help_text="Minutos adicionales de margen entre la finalización de un ticket y el inicio del próximo para el mismo vehículo"
+    )
     
     class Meta:
         verbose_name = "Configuración Global"

@@ -302,3 +302,181 @@ class TestReservasMultiDia(TestCase):
         # Verificar que NO se recupera un día después
         tickets_dia_13 = get_tickets_del_dia(self.vehiculo, date(2026, 6, 13))
         self.assertNotIn(ticket, tickets_dia_13)
+
+
+class TestMargenEntreReservas(TestCase):
+    """Pruebas para la funcionalidad de margen configurable entre reservas (mismo vehículo)."""
+
+    def setUp(self):
+        self.cargo_usuario = Cargo.objects.create(nombre=Cargo.USUARIO, prioridad=3)
+        self.usuario = Usuario.objects.create(
+            nombre="Usuario", apellido="Test", correo="usuario@test.com",
+            id_cargo=self.cargo_usuario, valido=True
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            marca="Toyota", modelo="Corolla", patente="ABC123", cant_pasajeros=4, activo=True
+        )
+        from .models import ConfiguracionGlobal
+        self.config = ConfiguracionGlobal.get_solo()
+        self.config.horas_margen_entre_reservas = 1
+        self.config.minutos_margen_entre_reservas = 0
+        self.config.save()
+
+    def test_margen_default_1_hora_bloquea_reserva_cercana(self):
+        ahora = timezone.now()
+        inicio_existente = ahora + timedelta(days=10)
+        fin_existente = inicio_existente + timedelta(hours=2)
+        
+        Ticket.objects.create(
+            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
+            hora_inicio=inicio_existente, hora_fin=fin_existente,
+            estado=Ticket.ESTADO_APROBADO, destino="X", cant_pasajeros=1
+        )
+        
+        inicio_nuevo = fin_existente + timedelta(minutes=30)
+        fin_nuevo = inicio_nuevo + timedelta(hours=2)
+        
+        res = crear_ticket_con_reglas(
+            self.usuario, self.vehiculo, inicio_nuevo, fin_nuevo,
+            destino="Y", cant_pasajeros=1
+        )
+        self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
+
+    def test_margen_respetado_permite_reserva(self):
+        ahora = timezone.now()
+        inicio_existente = ahora + timedelta(days=10)
+        fin_existente = inicio_existente + timedelta(hours=2)
+        
+        Ticket.objects.create(
+            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
+            hora_inicio=inicio_existente, hora_fin=fin_existente,
+            estado=Ticket.ESTADO_APROBADO, destino="X", cant_pasajeros=1
+        )
+        
+        inicio_nuevo = fin_existente + timedelta(hours=1)
+        fin_nuevo = inicio_nuevo + timedelta(hours=2)
+        
+        res = crear_ticket_con_reglas(
+            self.usuario, self.vehiculo, inicio_nuevo, fin_nuevo,
+            destino="Y", cant_pasajeros=1
+        )
+        self.assertEqual(res.estado, ResultadoCreacion.OK)
+
+    def test_margen_configurable_2_horas(self):
+        ahora = timezone.now()
+        inicio_existente = ahora + timedelta(days=10)
+        fin_existente = inicio_existente + timedelta(hours=2)
+        
+        self.config.horas_margen_entre_reservas = 2
+        self.config.save()
+        
+        Ticket.objects.create(
+            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
+            hora_inicio=inicio_existente, hora_fin=fin_existente,
+            estado=Ticket.ESTADO_APROBADO, destino="X", cant_pasajeros=1
+        )
+        
+        inicio_nuevo = fin_existente + timedelta(hours=1)
+        fin_nuevo = inicio_nuevo + timedelta(hours=2)
+        
+        res = crear_ticket_con_reglas(
+            self.usuario, self.vehiculo, inicio_nuevo, fin_nuevo,
+            destino="Y", cant_pasajeros=1
+        )
+        self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
+        
+        self.config.horas_margen_entre_reservas = 1
+        self.config.save()
+
+    def test_margen_0_horas_permite_reserva_inmediata(self):
+        ahora = timezone.now()
+        inicio_existente = ahora + timedelta(days=10)
+        fin_existente = inicio_existente + timedelta(hours=2)
+        
+        self.config.horas_margen_entre_reservas = 0
+        self.config.save()
+        
+        Ticket.objects.create(
+            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
+            hora_inicio=inicio_existente, hora_fin=fin_existente,
+            estado=Ticket.ESTADO_APROBADO, destino="X", cant_pasajeros=1
+        )
+        
+        inicio_nuevo = fin_existente
+        fin_nuevo = inicio_nuevo + timedelta(hours=2)
+        
+        res = crear_ticket_con_reglas(
+            self.usuario, self.vehiculo, inicio_nuevo, fin_nuevo,
+            destino="Y", cant_pasajeros=1
+        )
+        self.assertEqual(res.estado, ResultadoCreacion.OK)
+        
+        self.config.horas_margen_entre_reservas = 1
+        self.config.save()
+
+    def test_margen_aplica_en_ambos_extremos(self):
+        ahora = timezone.now()
+        inicio_existente = ahora + timedelta(days=10, hours=10)
+        fin_existente = inicio_existente + timedelta(hours=2)
+        
+        Ticket.objects.create(
+            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
+            hora_inicio=inicio_existente, hora_fin=fin_existente,
+            estado=Ticket.ESTADO_APROBADO, destino="X", cant_pasajeros=1
+        )
+        
+        # Caso 1: termina muy cerca del inicio del existente
+        inicio_nuevo_caso1 = inicio_existente - timedelta(hours=2)
+        fin_nuevo_caso1 = inicio_existente - timedelta(minutes=30)
+        
+        res1 = crear_ticket_con_reglas(
+            self.usuario, self.vehiculo, inicio_nuevo_caso1, fin_nuevo_caso1,
+            destino="Y", cant_pasajeros=1
+        )
+        self.assertEqual(res1.estado, ResultadoCreacion.BLOQUEADO)
+        
+        # Caso 2: empieza muy cerca del fin del existente
+        inicio_nuevo_caso2 = fin_existente + timedelta(minutes=30)
+        fin_nuevo_caso2 = inicio_nuevo_caso2 + timedelta(hours=2)
+        
+        res2 = crear_ticket_con_reglas(
+            self.usuario, self.vehiculo, inicio_nuevo_caso2, fin_nuevo_caso2,
+            destino="Z", cant_pasajeros=1
+        )
+        self.assertEqual(res2.estado, ResultadoCreacion.BLOQUEADO)
+
+    def test_admin_ignora_margen(self):
+        """El administrador (prioridad 0) puede crear reservas sin respetar el margen."""
+        from datetime import timedelta
+        ahora = timezone.now()
+        inicio_existente = ahora + timedelta(days=10)
+        fin_existente = inicio_existente + timedelta(hours=2)
+        
+        # Configurar margen de 1 hora
+        self.config.horas_margen_entre_reservas = 1
+        self.config.save()
+        
+        # Crear ticket existente
+        Ticket.objects.create(
+            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
+            hora_inicio=inicio_existente, hora_fin=fin_existente,
+            estado=Ticket.ESTADO_APROBADO, destino="X", cant_pasajeros=1
+        )
+        
+        # Admin intenta crear ticket inmediatamente después (viola el margen)
+        inicio_nuevo = fin_existente + timedelta(minutes=10)  # Solo 10 min de diferencia
+        fin_nuevo = inicio_nuevo + timedelta(hours=2)
+        
+        # Crear admin
+        cargo_admin = Cargo.objects.create(nombre=Cargo.ADMINISTRADOR_SEU, prioridad=0)
+        admin = Usuario.objects.create(
+            nombre="Admin", apellido="Sistema", correo="admin@test.com",
+            id_cargo=cargo_admin, valido=True
+        )
+        
+        res = crear_ticket_con_reglas(
+            admin, self.vehiculo, inicio_nuevo, fin_nuevo,
+            destino="Y", cant_pasajeros=1
+        )
+        # El admin debe poder crear el ticket a pesar de violar el margen
+        self.assertEqual(res.estado, ResultadoCreacion.OK)

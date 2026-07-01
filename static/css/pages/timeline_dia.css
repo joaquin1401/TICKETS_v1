@@ -38,7 +38,8 @@
 }
 
 .reservation-block {
-  background: rgba(85, 139, 186, 0.1);
+  background-color: var(--surface);
+  background-image: linear-gradient(rgba(85, 139, 186, 0.1), rgba(85, 139, 186, 0.1));
   border: 1px solid rgba(85, 139, 186, 0.35);
   border-left: 3px solid var(--accent);
   border-radius: 4px;

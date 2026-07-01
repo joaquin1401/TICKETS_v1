@@ -425,11 +425,20 @@
             toggleTerceros(); // Llamada inicial
         }
 
-        // Scroll to calendar on mobile after selecting vehicle or navigating months
+        // Scroll to calendar or timeline on mobile
+        // Only do this on GET requests, not on POST (form submission errors)
         document.addEventListener("DOMContentLoaded", function() {
-            if (window.innerWidth <= 768) {
+            const isPost = "{{ request.method }}" === "POST";
+            if (window.innerWidth <= 768 && !isPost) {
                 const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.has('vehiculo')) {
+                if (urlParams.has('dia')) {
+                    const timelineSection = document.getElementById('timeline-section');
+                    if (timelineSection) {
+                        setTimeout(() => {
+                            timelineSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 200);
+                    }
+                } else if (urlParams.has('vehiculo')) {
                     const calSection = document.getElementById('calendario-section');
                     if (calSection) {
                         setTimeout(() => {
@@ -508,7 +517,7 @@
 
 <!-- Timeline del día -->
 {% if fecha_timeline %}
-<div class="card" style="margin-top:20px;">
+<div class="card" id="timeline-section" style="margin-top:20px;">
   <div class="card-header">
     <span class="card-title">◈ Timeline {{ fecha_timeline|date:"d/m" }}</span>
     <span class="badge badge-neutral">{{ total_tickets }} res.</span>
@@ -523,6 +532,13 @@
           <span class="hour-label">{{ hora }}:00</span>
           <div class="hour-line"></div>
         </div>
+        {% endfor %}
+      </div>
+
+      <!-- Margen entre reservas (gris) -->
+      <div class="timeline-overlay" style="position: absolute; top: 8px; left: 56px; right: 0; bottom: 0; pointer-events: none;">
+        {% for m in margenes_dia %}
+        <div style="position:absolute; top:{{ m.top_px }}px; height:{{ m.height_px }}px; left:0; right:10px; background: repeating-linear-gradient(135deg, #bbb, #bbb 6px, #ccc 6px, #ccc 12px); opacity:0.85; border-radius:4px;"></div>
         {% endfor %}
       </div>
 

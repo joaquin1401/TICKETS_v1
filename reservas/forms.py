@@ -250,6 +250,7 @@ class TicketForm(forms.ModelForm):
         - hora_fin, si se proporciona, debe ser > hora_inicio.
         - hora_fin es opcional en el formulario pero requerido en servicios
           (vistas asignan default si está vacío).
+        - Margen entre reservas: Se respeta el valor de ConfiguracionGlobal.horas_margen_entre_reservas.
 
     Notes:
         No valida la capacidad del vehículo vs. pasajeros solicitados.
@@ -607,10 +608,18 @@ class NuevaContrasenaForm(forms.Form):
 class ConfiguracionGlobalForm(forms.ModelForm):
     class Meta:
         model = ConfiguracionGlobal
-        fields = ["dias_anticipacion_reservas"]
+        fields = [
+            "dias_anticipacion_reservas",
+            "horas_margen_entre_reservas",
+            "minutos_margen_entre_reservas",
+        ]
         labels = {
             "dias_anticipacion_reservas": "Días de anticipación para reservas (Usuarios)",
+            "horas_margen_entre_reservas": "Horas de margen entre reservas (mismo vehículo)",
+            "minutos_margen_entre_reservas": "Minutos de margen entre reservas (mismo vehículo)",
         }
         widgets = {
-            "dias_anticipacion_reservas": forms.NumberInput(attrs={"class": "form-control"}),
+            "dias_anticipacion_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "horas_margen_entre_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "minutos_margen_entre_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
         }
