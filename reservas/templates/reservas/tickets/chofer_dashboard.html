@@ -55,14 +55,12 @@
             <input type="number" step="0.01" min="0" name="kilometraje_fin" class="form-control" required
               placeholder="Ej: 15050.5" style="padding: 6px 10px; font-size: 14px;">
           </div>
+
           <div>
-            <label class="form-label" style="font-size: 12px;">Hora de Salida</label>
-            <input type="datetime-local" name="hora_inicio_real" class="form-control" required
-              value="{{ t.hora_inicio|date:'Y-m-d\TH:i' }}" style="padding: 6px 10px; font-size: 14px;">
-          </div>
-          <div>
-            <label class="form-label" style="font-size: 12px;">Hora de Llegada</label>
-            <input type="datetime-local" name="hora_fin_real" class="form-control" required
+            {% with fecha_regreso=t.hora_fin|default:t.hora_inicio %}
+            <label class="form-label" style="font-size: 12px;">Hora de Llegada ({{ fecha_regreso|date:'d/m/Y' }})</label>
+            {% endwith %}
+            <input type="time" name="hora_fin_real" class="form-control" required
               style="padding: 6px 10px; font-size: 14px;">
           </div>
         </div>

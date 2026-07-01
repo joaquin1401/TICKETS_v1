@@ -793,9 +793,11 @@ def aceptar_ticket(request, ticket_id):
             messages.error(request, "El kilometraje de inicio ingresado no es válido.")
             return redirect(request.META.get('HTTP_REFERER', 'inicio'))
 
+        from django.utils import timezone
         ticket.conductor = usuario
         ticket.estado = Ticket.ESTADO_EN_CURSO
-        ticket.save(update_fields=['conductor', 'estado', 'kilometraje_inicio'])
+        ticket.hora_inicio_real = timezone.now()
+        ticket.save(update_fields=['conductor', 'estado', 'kilometraje_inicio', 'hora_inicio_real'])
         messages.success(request, f"Te has asignado como conductor del ticket #{ticket.pk} y comenzaste el viaje.")
     else:
         messages.error(request, "El ticket no está disponible para asignación.")
@@ -817,26 +819,37 @@ def finalizar_ticket(request, ticket_id):
     if ticket.conductor == usuario or request.session.get("es_admin"):
         if ticket.estado == Ticket.ESTADO_EN_CURSO:
             km_fin_str = request.POST.get("kilometraje_fin", "").replace(',', '.')
-            hora_inicio_real_str = request.POST.get("hora_inicio_real")
             hora_fin_real_str = request.POST.get("hora_fin_real")
 
-            if not km_fin_str or not hora_inicio_real_str or not hora_fin_real_str:
+            if not km_fin_str or not hora_fin_real_str:
                 messages.error(request, "Debes ingresar todos los datos reales (km y horarios) para finalizar.")
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
             
-            from django.utils.dateparse import parse_datetime
-            from django.utils.timezone import make_aware, is_naive
+            from django.utils.dateparse import parse_time
+            from django.utils.timezone import make_aware, is_naive, localtime
+            from datetime import datetime
             
             try:
                 ticket.kilometraje_fin = Decimal(km_fin_str)
                 
-                dt_inicio = parse_datetime(hora_inicio_real_str)
-                if dt_inicio and is_naive(dt_inicio):
-                    dt_inicio = make_aware(dt_inicio)
-                ticket.hora_inicio_real = dt_inicio
+                t_fin = parse_time(hora_fin_real_str)
                 
-                dt_fin = parse_datetime(hora_fin_real_str)
-                if dt_fin and is_naive(dt_fin):
+                if not t_fin:
+                    raise ValueError("Formato de hora inválido.")
+                
+                # Use already set hora_inicio_real or fallback to estimated
+                if not ticket.hora_inicio_real:
+                    ticket.hora_inicio_real = ticket.hora_inicio
+                
+                # Combine with the estimated dates
+                if ticket.hora_fin:
+                    fecha_fin = localtime(ticket.hora_fin).date() if is_aware(ticket.hora_fin) else ticket.hora_fin.date()
+                else:
+                    fecha_fin = localtime(ticket.hora_inicio).date() if is_aware(ticket.hora_inicio) else ticket.hora_inicio.date()
+                    
+                dt_fin = datetime.combine(fecha_fin, t_fin)
+                
+                if is_naive(dt_fin):
                     dt_fin = make_aware(dt_fin)
                 ticket.hora_fin_real = dt_fin
                 
