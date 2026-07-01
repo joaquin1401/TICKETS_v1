@@ -61,7 +61,7 @@ class Cargo(models.Model):
         ordering = ["prioridad"]
 
     def __str__(self):
-        return f"{self.nombre} (prioridad {self.prioridad})"
+        return self.nombre
 
 
 

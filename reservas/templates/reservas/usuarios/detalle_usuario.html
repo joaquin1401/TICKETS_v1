@@ -24,14 +24,14 @@
       
       <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
         <div class="form-group">
-          <label class="form-label" for="{{ form.nombre.id_for_label }}">{{ form.nombre.label }}</label>
+          <label class="form-label" for="{{ form.nombre.id_for_label }}">{{ form.nombre.label }} <span style="color:var(--danger);">*</span></label>
           {{ form.nombre }}
           {% if form.nombre.errors %}
           <div class="form-error" style="color: var(--danger); font-size: 12px; margin-top: 4px;">{{ form.nombre.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="form-group">
-          <label class="form-label" for="{{ form.apellido.id_for_label }}">{{ form.apellido.label }}</label>
+          <label class="form-label" for="{{ form.apellido.id_for_label }}">{{ form.apellido.label }} <span style="color:var(--danger);">*</span></label>
           {{ form.apellido }}
           {% if form.apellido.errors %}
           <div class="form-error" style="color: var(--danger); font-size: 12px; margin-top: 4px;">{{ form.apellido.errors.0 }}</div>
@@ -41,14 +41,14 @@
       
       <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
         <div class="form-group">
-          <label class="form-label" for="{{ form.correo.id_for_label }}">{{ form.correo.label }}</label>
+          <label class="form-label" for="{{ form.correo.id_for_label }}">{{ form.correo.label }} <span style="color:var(--danger);">*</span></label>
           {{ form.correo }}
           {% if form.correo.errors %}
           <div class="form-error" style="color: var(--danger); font-size: 12px; margin-top: 4px;">{{ form.correo.errors.0 }}</div>
           {% endif %}
         </div>
         <div class="form-group">
-          <label class="form-label" for="{{ form.id_cargo.id_for_label }}">{{ form.id_cargo.label }}</label>
+          <label class="form-label" for="{{ form.id_cargo.id_for_label }}">{{ form.id_cargo.label }} <span style="color:var(--danger);">*</span></label>
           {{ form.id_cargo }}
           {% if form.id_cargo.errors %}
           <div class="form-error" style="color: var(--danger); font-size: 12px; margin-top: 4px;">{{ form.id_cargo.errors.0 }}</div>
@@ -56,14 +56,23 @@
         </div>
       </div>
 
-      <div class="form-group" style="margin-bottom: 16px;">
-        <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-          {{ form.valido }}
-          {{ form.valido.label }}
-        </label>
-        {% if form.valido.errors %}
-        <div class="form-error" style="color: var(--danger); font-size: 12px; margin-top: 4px;">{{ form.valido.errors.0 }}</div>
-        {% endif %}
+      <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+        <div class="form-group" id="departamento-container">
+          <label class="form-label" for="{{ form.departamento.id_for_label }}">{{ form.departamento.label }} <span style="color:var(--danger);">*</span></label>
+          {{ form.departamento }}
+          {% if form.departamento.errors %}
+          <div class="form-error" style="color: var(--danger); font-size: 12px; margin-top: 4px;">{{ form.departamento.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="form-group" style="display: flex; flex-direction: column; justify-content: center;">
+          <label class="form-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0;">
+            {{ form.valido }}
+            {{ form.valido.label }}
+          </label>
+          {% if form.valido.errors %}
+          <div class="form-error" style="color: var(--danger); font-size: 12px; margin-top: 4px;">{{ form.valido.errors.0 }}</div>
+          {% endif %}
+        </div>
       </div>
       
       <button type="submit" class="btn btn-primary">Guardar Cambios</button>
@@ -141,4 +150,30 @@
   </div>
   {% include "reservas/includes/_pagination.html" %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const cargoSelect = document.getElementById("{{ form.id_cargo.id_for_label }}");
+    const deptoContainer = document.getElementById("departamento-container");
+    
+    function toggleDepto() {
+      if (cargoSelect) {
+        const selectedText = cargoSelect.options[cargoSelect.selectedIndex].text;
+        if (selectedText === "Usuario") {
+          deptoContainer.style.display = "block";
+        } else {
+          deptoContainer.style.display = "none";
+        }
+      }
+    }
+    
+    if (cargoSelect) {
+      cargoSelect.addEventListener("change", toggleDepto);
+      // Run once on load
+      toggleDepto();
+    }
+  });
+</script>
 {% endblock %}
