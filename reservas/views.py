@@ -934,9 +934,20 @@ def finalizar_ticket(request, ticket_id):
             if ticket.kilometraje_inicio is not None and ticket.kilometraje_fin < ticket.kilometraje_inicio:
                 messages.error(request, f"El kilometraje de regreso no puede ser menor al de salida ({ticket.kilometraje_inicio}).")
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+                
+            # Validar justificación por retraso > 2h (comparando con la HORA ACTUAL de Argentina, no la ingresada)
+            if ticket.hora_fin:
+                from django.utils.timezone import localtime
+                retraso = localtime(timezone.now()) - localtime(ticket.hora_fin)
+                if retraso.total_seconds() > 7200:
+                    justificacion = request.POST.get("justificacion_retraso", "").strip()
+                    if not justificacion:
+                        messages.error(request, "El viaje finalizó con más de 2 horas de retraso real. Debe ingresar una justificación obligatoria.")
+                        return redirect(request.META.get('HTTP_REFERER', 'inicio'))
+                    ticket.justificacion_retraso = justificacion
 
             ticket.estado = Ticket.ESTADO_FINALIZADO
-            ticket.save(update_fields=['estado', 'kilometraje_fin', 'hora_inicio_real', 'hora_fin_real'])
+            ticket.save(update_fields=['estado', 'kilometraje_fin', 'hora_inicio_real', 'hora_fin_real', 'justificacion_retraso'])
             messages.success(request, f"El ticket #{ticket.pk} ha sido finalizado.")
         else:
             messages.error(request, "El ticket no está en curso.")
@@ -2631,3 +2642,59 @@ def configuracion_global(request):
         "usuario": usuario,
         "feriados": feriados,
     })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# UTILIDAD DE DESARROLLO: Previsualizador de Emails
+# ══════════════════════════════════════════════════════════════════════════════
+from django.conf import settings
+
+def preview_email(request, template_name):
+    """
+    Vista de desarrollo para renderizar y visualizar plantillas de correo en el navegador.
+    Solo disponible si DEBUG es True (para seguridad en producción).
+    """
+    if not settings.DEBUG:
+        from django.http import Http404
+        raise Http404("Preview no disponible en producción.")
+
+    from django.utils import timezone
+    from datetime import timedelta
+
+    class MockUser:
+        nombre = "Juan"
+        apellido = "Pérez"
+        correo = "juan.perez@example.com"
+        dni = "12345678"
+        legajo = "L-999"
+
+    class MockVehiculo:
+        marca = "Toyota"
+        modelo = "Corolla"
+        patente = "AB 123 CD"
+
+    class MockTicket:
+        pk = 4059
+        id_usuario = MockUser()
+        id_vehiculo = MockVehiculo()
+        destino = "Facultad de Ingeniería - UTN"
+        hora_inicio = timezone.now()
+        hora_fin = timezone.now() + timedelta(hours=3)
+        observacion = "Este es un texto de ejemplo de una observación."
+        distancia_est = 45.5
+        cant_pasajeros = 3
+
+    context = {
+        "usuario": MockUser(),
+        "ticket": MockTicket(),
+        "url_sistema": "http://localhost:8000",
+        "dias_anticipacion": 2,
+        "dias_cancelacion": 1,
+    }
+
+    try:
+        from django.shortcuts import render
+        return render(request, f"reservas/emails/{template_name}.html", context)
+    except Exception as e:
+        from django.http import HttpResponse
+        return HttpResponse(f"Error cargando plantilla '{template_name}': {e}", status=404)

@@ -135,4 +135,6 @@ urlpatterns = [
     path("recuperar-password/verificar/<uuid:token>/", views.verificar_recuperacion_enlace, name="verificar_recuperacion_enlace"),
     path("recuperar-password/nueva/", views.nueva_contrasena, name="nueva_contrasena"),
 
+    # Utilidad de desarrollo para previsualizar emails
+    path("preview-email/<str:template_name>/", views.preview_email, name="preview_email"),
 ]

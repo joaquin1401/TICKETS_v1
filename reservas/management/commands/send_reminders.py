@@ -5,14 +5,14 @@ from django.db.models import Q
 from datetime import timedelta
 
 from reservas.models import Ticket, NotificationLog
-from reservas.notifications import send_reminder
+from reservas.utils.notifications import send_reminder
 
 
 class Command(BaseCommand):
-    help = "Enviar recordatorios por correo para reservas próximas (3 días y mismo día)."
+    help = "Enviar recordatorios por correo para reservas próximas y devoluciones demoradas."
 
     def handle(self, *args, **options):
-        now = timezone.now()
+        now = timezone.localtime(timezone.now())
         today = now.date()
         in_3_days = (now + timedelta(days=3)).date()
 
@@ -32,4 +32,16 @@ class Command(BaseCommand):
                 send_reminder(t, NotificationLog.TYPE_REMINDER_SAME_DAY)
                 count_today += 1
 
-        self.stdout.write(self.style.SUCCESS(f"Reminders sent: 3-days={count3}, today={count_today}"))
+        # Tickets en curso con más de 1 hora de retraso
+        one_hour_ago = now - timedelta(hours=1)
+        q_late = Ticket.objects.filter(
+            estado=Ticket.ESTADO_EN_CURSO,
+            hora_fin__lt=one_hour_ago
+        )
+        count_late = 0
+        for t in q_late:
+            if not NotificationLog.objects.filter(ticket=t, notification_type=NotificationLog.TYPE_REMINDER_RETURN_LATE).exists():
+                send_reminder(t, NotificationLog.TYPE_REMINDER_RETURN_LATE)
+                count_late += 1
+
+        self.stdout.write(self.style.SUCCESS(f"Reminders sent: 3-days={count3}, today={count_today}, late={count_late}"))

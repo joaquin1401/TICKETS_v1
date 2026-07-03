@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,60 +11,117 @@
         img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
         body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
 
-        /* Estilos del proyecto (con valores hardcodeados, sin variables) */
+        /* Estilos de la app (Tema oscuro) */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: #f4f7f6;
-            color: #333333;
+            font-family: 'DM Sans', Arial, sans-serif;
+            background-color: #0f1014;
+            color: #dde1ea;
         }
 
         .wrapper {
             width: 100%;
-            background-color: #f4f7f6;
+            background-color: #0f1014;
         }
 
         .container {
-            /* Esto es lo importante: padding y 100% de ancho */
-            padding: 20px;
+            padding: 24px;
             width: 100%;
-            box-sizing: border-box; /* Para que el padding no aumente el ancho */
+            max-width: 680px;
+            margin: 0 auto;
+            box-sizing: border-box;
         }
 
         .content {
-            background-color: #ffffff;
+            background-color: #181b22;
+            border: 1px solid #2a2f3d;
             border-radius: 8px;
-            padding: 30px;
+            padding: 24px;
         }
 
-        h1 { color: #0056b3; font-size: 24px; margin-top: 0; }
-        p { font-size: 16px; line-height: 1.5; }
-        ul { padding-left: 20px; }
-        li { margin-bottom: 8px; }
+        h1 { 
+            font-family: 'DM Serif Display', serif; 
+            color: #558bba; 
+            font-size: 24px; 
+            margin-top: 0; 
+            margin-bottom: 16px; 
+        }
+        
+        p { 
+            font-size: 15px; 
+            line-height: 1.6; 
+            color: #dde1ea;
+            margin-bottom: 16px;
+        }
+        
+        ul { 
+            padding-left: 20px; 
+            color: #dde1ea;
+        }
+        
+        li { 
+            margin-bottom: 8px; 
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+        strong {
+            color: #ffffff;
+            font-weight: 600;
+        }
 
         .boton {
             display: inline-block;
             padding: 12px 24px;
-            background-color: #007bff;
+            background-color: #558bba;
             color: #ffffff;
             text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 15px;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .meta {
+            background: rgba(255,255,255,0.02);
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid #2a2f3d;
+            margin: 16px 0;
+        }
+        
+        .muted {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        .footer {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid #2a2f3d;
+            text-align: center;
         }
     </style>
 </head>
-<body style="background-color: #f4f7f6; margin: 0 !important; padding: 0 !important;">
+<body style="background-color: #0f1014; margin: 0 !important; padding: 0 !important;">
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="wrapper">
         <tr>
-            <td class="container">
-                <div class="content">
-                    {% block content %}{% endblock %}
-                </div>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 20px; text-align: center; color: #888888; font-size: 12px;">
-                <p>Este es un correo automático. Por favor, no respondas a este mensaje.</p>
-                <p>&copy; {% now "Y" %} Sistema de Reservas. Todos los derechos reservados.</p>
+            <td align="center">
+                <!-- Limitamos el ancho para clientes de correo de PC -->
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="max-width: 680px; width: 100%;">
+                    <tr>
+                        <td class="container">
+                            <div class="content">
+                                {% block content %}{% endblock %}
+                            </div>
+                            
+                            <div class="footer">
+                                <p class="muted" style="margin-bottom: 8px;">Este es un correo automático. Por favor, no respondas a este mensaje.</p>
+                                <p class="muted" style="margin-bottom: 0;">&copy; {% now "Y" %} Sistema de Reservas UTN FRRE. Todos los derechos reservados.</p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
             </td>
         </tr>
     </table>

@@ -1,0 +1,24 @@
+{% extends "reservas/emails/base_email.html" %}
+
+{% block title %}Aviso de Demora{% endblock %}
+
+{% block content %}
+    <h1>Aviso de Demora en Devolución</h1>
+    <p>Hola {{ usuario.nombre }} {{ usuario.apellido }},</p>
+    <p>Te notificamos que el viaje que tienes actualmente en curso ha excedido su hora estimada de regreso por más de 1 hora. Por favor, regulariza la devolución a la brevedad posible.</p>
+    
+    <div class="meta">
+        <div class="muted">Vehículo:</div>
+        <div><strong>{{ ticket.id_vehiculo }}</strong></div>
+        <div class="muted" style="margin-top:8px">Destino:</div>
+        <div><strong>{{ ticket.destino }}</strong></div>
+        <div class="muted" style="margin-top:8px">Hora estimada de regreso:</div>
+        <div><strong>{{ ticket.hora_fin|date:"d/m/Y H:i" }} hs</strong></div>
+    </div>
+
+    <p style="color: #e05252; font-weight: bold;">Atención: Si la demora supera las 2 horas, el sistema exigirá una justificación escrita obligatoria al momento de finalizar el viaje en tu panel.</p>
+    
+    <a href="{{ url_sistema }}" class="boton">Ir al Sistema de Reservas</a>
+    
+    <p style="margin-top: 20px;">Saludos,<br>Equipo de Reservas</p>
+{% endblock %}

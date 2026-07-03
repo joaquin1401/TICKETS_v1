@@ -345,6 +345,11 @@ class Ticket(models.Model):
         blank=True,
         help_text="Se completa automáticamente si el ticket es cancelado por jerarquía"
     )
+    justificacion_retraso = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Justificación obligatoria si el viaje finaliza más de 2h después de la hora estimada de regreso"
+    )
 
     class Meta:
         verbose_name = "Ticket"
@@ -374,12 +379,14 @@ class NotificationLog(models.Model):
     TYPE_CANCELLED = "cancelled"
     TYPE_REMINDER_3_DAYS = "reminder_3_days"
     TYPE_REMINDER_SAME_DAY = "reminder_same_day"
+    TYPE_REMINDER_RETURN_LATE = "reminder_return_late"
 
     TYPES = [
         (TYPE_CREATED, "Creación"),
         (TYPE_CANCELLED, "Cancelación"),
         (TYPE_REMINDER_3_DAYS, "Recordatorio 3 días"),
         (TYPE_REMINDER_SAME_DAY, "Recordatorio mismo día"),
+        (TYPE_REMINDER_RETURN_LATE, "Recordatorio regreso tardío"),
     ]
 
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="notification_logs")

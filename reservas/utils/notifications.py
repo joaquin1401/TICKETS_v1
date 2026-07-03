@@ -40,9 +40,12 @@ def send_reminder(ticket, kind):
     if kind == NotificationLog.TYPE_REMINDER_3_DAYS:
         subject = f"Recordatorio: Tu reserva #{ticket.pk} en 3 días"
         template = "reservas/emails/reminder_3_days"
-    else:
+    elif kind == NotificationLog.TYPE_REMINDER_SAME_DAY:
         subject = f"Recordatorio: Tu reserva #{ticket.pk} es hoy"
         template = "reservas/emails/reminder_same_day"
+    elif kind == NotificationLog.TYPE_REMINDER_RETURN_LATE:
+        subject = f"Aviso: Demora en devolución del vehículo (Reserva #{ticket.pk})"
+        template = "reservas/emails/reminder_return_late"
 
     ctx = {"ticket": ticket, "usuario": ticket.id_usuario}
     async_task("reservas.tasks.enviar_correo_templated_async", subject, template, ctx, ticket.id_usuario.correo)
