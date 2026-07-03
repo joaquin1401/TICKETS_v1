@@ -44,13 +44,13 @@ class TestReglasNegocioTickets(TestCase):
         
         # Vehículos
         self.vehiculo_normal = Vehiculo.objects.create(
-            marca="Toyota", modelo="Hilux", cant_pasajeros=4, activo=True, exclusivo_decanato=False
+            marca="Toyota", modelo="Hilux", patente="AA111AA", cant_pasajeros=4, activo=True, exclusivo_decanato=False
         )
         self.vehiculo_decanato = Vehiculo.objects.create(
-            marca="Lexus", modelo="LS", cant_pasajeros=4, activo=True, exclusivo_decanato=True
+            marca="Lexus", modelo="LS", patente="BB222BB", cant_pasajeros=4, activo=True, exclusivo_decanato=True
         )
         self.vehiculo_taller = Vehiculo.objects.create(
-            marca="Ford", modelo="Ranger", cant_pasajeros=4, activo=False, exclusivo_decanato=False
+            marca="Ford", modelo="Ranger", patente="CC333CC", cant_pasajeros=4, activo=False, exclusivo_decanato=False
         )
 
         self.ahora = timezone.now()
@@ -219,7 +219,7 @@ class TestReservasMultiDia(TestCase):
             nombre="User", apellido="Test", correo="test@test.com", id_cargo=self.cargo, valido=True
         )
         self.vehiculo = Vehiculo.objects.create(
-            marca="Toyota", modelo="Corolla", cant_pasajeros=4, activo=True
+            marca="Toyota", modelo="Corolla", patente="DD444DD", cant_pasajeros=4, activo=True
         )
 
     def test_get_tickets_del_mes_multi_dia(self):
@@ -468,7 +468,7 @@ class TestMargenEntreReservas(TestCase):
         fin_nuevo = inicio_nuevo + timedelta(hours=2)
         
         # Crear admin
-        cargo_admin = Cargo.objects.create(nombre=Cargo.ADMINISTRADOR_SEU, prioridad=0)
+        cargo_admin = Cargo.objects.create(nombre=Cargo.ADMIN_SEU, prioridad=0)
         admin = Usuario.objects.create(
             nombre="Admin", apellido="Sistema", correo="admin@test.com",
             id_cargo=cargo_admin, valido=True
