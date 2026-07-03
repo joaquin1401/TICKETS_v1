@@ -844,9 +844,9 @@ def aceptar_ticket(request, ticket_id):
     usuario = get_usuario_sesion(request)
     ticket = get_object_or_404(Ticket, pk=ticket_id)
 
-    # Validar que el chofer no tenga otro viaje a la misma hora
-    if Ticket.objects.filter(conductor=usuario, estado=Ticket.ESTADO_EN_CURSO, hora_inicio=ticket.hora_inicio).exclude(pk=ticket.pk).exists():
-        messages.error(request, "No podés aceptar este viaje porque ya tenés otro asignado con la misma hora de salida.")
+    # Validar que el chofer no tenga ningún otro viaje en curso actualmente
+    if Ticket.objects.filter(conductor=usuario, estado=Ticket.ESTADO_EN_CURSO).exclude(pk=ticket.pk).exists():
+        messages.error(request, "No podés iniciar este viaje porque ya tenés otro viaje en curso. Debés finalizarlo primero.")
         if request.session.get("es_admin"):
             return redirect("monitor_tickets_activos")
         return redirect("chofer_dashboard")
