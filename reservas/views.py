@@ -2479,13 +2479,13 @@ def api_calcular_distancia(request):
     """
     API endpoint para calcular la distancia desde UTN FRRE al destino dado.
     """
-    from .utils.services import calcular_distancia_osrm
+    from .utils.services import calcular_distancia_y_tiempo_osrm
     destino = request.GET.get("q", "")
     if not destino:
-        return JsonResponse({"distancia_est": 0.0})
+        return JsonResponse({"distancia_est": 0.0, "duracion_segundos": 0.0})
         
-    km = calcular_distancia_osrm(destino)
-    return JsonResponse({"distancia_est": km})
+    km, duracion = calcular_distancia_y_tiempo_osrm(destino)
+    return JsonResponse({"distancia_est": km, "duracion_segundos": duracion})
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Configuración Global

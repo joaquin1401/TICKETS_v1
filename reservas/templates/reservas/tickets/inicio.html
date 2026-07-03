@@ -7,31 +7,75 @@
 <link rel="stylesheet" href="{% static 'css/pages/inicio.css' %}">
 <link rel="stylesheet" href="{% static 'css/pages/calendario.css' %}">
 <link rel="stylesheet" href="{% static 'css/pages/timeline_dia.css' %}">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <style>
-  #map { height: 300px; width: 100%; border-radius: 8px; border: 1px solid var(--border-color); }
+  #map {
+    height: 300px;
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+
   .map-modal-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.5); z-index: 1000;
-    display: none; justify-content: center; align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: none;
+    justify-content: center;
+    align-items: center;
   }
+
   .map-modal {
-    background: var(--surface); width: 90%; max-width: 500px;
-    border-radius: 8px; padding: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    background: var(--surface);
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   }
+
   @media (min-width: 768px) {
-    .map-modal { max-width: 800px; }
-    #map { height: 450px; }
+    .map-modal {
+      max-width: 800px;
+    }
+
+    #map {
+      height: 450px;
+    }
   }
+
   .map-modal-header {
-    display: flex; justify-content: space-between; align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 15px;
   }
-  .map-modal-header h3 { margin: 0; font-size: 1.2rem; }
-  .close-modal { cursor: pointer; background: none; border: none; font-size: 1.5rem; color: var(--text-muted); }
-  .input-group { display: flex; gap: 8px; }
-  .input-group input { flex: 1; }
+
+  .map-modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .close-modal {
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+  }
+
+  .input-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .input-group input {
+    flex: 1;
+  }
 </style>
 {% endblock %}
 
@@ -47,423 +91,489 @@
 <div class="inicio-grid">
   <div style="display: flex; flex-direction: column; gap: 20px;">
     <!-- Reglas de reserva -->
-    <div style="background: var(--surface2); padding: 16px; border-radius: 8px; border: 1px solid var(--border); border-left: 4px solid var(--primary);">
-      <h4 style="margin-top: 0; margin-bottom: 10px; font-size: 0.95rem; color: var(--text); display: flex; align-items: center; gap: 6px;">
+    <div
+      style="background: var(--surface2); padding: 16px; border-radius: 8px; border: 1px solid var(--border); border-left: 4px solid var(--primary);">
+      <h4
+        style="margin-top: 0; margin-bottom: 10px; font-size: 0.95rem; color: var(--text); display: flex; align-items: center; gap: 6px;">
         📌 Reglas para reservas
       </h4>
       <ul style="margin: 0; padding-left: 20px; font-size: 0.85rem; color: var(--text); line-height: 1.6;">
-        <li>Las reservas deben solicitarse con al menos <strong>{{ dias_anticipacion }} días</strong> de antelación.</li>
-        <li>Podés cancelar una reserva hasta <strong>{{ dias_cancelacion }} días</strong> antes de la fecha de salida.</li>
+        <li>Las reservas deben solicitarse con al menos <strong>{{ dias_anticipacion }} días</strong> de antelación.
+        </li>
+        <li>Podés cancelar una reserva hasta <strong>{{ dias_cancelacion }} días</strong> antes de la fecha de salida.
+        </li>
         <li>Los vehículos que requieren chofer quedarán sujetos a la disponibilidad del conductor.</li>
+        <li>Los valores de distancia y tiempo autocompletados son aproximados. Tenga en cuenta que el cálculo no incluye posibles demoras por tráfico ni el tiempo de estadía en el destino.</li>
       </ul>
     </div>
 
     <!-- Formulario de reserva rápida -->
-  <div class="card quick-form">
-    <div class="card-header">
-      <span class="card-title">⬡ Nueva reserva</span>
-    </div>
-    <div class="card-body">
-      <form method="post" action="{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
-        {% csrf_token %}
-        <div class="form-group">
-          <label class="form-label">Vehículo <span style="color:var(--danger);">*</span></label>
-          <select name="id_vehiculo" id="vehiculoSelect" class="form-control">
-            <option value="">-- Seleccionar vehículo --</option>
-            {% for v in form.id_vehiculo.field.queryset %}
-            <option value="{{ v.pk }}" data-capacity="{{ v.cant_pasajeros }}" data-req-chofer="{{ v.requiere_chofer|yesno:'true,false' }}" {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
-              {{ v.marca }} {{ v.modelo }} ({{ v.cant_pasajeros }} pas.)
-            </option>
-            {% endfor %}
-          </select>
-          {% if form.id_vehiculo.errors %}<p class="form-error">{{ form.id_vehiculo.errors.0 }}</p>{% endif %}
-          <div id="exclusiveWarning" style="display: none; color: var(--warning); font-size: 0.85rem; margin-top: 8px; background: rgba(232, 160, 32, 0.1); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--warning);">
-            ⚠️ <strong>Atención:</strong> Este vehículo es exclusivo del Decano. Tu reserva puede ser cancelada automáticamente si él requiere utilizarlo.
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Destino <span style="color:var(--danger);">*</span></label>
-          <div class="input-group">
-            <input type="text" name="destino" id="destinoInput" class="form-control" placeholder="Ej: San Martín 1050, San Miguel de Tucumán"
-              value="{{ form.destino.value|default:'' }}">
-            <button type="button" class="btn btn-outline" id="openMapBtn" title="Elegir en el mapa" style="padding: 0 12px;">📍</button>
-          </div>
-          <div id="distanciaHelper" style="font-size: 12px; margin-top: 6px; display: none; color: var(--text-muted); font-weight: 500;"></div>
-          {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Salida <span style="color:var(--danger);">*</span></label>
-            {{ form.hora_inicio }}
-            {% if form.hora_inicio.errors %}<p class="form-error">{{ form.hora_inicio.errors.0 }}</p>{% endif %}
-          </div>
-          <div class="form-group">
-            <label class="form-label">Regreso (estimado)</label>
-            {{ form.hora_fin }}
-            {% if form.hora_fin.errors %}<p class="form-error">{{ form.hora_fin.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Pasajeros <span style="color:var(--danger);">*</span></label>
-            <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="1" id="pasajerosInput"
-              value="{{ form.cant_pasajeros.value|default:'' }}">
-            {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Descripción / Motivo <span style="color:var(--danger);">*</span></label>
-          <textarea name="descripcion" class="form-control" rows="2"
-            placeholder="Motivo del viaje..." required>{{ form.descripcion.value|default:'' }}</textarea>
-          {% if form.descripcion.errors %}<p class="form-error">{{ form.descripcion.errors.0 }}</p>{% endif %}
-        </div>
-        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" name="requiere_chofer" id="requiereChoferCheckbox" 
-                 {% if form.requiere_chofer.value or usuario.id_cargo.nombre == 'Usuario' %}checked{% endif %} 
-                 {% if usuario.id_cargo.nombre == 'Usuario' %}disabled{% endif %} style="width: auto;">
-          <label class="form-label" for="requiereChoferCheckbox" style="margin: 0; cursor: pointer;">Solicitar chofer</label>
-          {% if usuario.id_cargo.nombre == 'Usuario' %}
-            <input type="hidden" name="requiere_chofer" value="on">
-          {% endif %}
-        </div>
-        <div id="choferWarning" style="display: none; color: var(--warning); font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px; background: rgba(232, 160, 32, 0.1); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--warning);">
-          El vehículo seleccionado requiere obligatoriamente la asignación de un chofer autorizado para su uso.
-        </div>
-        <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" name="para_tercero" id="paraTerceroCheckbox" {% if form.para_tercero.value %}checked{% endif %} style="width: auto;">
-          <label class="form-label" for="paraTerceroCheckbox" style="margin: 0; cursor: pointer;">Estoy solicitando un ticket para otra persona</label>
-        </div>
-        <div id="datosTerceroContainer" style="display: none; background: var(--surface2); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
-          <p style="font-size: 0.85rem; color: var(--text); margin-top: 0; margin-bottom: 10px;">Por favor, complete los campos con los datos de la persona para la cual se está solicitando el ticket.</p>
-          <div class="form-group" style="margin-bottom: 10px;">
-            <label class="form-label">Nombre <span style="color:var(--danger);">*</span></label>
-            <input type="text" name="tercero_nombre" id="terceroNombreInput" class="form-control" placeholder="Nombre completo" value="{{ form.tercero_nombre.value|default:'' }}">
-            {% if form.tercero_nombre.errors %}<p class="form-error">{{ form.tercero_nombre.errors.0 }}</p>{% endif %}
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label">Información de contacto (teléfono o correo) <span style="color:var(--danger);">*</span></label>
-            <input type="text" name="tercero_contacto" id="terceroContactoInput" class="form-control" placeholder="Ej: 381-1234567 o correo@ejemplo.com" value="{{ form.tercero_contacto.value|default:'' }}">
-            {% if form.tercero_contacto.errors %}<p class="form-error">{{ form.tercero_contacto.errors.0 }}</p>{% endif %}
-          </div>
-        </div>
-        {% if form.non_field_errors %}
-        <p class="form-error" style="margin-bottom:10px;">{{ form.non_field_errors.0 }}</p>
-        {% endif %}
-        <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span
-            style="color:var(--danger);">*</span> Campos requeridos</p>
-        <button type="submit" class="btn btn-primary" style="width:100%;">Solicitar reserva</button>
-      </form>
-
-      <!-- Map Modal -->
-      <div class="map-modal-overlay" id="mapModal">
-        <div class="map-modal">
-          <div class="map-modal-header">
-            <h3>Ubicación en el Mapa</h3>
-            <button type="button" class="close-modal" id="closeMapBtn">&times;</button>
-          </div>
-          <div id="map"></div>
-          <div style="margin-top: 12px; padding: 10px; background: var(--surface2); color: var(--text); border-radius: 6px; border: 1px solid var(--border); font-size: 0.9rem;">
-            <strong>Destino:</strong> <span id="modalAddressDisplay" style="font-weight: 500;">Buscando ubicación...</span>
-          </div>
-          <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px; margin-bottom: 0;">Hacé clic o arrastrá el marcador para autocompletar la dirección de destino.</p>
-          <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
-            <button type="button" class="btn btn-primary" id="confirmMapBtn">Confirmar Ubicación</button>
-          </div>
-        </div>
+    <div class="card quick-form">
+      <div class="card-header">
+        <span class="card-title">⬡ Nueva reserva</span>
       </div>
-      <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-      <script>
-        // Leaflet Map Initialization
-        let currentLat = -27.4478; // Coordenadas UTN Resistencia por defecto
-        let currentLng = -58.9863;
+      <div class="card-body">
+        <form method="post" action="{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}">
+          {% csrf_token %}
+          <div class="form-group">
+            <label class="form-label">Vehículo <span style="color:var(--danger);">*</span></label>
+            <select name="id_vehiculo" id="vehiculoSelect" class="form-control">
+              <option value="">-- Seleccionar vehículo --</option>
+              {% for v in form.id_vehiculo.field.queryset %}
+              <option value="{{ v.pk }}" data-capacity="{{ v.cant_pasajeros }}"
+                data-req-chofer="{{ v.requiere_chofer|yesno:'true,false' }}" {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
+                {{ v.marca }} {{ v.modelo }} ({{ v.cant_pasajeros }} pas.)
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.id_vehiculo.errors %}<p class="form-error">{{ form.id_vehiculo.errors.0 }}</p>{% endif %}
+            <div id="exclusiveWarning"
+              style="display: none; color: var(--warning); font-size: 0.85rem; margin-top: 8px; background: rgba(232, 160, 32, 0.1); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--warning);">
+              ⚠️ <strong>Atención:</strong> Este vehículo es exclusivo del Decano. Tu reserva puede ser cancelada
+              automáticamente si él requiere utilizarlo.
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Destino <span style="color:var(--danger);">*</span></label>
+            <div class="input-group">
+              <input type="text" name="destino" id="destinoInput" class="form-control"
+                placeholder="Ej: San Martín 1050, San Miguel de Tucumán" value="{{ form.destino.value|default:'' }}">
+              <button type="button" class="btn btn-outline" id="openMapBtn" title="Elegir en el mapa"
+                style="padding: 0 12px;">📍</button>
+            </div>
+            <div id="distanciaHelper"
+              style="font-size: 12px; margin-top: 6px; display: none; color: var(--text-muted); font-weight: 500;">
+            </div>
+            {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Salida <span style="color:var(--danger);">*</span></label>
+              {{ form.hora_inicio }}
+              {% if form.hora_inicio.errors %}<p class="form-error">{{ form.hora_inicio.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="form-group">
+              <label class="form-label">Regreso (estimado)</label>
+              {{ form.hora_fin }}
+              <div id="duracionHelper"
+                style="font-size: 12px; margin-top: 6px; display: none; color: var(--text-muted); font-weight: 500;">
+              </div>
+              {% if form.hora_fin.errors %}<p class="form-error">{{ form.hora_fin.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Pasajeros <span style="color:var(--danger);">*</span></label>
+              <input type="number" name="cant_pasajeros" class="form-control" min="1" placeholder="1"
+                id="pasajerosInput" value="{{ form.cant_pasajeros.value|default:'' }}">
+              {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Descripción / Motivo <span style="color:var(--danger);">*</span></label>
+            <textarea name="descripcion" class="form-control" rows="2" placeholder="Motivo del viaje..."
+              required>{{ form.descripcion.value|default:'' }}</textarea>
+            {% if form.descripcion.errors %}<p class="form-error">{{ form.descripcion.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" name="requiere_chofer" id="requiereChoferCheckbox" {% if form.requiere_chofer.value or usuario.id_cargo.nombre == 'Usuario' %}checked{% endif %} {% if usuario.id_cargo.nombre == 'Usuario' %}disabled{% endif %} style="width: auto;">
+            <label class="form-label" for="requiereChoferCheckbox" style="margin: 0; cursor: pointer;">Solicitar
+              chofer</label>
+            {% if usuario.id_cargo.nombre == 'Usuario' %}
+            <input type="hidden" name="requiere_chofer" value="on">
+            {% endif %}
+          </div>
+          <div id="choferWarning"
+            style="display: none; color: var(--warning); font-size: 0.85rem; margin-top: -10px; margin-bottom: 15px; background: rgba(232, 160, 32, 0.1); padding: 8px 10px; border-radius: 4px; border-left: 3px solid var(--warning);">
+            El vehículo seleccionado requiere obligatoriamente la asignación de un chofer autorizado para su uso.
+          </div>
+          <div class="form-group" style="display: flex; align-items: center; gap: 8px;">
+            <input type="checkbox" name="para_tercero" id="paraTerceroCheckbox" {% if form.para_tercero.value %}checked{% endif %} style="width: auto;">
+            <label class="form-label" for="paraTerceroCheckbox" style="margin: 0; cursor: pointer;">Estoy solicitando un
+              ticket para otra persona</label>
+          </div>
+          <div id="datosTerceroContainer"
+            style="display: none; background: var(--surface2); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border);">
+            <p style="font-size: 0.85rem; color: var(--text); margin-top: 0; margin-bottom: 10px;">Por favor, complete
+              los campos con los datos de la persona para la cual se está solicitando el ticket.</p>
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label class="form-label">Nombre <span style="color:var(--danger);">*</span></label>
+              <input type="text" name="tercero_nombre" id="terceroNombreInput" class="form-control"
+                placeholder="Nombre completo" value="{{ form.tercero_nombre.value|default:'' }}">
+              {% if form.tercero_nombre.errors %}<p class="form-error">{{ form.tercero_nombre.errors.0 }}</p>{% endif %}
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Información de contacto (teléfono o correo) <span
+                  style="color:var(--danger);">*</span></label>
+              <input type="text" name="tercero_contacto" id="terceroContactoInput" class="form-control"
+                placeholder="Ej: 381-1234567 o correo@ejemplo.com" value="{{ form.tercero_contacto.value|default:'' }}">
+              {% if form.tercero_contacto.errors %}<p class="form-error">{{ form.tercero_contacto.errors.0 }}</p>{% endif %}
+            </div>
+          </div>
+          {% if form.non_field_errors %}
+          <p class="form-error" style="margin-bottom:10px;">{{ form.non_field_errors.0 }}</p>
+          {% endif %}
+          <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span
+              style="color:var(--danger);">*</span> Campos requeridos</p>
+          <button type="submit" class="btn btn-primary" style="width:100%;">Solicitar reserva</button>
+        </form>
 
-        const map = L.map('map').setView([currentLat, currentLng], 13);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        <!-- Map Modal -->
+        <div class="map-modal-overlay" id="mapModal">
+          <div class="map-modal">
+            <div class="map-modal-header">
+              <h3>Ubicación en el Mapa</h3>
+              <button type="button" class="close-modal" id="closeMapBtn">&times;</button>
+            </div>
+            <div id="map"></div>
+            <div
+              style="margin-top: 12px; padding: 10px; background: var(--surface2); color: var(--text); border-radius: 6px; border: 1px solid var(--border); font-size: 0.9rem;">
+              <strong>Destino:</strong> <span id="modalAddressDisplay" style="font-weight: 500;">Buscando
+                ubicación...</span>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px; margin-bottom: 0;">Hacé clic o
+              arrastrá el marcador para autocompletar la dirección de destino.</p>
+            <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+              <button type="button" class="btn btn-primary" id="confirmMapBtn">Confirmar Ubicación</button>
+            </div>
+          </div>
+        </div>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+        <script>
+          // Leaflet Map Initialization
+          let currentLat = -27.4512; // Coordenadas UTN Resistencia por defecto
+          let currentLng = -58.9858;
+
+          const map = L.map('map').setView([currentLat, currentLng], 13);
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors, © CARTO'
-        }).addTo(map);
+          }).addTo(map);
 
-        const marker = L.marker([currentLat, currentLng], {draggable: true}).addTo(map);
-        const destinoInput = document.getElementById('destinoInput');
+          const marker = L.marker([currentLat, currentLng], { draggable: true }).addTo(map);
+          const destinoInput = document.getElementById('destinoInput');
 
-        async function reverseGeocode(lat, lng) {
+          async function reverseGeocode(lat, lng) {
             try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
-                const data = await response.json();
-                if (data && data.display_name) {
-                    let address = data.address || {};
-                    let road = address.road || address.pedestrian || address.suburb || data.name || "";
-                    let house_number = address.house_number || "";
-                    let city = address.city || address.town || address.village || "";
-                    
-                    let shortName = road;
-                    if (house_number) {
-                        shortName += " " + house_number;
-                    }
-                    
-                    if (shortName && shortName !== city) {
-                        destinoInput.value = city ? `${shortName}, ${city}` : shortName;
-                    } else if (shortName) {
-                        destinoInput.value = shortName;
-                    } else {
-                        destinoInput.value = data.display_name.split(',').slice(0, 2).join(',');
-                    }
-                    destinoInput.dispatchEvent(new Event('input'));
-                    const addressDisplay = document.getElementById('modalAddressDisplay');
-                    if (addressDisplay) addressDisplay.innerText = destinoInput.value;
-                }
-            } catch (error) {
-                console.error("Error reverse geocoding:", error);
-            }
-        }
+              const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`);
+              const data = await response.json();
+              if (data && data.display_name) {
+                let address = data.address || {};
+                let road = address.road || address.pedestrian || address.suburb || data.name || "";
+                let house_number = address.house_number || "";
+                let city = address.city || address.town || address.village || "";
 
-        function updateCoordinates(lat, lng) {
+                let shortName = road;
+                if (house_number) {
+                  shortName += " " + house_number;
+                }
+
+                if (shortName && shortName !== city) {
+                  destinoInput.value = city ? `${shortName}, ${city}` : shortName;
+                } else if (shortName) {
+                  destinoInput.value = shortName;
+                } else {
+                  destinoInput.value = data.display_name.split(',').slice(0, 2).join(',');
+                }
+                destinoInput.dispatchEvent(new Event('input'));
+                const addressDisplay = document.getElementById('modalAddressDisplay');
+                if (addressDisplay) addressDisplay.innerText = destinoInput.value;
+              }
+            } catch (error) {
+              console.error("Error reverse geocoding:", error);
+            }
+          }
+
+          function updateCoordinates(lat, lng) {
             currentLat = lat;
             currentLng = lng;
             reverseGeocode(lat, lng);
-        }
+          }
 
-        marker.on('dragend', function(e) {
+          marker.on('dragend', function (e) {
             const position = marker.getLatLng();
             updateCoordinates(position.lat, position.lng);
-        });
+          });
 
-        map.on('click', function(e) {
+          map.on('click', function (e) {
             marker.setLatLng(e.latlng);
             updateCoordinates(e.latlng.lat, e.latlng.lng);
-        });
+          });
 
-        const mapModal = document.getElementById('mapModal');
-        const openMapBtn = document.getElementById('openMapBtn');
-        const closeMapBtn = document.getElementById('closeMapBtn');
-        const confirmMapBtn = document.getElementById('confirmMapBtn');
+          const mapModal = document.getElementById('mapModal');
+          const openMapBtn = document.getElementById('openMapBtn');
+          const closeMapBtn = document.getElementById('closeMapBtn');
+          const confirmMapBtn = document.getElementById('confirmMapBtn');
 
-        openMapBtn.addEventListener('click', function() {
+          openMapBtn.addEventListener('click', function () {
             mapModal.style.display = 'flex';
             setTimeout(() => { map.invalidateSize(); }, 100);
             const addressDisplay = document.getElementById('modalAddressDisplay');
             if (addressDisplay) {
-                addressDisplay.innerText = destinoInput.value || 'Buscando ubicación...';
+              addressDisplay.innerText = destinoInput.value || 'Buscando ubicación...';
             }
-        });
+          });
 
-        function closeMap() {
+          function closeMap() {
             mapModal.style.display = 'none';
-        }
+          }
 
-        closeMapBtn.addEventListener('click', closeMap);
-        confirmMapBtn.addEventListener('click', closeMap);
+          closeMapBtn.addEventListener('click', closeMap);
+          confirmMapBtn.addEventListener('click', closeMap);
 
-        mapModal.addEventListener('click', function(e) {
+          mapModal.addEventListener('click', function (e) {
             if (e.target === mapModal) {
-                closeMap();
+              closeMap();
             }
-        });
-        const vehiculoSelect = document.querySelector('select[name="id_vehiculo"]');
-        const pasajerosInput = document.getElementById('pasajerosInput');
-        const exclusiveWarning = document.getElementById('exclusiveWarning');
-        const exclusivosIds = {{ exclusivos_ids|default:"[]"|safe }};
-        const usuarioPrioridad = {{ usuario.id_cargo.prioridad|default:99 }};
+          });
+          const vehiculoSelect = document.querySelector('select[name="id_vehiculo"]');
+          const pasajerosInput = document.getElementById('pasajerosInput');
+          const exclusiveWarning = document.getElementById('exclusiveWarning');
+          const exclusivosIds = {{ exclusivos_ids|default:"[]"|safe }};
+          const usuarioPrioridad = {{ usuario.id_cargo.prioridad|default:99 }};
 
-        function updateMaxPassengers() {
-          const selectedOption = vehiculoSelect.options[vehiculoSelect.selectedIndex];
-          if (!selectedOption || !selectedOption.value) {
-            if(exclusiveWarning) exclusiveWarning.style.display = 'none';
-            return;
-          }
-          
-          const capacity = selectedOption.getAttribute('data-capacity');
+          function updateMaxPassengers() {
+            const selectedOption = vehiculoSelect.options[vehiculoSelect.selectedIndex];
+            if (!selectedOption || !selectedOption.value) {
+              if (exclusiveWarning) exclusiveWarning.style.display = 'none';
+              return;
+            }
 
-          if (capacity) {
-            pasajerosInput.max = capacity;
-            pasajerosInput.placeholder = '1 - ' + capacity;
-          } else {
-            pasajerosInput.removeAttribute('max');
-            pasajerosInput.placeholder = '1';
-          }
-          
-          // Mostrar warning si es vehículo exclusivo y el usuario no es el Decano
-          const selectedId = parseInt(selectedOption.value);
-          if (exclusivosIds.includes(selectedId) && usuarioPrioridad > 1) {
-            exclusiveWarning.style.display = 'block';
-          } else {
-            exclusiveWarning.style.display = 'none';
-          }
+            const capacity = selectedOption.getAttribute('data-capacity');
 
-          // Lógica para requiere_chofer
-          const reqChofer = selectedOption.getAttribute('data-req-chofer') === 'true';
-          const choferCheckbox = document.getElementById('requiereChoferCheckbox');
-          const choferWarning = document.getElementById('choferWarning');
-          const isUsuarioGeneral = '{{ usuario.id_cargo.nombre }}' === 'Usuario';
-          
-          if (choferCheckbox && choferWarning) {
-            if (reqChofer) {
-              choferCheckbox.checked = true;
-              choferCheckbox.disabled = true;
-              choferWarning.style.display = 'block';
+            if (capacity) {
+              pasajerosInput.max = capacity;
+              pasajerosInput.placeholder = '1 - ' + capacity;
             } else {
-              if (isUsuarioGeneral) {
+              pasajerosInput.removeAttribute('max');
+              pasajerosInput.placeholder = '1';
+            }
+
+            // Mostrar warning si es vehículo exclusivo y el usuario no es el Decano
+            const selectedId = parseInt(selectedOption.value);
+            if (exclusivosIds.includes(selectedId) && usuarioPrioridad > 1) {
+              exclusiveWarning.style.display = 'block';
+            } else {
+              exclusiveWarning.style.display = 'none';
+            }
+
+            // Lógica para requiere_chofer
+            const reqChofer = selectedOption.getAttribute('data-req-chofer') === 'true';
+            const choferCheckbox = document.getElementById('requiereChoferCheckbox');
+            const choferWarning = document.getElementById('choferWarning');
+            const isUsuarioGeneral = '{{ usuario.id_cargo.nombre }}' === 'Usuario';
+
+            if (choferCheckbox && choferWarning) {
+              if (reqChofer) {
                 choferCheckbox.checked = true;
                 choferCheckbox.disabled = true;
-                choferWarning.style.display = 'none';
+                choferWarning.style.display = 'block';
               } else {
-                choferCheckbox.disabled = false;
-                choferWarning.style.display = 'none';
+                if (isUsuarioGeneral) {
+                  choferCheckbox.checked = true;
+                  choferCheckbox.disabled = true;
+                  choferWarning.style.display = 'none';
+                } else {
+                  choferCheckbox.disabled = false;
+                  choferWarning.style.display = 'none';
+                }
               }
             }
           }
-        }
 
-        vehiculoSelect.addEventListener('change', updateMaxPassengers);
-        // Set max and warning on page load if vehicle is already selected
-        updateMaxPassengers();
+          vehiculoSelect.addEventListener('change', updateMaxPassengers);
+          // Set max and warning on page load if vehicle is already selected
+          updateMaxPassengers();
 
-        // Guardar datos en localStorage para evitar pérdida al recargar
-        const formInputs = document.querySelectorAll('input[name="destino"], input[name="hora_inicio"], input[name="hora_fin"], input[name="cant_pasajeros"], textarea[name="descripcion"]');
+          // Guardar datos en localStorage para evitar pérdida al recargar
+          const formInputs = document.querySelectorAll('input[name="destino"], input[name="hora_inicio"], input[name="hora_fin"], input[name="cant_pasajeros"], textarea[name="descripcion"]');
 
-        formInputs.forEach(input => {
-          const saved = localStorage.getItem('form_' + input.name);
-          // Solo cargar si el input no tiene valor o si tiene errores de validación no pisarlo?
-          // Si el input está vacío, intentar cargar de localStorage
-          if (saved && !input.value) {
-            input.value = saved;
-          }
-          input.addEventListener('input', function () {
-            localStorage.setItem('form_' + input.name, this.value);
+          formInputs.forEach(input => {
+            const saved = localStorage.getItem('form_' + input.name);
+            // Solo cargar si el input no tiene valor o si tiene errores de validación no pisarlo?
+            // Si el input está vacío, intentar cargar de localStorage
+            if (saved && !input.value) {
+              input.value = saved;
+            }
+            input.addEventListener('input', function () {
+              localStorage.setItem('form_' + input.name, this.value);
+            });
           });
-        });
 
-        // Limpiar localStorage al enviar el formulario con éxito
-        document.querySelector('form').addEventListener('submit', function () {
-          // Limpiamos si queremos que la prox vez esté vacío
-          // formInputs.forEach(input => localStorage.removeItem('form_' + input.name));
-        });
+          // Limpiar localStorage al enviar el formulario con éxito
+          document.querySelector('form').addEventListener('submit', function () {
+            // Limpiamos si queremos que la prox vez esté vacío
+            // formInputs.forEach(input => localStorage.removeItem('form_' + input.name));
+          });
 
-        // Aplicar fecha mínima (anticipación de 5 días)
-        {% if not request.session.es_admin and fecha_minima_str %}
-        const horaInicioInput = document.querySelector('input[name="hora_inicio"]');
-        if (horaInicioInput) {
+          // Aplicar fecha mínima (anticipación de 5 días)
+          {% if not request.session.es_admin and fecha_minima_str %}
+          const horaInicioInput = document.querySelector('input[name="hora_inicio"]');
+          if (horaInicioInput) {
             horaInicioInput.min = '{{ fecha_minima_str }}';
-        }
-        {% endif %}
+          }
+          {% endif %}
 
-        // Autocompletado de distancia
-        let timeoutId = null;
-        const distanciaHelper = document.getElementById('distanciaHelper');
+          // Autocompletado de distancia
+          let timeoutId = null;
+          const distanciaHelper = document.getElementById('distanciaHelper');
+          const duracionHelper = document.getElementById('duracionHelper');
 
-        function calcularDistanciaEnVivo() {
+          function calcularDistanciaEnVivo() {
             const dest = destinoInput.value.trim();
             if (!dest) {
-                distanciaHelper.style.display = 'none';
-                return;
+              distanciaHelper.style.display = 'none';
+              if (duracionHelper) duracionHelper.style.display = 'none';
+              return;
             }
             distanciaHelper.innerText = 'Calculando distancia...';
             distanciaHelper.style.display = 'block';
             distanciaHelper.style.color = 'var(--text-muted)';
-            
-            fetch(`/api/calcular-distancia/?q=${encodeURIComponent(dest)}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.distancia_est > 0) {
-                        distanciaHelper.innerText = `Distancia calculada: ${data.distancia_est} km (ida y vuelta aprox)`;
-                        distanciaHelper.style.color = 'var(--success)';
-                    } else {
-                        distanciaHelper.innerText = 'No se pudo calcular la distancia (destino genérico).';
-                        distanciaHelper.style.color = 'var(--warning)';
-                    }
-                })
-                .catch(e => {
-                    distanciaHelper.style.display = 'none';
-                });
-        }
+            if (duracionHelper) {
+              duracionHelper.style.display = 'none';
+            }
 
-        destinoInput.addEventListener('input', function() {
+            fetch(`/api/calcular-distancia/?q=${encodeURIComponent(dest)}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.distancia_est > 0) {
+                  distanciaHelper.innerText = `Distancia calculada: ${data.distancia_est} km (ida y vuelta aprox)`;
+                  distanciaHelper.style.color = 'var(--success)';
+
+                  if (duracionHelper && data.duracion_segundos > 0) {
+                    const duracionSeg = data.duracion_segundos;
+                    const horas = Math.floor(duracionSeg / 3600);
+                    const minutos = Math.floor((duracionSeg % 3600) / 60);
+                    let tiempoTexto = '';
+                    if (horas > 0) tiempoTexto += `${horas} hs `;
+                    tiempoTexto += `${minutos} mins`;
+
+                    duracionHelper.innerText = `Tiempo de ida y vuelta: ${tiempoTexto}`;
+                    duracionHelper.style.display = 'block';
+
+                    const horaInicioInput = document.querySelector('input[name="hora_inicio"]');
+                    const horaFinInput = document.querySelector('input[name="hora_fin"]');
+                    if (horaInicioInput && horaInicioInput.value && horaFinInput) {
+                      const fechaInicio = new Date(horaInicioInput.value);
+                      if (!isNaN(fechaInicio.getTime())) {
+                        const fechaFin = new Date(fechaInicio.getTime() + duracionSeg * 1000);
+                        const y = fechaFin.getFullYear();
+                        const m = String(fechaFin.getMonth() + 1).padStart(2, '0');
+                        const d = String(fechaFin.getDate()).padStart(2, '0');
+                        const h = String(fechaFin.getHours()).padStart(2, '0');
+                        const mi = String(fechaFin.getMinutes()).padStart(2, '0');
+                        horaFinInput.value = `${y}-${m}-${d}T${h}:${mi}`;
+                        localStorage.setItem('form_hora_fin', horaFinInput.value);
+                      }
+                    }
+                  }
+                } else {
+                  distanciaHelper.innerText = 'No se pudo calcular la distancia (destino genérico).';
+                  distanciaHelper.style.color = 'var(--warning)';
+                }
+              })
+              .catch(e => {
+                distanciaHelper.style.display = 'none';
+                if (duracionHelper) duracionHelper.style.display = 'none';
+              });
+          }
+
+          destinoInput.addEventListener('input', function () {
             clearTimeout(timeoutId);
             timeoutId = setTimeout(calcularDistanciaEnVivo, 1000); // 1s debounce
-        });
-        
-        if (destinoInput.value) {
+          });
+
+          const horaInicioInputObj = document.querySelector('input[name="hora_inicio"]');
+          if (horaInicioInputObj) {
+            horaInicioInputObj.addEventListener('change', function () {
+              if (destinoInput.value.trim()) {
+                calcularDistanciaEnVivo();
+              }
+            });
+          }
+
+          if (destinoInput.value) {
             calcularDistanciaEnVivo();
-        }
-
-        // Recargar con el vehículo seleccionado
-        vehiculoSelect.addEventListener('change', function () {
-          updateMaxPassengers();
-          const v = this.value;
-          if (v) {
-            window.location.href = "?vehiculo=" + v;
-          } else {
-            window.location.href = "?";
           }
-        });
 
-        function selectDateAndNavigate(anio, mes, dia, vehiculo) {
-          const dStr = anio + "-" + String(mes).padStart(2, '0') + "-" + String(dia).padStart(2, '0');
-          const input = document.querySelector('input[name="hora_inicio"]');
-          if (input) {
-            let timePart = "08:00"; // default
-            if (input.value) {
-               const parts = input.value.split("T");
-               if (parts.length > 1) {
-                  timePart = parts[1];
-               }
-            }
-            const newVal = dStr + "T" + timePart;
-            input.value = newVal;
-            localStorage.setItem('form_hora_inicio', newVal);
-          }
-          window.location.href = '?vehiculo=' + vehiculo + '&anio=' + anio + '&mes=' + mes + '&dia=' + dia;
-        }
-
-        // Lógica para terceros
-        const paraTerceroCheckbox = document.getElementById('paraTerceroCheckbox');
-        const datosTerceroContainer = document.getElementById('datosTerceroContainer');
-        const terceroNombreInput = document.getElementById('terceroNombreInput');
-        const terceroContactoInput = document.getElementById('terceroContactoInput');
-
-        function toggleTerceros() {
-            if (paraTerceroCheckbox.checked) {
-                datosTerceroContainer.style.display = 'block';
-                terceroNombreInput.required = true;
-                terceroContactoInput.required = true;
+          // Recargar con el vehículo seleccionado
+          vehiculoSelect.addEventListener('change', function () {
+            updateMaxPassengers();
+            const v = this.value;
+            if (v) {
+              window.location.href = "?vehiculo=" + v;
             } else {
-                datosTerceroContainer.style.display = 'none';
-                terceroNombreInput.required = false;
-                terceroContactoInput.required = false;
+              window.location.href = "?";
             }
-        }
+          });
 
-        if (paraTerceroCheckbox) {
+          function selectDateAndNavigate(anio, mes, dia, vehiculo) {
+            const dStr = anio + "-" + String(mes).padStart(2, '0') + "-" + String(dia).padStart(2, '0');
+            const input = document.querySelector('input[name="hora_inicio"]');
+            if (input) {
+              let timePart = "08:00"; // default
+              if (input.value) {
+                const parts = input.value.split("T");
+                if (parts.length > 1) {
+                  timePart = parts[1];
+                }
+              }
+              const newVal = dStr + "T" + timePart;
+              input.value = newVal;
+              localStorage.setItem('form_hora_inicio', newVal);
+            }
+            window.location.href = '?vehiculo=' + vehiculo + '&anio=' + anio + '&mes=' + mes + '&dia=' + dia;
+          }
+
+          // Lógica para terceros
+          const paraTerceroCheckbox = document.getElementById('paraTerceroCheckbox');
+          const datosTerceroContainer = document.getElementById('datosTerceroContainer');
+          const terceroNombreInput = document.getElementById('terceroNombreInput');
+          const terceroContactoInput = document.getElementById('terceroContactoInput');
+
+          function toggleTerceros() {
+            if (paraTerceroCheckbox.checked) {
+              datosTerceroContainer.style.display = 'block';
+              terceroNombreInput.required = true;
+              terceroContactoInput.required = true;
+            } else {
+              datosTerceroContainer.style.display = 'none';
+              terceroNombreInput.required = false;
+              terceroContactoInput.required = false;
+            }
+          }
+
+          if (paraTerceroCheckbox) {
             paraTerceroCheckbox.addEventListener('change', toggleTerceros);
             toggleTerceros(); // Llamada inicial
-        }
+          }
 
-        // Scroll to calendar or timeline on mobile
-        // Only do this on GET requests, not on POST (form submission errors)
-        document.addEventListener("DOMContentLoaded", function() {
+          // Scroll to calendar or timeline on mobile
+          // Only do this on GET requests, not on POST (form submission errors)
+          document.addEventListener("DOMContentLoaded", function () {
             const isPost = "{{ request.method }}" === "POST";
             if (window.innerWidth <= 768 && !isPost) {
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.has('dia')) {
-                    const timelineSection = document.getElementById('timeline-section');
-                    if (timelineSection) {
-                        setTimeout(() => {
-                            timelineSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 200);
-                    }
-                } else if (urlParams.has('vehiculo')) {
-                    const calSection = document.getElementById('calendario-section');
-                    if (calSection) {
-                        setTimeout(() => {
-                            calSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }, 200);
-                    }
+              const urlParams = new URLSearchParams(window.location.search);
+              if (urlParams.has('dia')) {
+                const timelineSection = document.getElementById('timeline-section');
+                if (timelineSection) {
+                  setTimeout(() => {
+                    timelineSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 200);
                 }
+              } else if (urlParams.has('vehiculo')) {
+                const calSection = document.getElementById('calendario-section');
+                if (calSection) {
+                  setTimeout(() => {
+                    calSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 200);
+                }
+              }
             }
-        });
-      </script>
+          });
+        </script>
+      </div>
     </div>
-  </div>
   </div>
 
   <!-- Panel lateral con Calendario y Timeline -->
@@ -497,9 +607,13 @@
           {% if day == 0 %}
           <div class="cal-day empty"></div>
           {% elif day in dias_feriados %}
-          <div class="cal-day disabled-day" style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;" title="Feriado (No disponible)">{{ day }}</div>
+          <div class="cal-day disabled-day"
+            style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;"
+            title="Feriado (No disponible)">{{ day }}</div>
           {% elif not request.session.es_admin and day in dias_inhabilitados %}
-          <div class="cal-day disabled-day" style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;" title="No disponible (se requiere anticipación)">{{ day }}</div>
+          <div class="cal-day disabled-day"
+            style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;"
+            title="No disponible (se requiere anticipación)">{{ day }}</div>
           {% else %}
           <div class="cal-day
                   {% for rd in dias_con_reservas %}{% if rd.day == day and rd.month == mes and rd.year == anio %}has-reservas{% endif %}{% endfor %}
@@ -550,17 +664,22 @@
       </div>
 
       <!-- Margen entre reservas (gris) -->
-      <div class="timeline-overlay" style="position: absolute; top: 8px; left: 56px; right: 0; bottom: 0; pointer-events: none;">
+      <div class="timeline-overlay"
+        style="position: absolute; top: 8px; left: 56px; right: 0; bottom: 0; pointer-events: none;">
         {% for m in margenes_dia %}
-        <div style="position:absolute; top:{{ m.top_px }}px; height:{{ m.height_px }}px; left:0; right:10px; background: repeating-linear-gradient(135deg, #bbb, #bbb 6px, #ccc 6px, #ccc 12px); opacity:0.85; border-radius:4px;"></div>
+        <div
+          style="position:absolute; top:{{ m.top_px }}px; height:{{ m.height_px }}px; left:0; right:10px; background: repeating-linear-gradient(135deg, #bbb, #bbb 6px, #ccc 6px, #ccc 12px); opacity:0.85; border-radius:4px;">
+        </div>
         {% endfor %}
       </div>
 
       <!-- Tickets Overlay -->
-      <div class="timeline-overlay" style="position: absolute; top: 8px; left: 56px; right: 0; bottom: 0; pointer-events: none;">
+      <div class="timeline-overlay"
+        style="position: absolute; top: 8px; left: 56px; right: 0; bottom: 0; pointer-events: none;">
         {% for t in tickets_dia %}
         {% if t.height_px > 0 %}
-        <div class="reservation-block" style="top: {{ t.top_px }}px; height: {{ t.height_px }}px; left: 0; right: 10px; pointer-events: auto;">
+        <div class="reservation-block"
+          style="top: {{ t.top_px }}px; height: {{ t.height_px }}px; left: 0; right: 10px; pointer-events: auto;">
           <div class="res-times">{{ t.hora_inicio|date:"H:i" }} → {% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}?{% endif %}</div>
           {% if request.session.es_admin or t.id_usuario.pk == usuario.pk %}
           <div class="res-dest">{{ t.destino }}</div>

@@ -38,3 +38,6 @@ Icon?
 
 # my tests
 scripts/
+
+#agents
+.agents/
