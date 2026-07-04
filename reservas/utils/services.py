@@ -375,7 +375,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
 
     # ── Regla: Permiso de emergencia (baja temporal o prioridad) ────────────────────────────
     # Si el usuario tiene un permiso de emergencia vigente y la hora_inicio cae dentro
-    # de los próximos 5 días, se saltea la restricción de anticipación mínima (una sola vez).
+    # de los próximos días, se saltea la restricción de anticipación mínima (una sola vez).
     from ..models import PermisoReservaExtraordinaria
     permiso_emergencia = None
     tiene_permiso_activo = False
@@ -505,8 +505,8 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         # Permiso de emergencia si la salida era en los próximos dias_cancelacion días
         hoy_local = get_localdate()
         salida_date = t_existente.hora_inicio.date() if hasattr(t_existente.hora_inicio, 'date') else t_existente.hora_inicio
-        tiene_permiso_5dias = salida_date <= hoy_local + timedelta(days=dias_cancelacion)
-        if tiene_permiso_5dias:
+        tiene_permiso_excepcional = salida_date <= hoy_local + timedelta(days=dias_cancelacion)
+        if tiene_permiso_excepcional:
             PermisoReservaExtraordinaria.objects.create(
                 usuario=t_existente.id_usuario,
                 ticket_cancelado=t_existente,
@@ -525,7 +525,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
                 if nuevo_ticket_prioridad:
                     notify_priority_reassigned(t_existente, nuevo_ticket_prioridad)
                 else:
-                    notify_priority_cancelled(t_existente, tiene_permiso_5dias=tiene_permiso_5dias)
+                    notify_priority_cancelled(t_existente, tiene_permiso=tiene_permiso_excepcional, dias_gracia=dias_cancelacion)
                 correos_notificados.add(correo_usuario)
             except Exception:
                 pass
@@ -564,7 +564,7 @@ def cancelar_ticket_usuario(ticket, usuario):
     """
     Permite a un usuario cancelar su propio ticket si falta tiempo suficiente.
     
-    Regla: Cancelación permitida hasta 5 días antes del inicio.
+    Regla: Cancelación permitida según configuración global de días de anticipación.
     
     Args:
         ticket (Ticket): El ticket a cancelar.
@@ -825,8 +825,8 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
             cancelados += 1
             # Solo si NO se pudo reasignar, otorgar permiso de emergencia (si aplica)
             salida_date = ticket.hora_inicio.date() if hasattr(ticket.hora_inicio, 'date') else ticket.hora_inicio
-            tiene_permiso_5dias = salida_date <= hoy + timedelta(days=dias_cancelacion)
-            if tiene_permiso_5dias:
+            tiene_permiso_excepcional = salida_date <= hoy + timedelta(days=dias_cancelacion)
+            if tiene_permiso_excepcional:
                 PermisoReservaExtraordinaria.objects.create(
                     usuario=ticket.id_usuario,
                     ticket_cancelado=ticket,
@@ -837,7 +837,8 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
                 notify_vehicle_inactive_cancelled(
                     ticket,
                     inactivo_hasta=inactivo_hasta,
-                    tiene_permiso_5dias=tiene_permiso_5dias,
+                    tiene_permiso=tiene_permiso_excepcional,
+                    dias_gracia=dias_cancelacion
                 )
             except Exception:
                 pass

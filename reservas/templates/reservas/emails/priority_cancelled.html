@@ -20,10 +20,10 @@
 
 <p><strong>Motivo:</strong> Tu reserva fue desplazada por una solicitud de un área jerárquica prioritaria para el mismo vehículo y franja horaria.</p>
 
-{% if tiene_permiso_5dias %}
+{% if tiene_permiso %}
 <div class="meta" style="border-color: #558bba; background: rgba(85, 139, 186, 0.1);">
     <p style="color: #558bba; font-weight: bold; margin-top: 0;">Permiso Excepcional de Reserva</p>
-    <p style="margin-bottom: 0;">Debido a la cercanía de tu viaje original, te hemos otorgado un permiso especial. <strong>Puedes ingresar al sistema y crear una nueva reserva de forma inmediata</strong> para los próximos 5 días, sin la restricción habitual de anticipación.</p>
+    <p style="margin-bottom: 0;">Debido a la cercanía de tu viaje original, te hemos otorgado un permiso especial. <strong>Puedes ingresar al sistema y crear una nueva reserva de forma inmediata</strong> para los próximos {{ dias_gracia }} días, sin la restricción habitual de anticipación.</p>
 </div>
 {% else %}
 <p>Por favor, ingresa al sistema para gestionar una nueva reserva en otra fecha o consultar la disponibilidad de otros vehículos.</p>

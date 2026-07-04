@@ -406,7 +406,7 @@
             // formInputs.forEach(input => localStorage.removeItem('form_' + input.name));
           });
 
-          // Aplicar fecha mínima (anticipación de 5 días)
+          // Aplicar fecha mínima (anticipación dinámica)
           {% if not request.session.es_admin and fecha_minima_str %}
           const horaInicioInput = document.querySelector('input[name="hora_inicio"]');
           if (horaInicioInput) {

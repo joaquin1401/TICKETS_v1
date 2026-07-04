@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from reservas.models import Cargo, Usuario, Vehiculo, Ticket, PermisoReservaExtraordinaria
+from reservas.models import Cargo, Usuario, Vehiculo, Ticket, PermisoReservaExtraordinaria, ConfiguracionGlobal
 from reservas.utils.services import crear_ticket_con_reglas, ResultadoCreacion, dar_baja_temporal_vehiculo, _reasignar_ticket
 from reservas.forms import TicketForm
 
@@ -181,7 +181,7 @@ class TestBajaTemporalVehiculo(TestCase):
 
     def test_baja_con_reasignacion_no_crea_permiso(self):
         """dar_baja_temporal NO debe crear PermisoReservaExtraordinaria si el ticket se reasignó."""
-        inicio = self.ahora + timedelta(hours=8)  # Hoy mismo (dentro de 5 días)
+        inicio = self.ahora + timedelta(hours=8)  # Hoy mismo (dentro de los días de gracia)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
             id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
@@ -197,11 +197,11 @@ class TestBajaTemporalVehiculo(TestCase):
         self.assertEqual(permisos.count(), 0)
 
     def test_baja_sin_reasignacion_si_crea_permiso_dentro_5dias(self):
-        """dar_baja_temporal SÍ crea PermisoReservaExtraordinaria si NO hay reasignación y está dentro de 5 días."""
+        """dar_baja_temporal SÍ crea PermisoReservaExtraordinaria si NO hay reasignación y está dentro de los días de gracia."""
         # vehiculo2 no disponible → no habrá reasignación
         self.vehiculo2.activo = False
         self.vehiculo2.save()
-        inicio = self.ahora + timedelta(hours=8)  # Hoy mismo (dentro de 5 días)
+        inicio = self.ahora + timedelta(hours=8)  # Hoy mismo (dentro de los días de gracia)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
             id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
@@ -217,11 +217,13 @@ class TestBajaTemporalVehiculo(TestCase):
         self.assertFalse(permisos.first().usado)
 
     def test_baja_sin_reasignacion_no_crea_permiso_fuera_5dias(self):
-        """dar_baja_temporal NO crea PermisoReservaExtraordinaria si NO hay reasignación pero está fuera de 5 días."""
+        """dar_baja_temporal NO crea PermisoReservaExtraordinaria si NO hay reasignación pero está fuera de los días de gracia."""
         # vehiculo2 no disponible → no habrá reasignación
         self.vehiculo2.activo = False
         self.vehiculo2.save()
-        inicio = self.ahora + timedelta(days=7)  # Fuera de 5 días, dentro de 10
+        config = ConfiguracionGlobal.get_solo()
+        dias_gracia = config.dias_anticipacion_cancelacion
+        inicio = self.ahora + timedelta(days=dias_gracia + 1)  # Fuera de los días de gracia
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
             id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
@@ -231,13 +233,13 @@ class TestBajaTemporalVehiculo(TestCase):
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 10, self.admin)
         self.assertEqual(resultado["cancelados"], 1)
         self.assertEqual(resultado["reasignados"], 0)
-        # NO debe haber permiso porque está fuera de 5 días
+        # NO debe haber permiso porque está fuera de los días de gracia
         permisos = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario)
         self.assertEqual(permisos.count(), 0)
 
 
 class TestPermisoReservaExtraordinaria(TestCase):
-    """Pruebas para el modelo PermisoReservaExtraordinaria (permiso de emergencia 5 días)."""
+    """Pruebas para el modelo PermisoReservaExtraordinaria (permiso de emergencia)."""
 
     def setUp(self):
         self.cargo_usuario = get_cargo(Cargo.USUARIO, 3)

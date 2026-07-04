@@ -105,7 +105,7 @@ class TestReglasNegocioTickets(TestCase):
         self.assertEqual(res_valido.estado, ResultadoCreacion.OK)
 
     def test_cancelacion_5_dias(self):
-        """Cancelación permitida hasta 5 días antes de la fecha."""
+        """Cancelación permitida hasta los días de anticipación antes de la fecha."""
         # Setup tickets
         inicio_lejos = self.ahora + timedelta(days=10)
         inicio_cerca = self.ahora + timedelta(days=4)

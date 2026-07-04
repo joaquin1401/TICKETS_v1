@@ -52,8 +52,15 @@ def send_reminder(ticket, kind):
     NotificationLog.objects.create(ticket=ticket, notification_type=kind)
 
 
-def notify_vehicle_inactive_cancelled(ticket, inactivo_hasta, tiene_permiso_5dias=False):
-    """Notifica cancelación por baja temporal sin reasignación."""
+def notify_vehicle_inactive_cancelled(ticket, inactivo_hasta, tiene_permiso=False, dias_gracia=None):
+    """
+    Notifica cancelación por baja temporal sin reasignación.
+    
+    Nota sobre `dias_gracia`: Se define como `None` por defecto en la firma
+    (en lugar de un valor estático) para satisfacer las reglas sintácticas de
+    Python respecto a parámetros con valor por defecto, ya que se espera que 
+    su valor real sea proveído siempre desde la lógica llamadora (services).
+    """
     if NotificationLog.objects.filter(ticket=ticket, notification_type=NotificationLog.TYPE_VEHICLE_INACTIVE).exists():
         return
 
@@ -61,7 +68,8 @@ def notify_vehicle_inactive_cancelled(ticket, inactivo_hasta, tiene_permiso_5dia
         "ticket": ticket,
         "usuario": ticket.id_usuario,
         "inactivo_hasta": inactivo_hasta,
-        "tiene_permiso_5dias": tiene_permiso_5dias,
+        "tiene_permiso": tiene_permiso,
+        "dias_gracia": dias_gracia,
         "site_url": getattr(settings, "SITE_URL", "http://localhost:8000")
     }
     subject = f"Aviso Importante: Reserva #{ticket.pk} Cancelada por Baja de Vehículo"
@@ -85,15 +93,22 @@ def notify_vehicle_inactive_reassigned(ticket_original, nuevo_ticket):
     NotificationLog.objects.create(ticket=ticket_original, notification_type=NotificationLog.TYPE_REASSIGNED)
 
 
-def notify_priority_cancelled(ticket, tiene_permiso_5dias=False):
-    """Notifica cancelación por prioridad de jerarquía con template amigable."""
+def notify_priority_cancelled(ticket, tiene_permiso=False, dias_gracia=None):
+    """
+    Notifica cancelación por prioridad de jerarquía con template amigable.
+    
+    Nota sobre `dias_gracia`: Se usa `None` por defecto por requerimiento
+    sintáctico de Python. El servicio que invoca esta función debe
+    pasar el valor correcto extraído de la configuración.
+    """
     if NotificationLog.objects.filter(ticket=ticket, notification_type=NotificationLog.TYPE_PRIORITY_CANCELLED).exists():
         return
 
     ctx = {
         "ticket": ticket,
         "usuario": ticket.id_usuario,
-        "tiene_permiso_5dias": tiene_permiso_5dias,
+        "tiene_permiso": tiene_permiso,
+        "dias_gracia": dias_gracia,
         "site_url": getattr(settings, "SITE_URL", "http://localhost:8000")
     }
     subject = f"⚠️ Reserva Cancelada: {ticket.id_vehiculo}"

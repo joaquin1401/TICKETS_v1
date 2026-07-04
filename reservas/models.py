@@ -667,18 +667,18 @@ class Feriado(models.Model):
 class PermisoReservaExtraordinaria(models.Model):
     """
     Otorga a un usuario el derecho excepcional de crear una reserva dentro de los
-    próximos 5 días, sin cumplir la restricción de anticipación mínima configurable.
+    próximos días de anticipación, sin cumplir la restricción de anticipación mínima configurable.
 
     Se genera automáticamente cuando:
       1. El vehículo de un ticket futuro es dado de baja temporal.
       2. Un ticket es cancelado por prioridad de un usuario con mayor jerarquía.
 
     En ambos casos, solo aplica si la fecha de salida original estaba
-    dentro de los próximos 5 días desde el momento de la cancelación.
+    dentro de los días configurados desde el momento de la cancelación.
 
     Reglas de uso:
       - Solo puede usarse UNA vez (campo `usado`).
-      - Expira en `valido_hasta` (5 días desde la cancelación).
+      - Expira en `valido_hasta` (según los días de anticipación de configuración).
       - No habilita reservar más de una vez ni extender la ventana.
 
     Attributes:
@@ -715,7 +715,7 @@ class PermisoReservaExtraordinaria(models.Model):
         help_text="Razón por la que se generó el permiso excepcional."
     )
     valido_hasta = models.DateField(
-        help_text="Último día en el que el permiso puede usarse (5 días desde la cancelación)."
+        help_text="Último día en el que el permiso puede usarse (calculado en base a la configuración global)."
     )
     usado = models.BooleanField(
         default=False,
