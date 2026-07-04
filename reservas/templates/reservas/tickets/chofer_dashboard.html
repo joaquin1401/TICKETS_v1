@@ -63,6 +63,7 @@
             <input type="time" name="hora_fin_real" class="form-control" required
               style="padding: 6px 10px; font-size: 14px;" data-hora-fin="{% if t.hora_fin %}{{ t.hora_fin|date:'c' }}{% endif %}">
           </div>
+        </div>
         <div id="justificacion_container_{{ t.pk }}" data-hora-fin="{% if t.hora_fin %}{{ t.hora_fin|date:'c' }}{% endif %}" style="margin-bottom: 12px; display: none;">
           <label class="form-label" style="font-size: 12px; color: var(--warning);">Justificación (obligatoria por +2h de retraso)</label>
           <textarea name="justificacion_retraso" id="justificacion_input_{{ t.pk }}" class="form-control" rows="2" style="padding: 6px 10px; font-size: 14px;"></textarea>
