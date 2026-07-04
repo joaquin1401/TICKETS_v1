@@ -561,6 +561,7 @@ def inicio(request):
     config = ConfiguracionGlobal.get_solo()
     dias_anticipacion = config.dias_anticipacion_reservas
     dias_cancelacion = config.dias_anticipacion_cancelacion
+    dias_maximos = config.dias_maximo_anticipacion_reservas
     from django.utils import timezone
     fecha_minima = timezone.now().date() + timedelta(days=dias_anticipacion)
     fecha_minima_str = (timezone.now() + timedelta(days=dias_anticipacion)).strftime("%Y-%m-%dT%H:%M")
@@ -611,6 +612,7 @@ def inicio(request):
         "dias_feriados": dias_feriados,
         "fecha_minima_str": fecha_minima_str,
         "dias_anticipacion": dias_anticipacion,
+        "dias_maximos": dias_maximos,
         "dias_cancelacion": dias_cancelacion,
     })
 
