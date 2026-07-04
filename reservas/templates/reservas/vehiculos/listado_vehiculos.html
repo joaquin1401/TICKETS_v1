@@ -65,7 +65,9 @@
             {% endif %}
           </td>
           <td>
-            {% if v.activo %}
+            {% if v.esta_en_baja_temporal %}
+            <span class="badge badge-warning">Baja Temporal (hasta {{ v.inactivo_hasta|date:"d/m/Y" }})</span>
+            {% elif v.activo %}
             <span class="badge badge-success">Activo</span>
             {% else %}
             <span class="badge badge-danger">Inactivo</span>
@@ -130,7 +132,9 @@
             {% endif %}
           </td>
           <td>
-            {% if v.activo %}
+            {% if v.esta_en_baja_temporal %}
+            <span class="badge badge-warning">Baja Temporal (hasta {{ v.inactivo_hasta|date:"d/m/Y" }})</span>
+            {% elif v.activo %}
             <span class="badge badge-success">Activo</span>
             {% else %}
             <span class="badge badge-danger">Inactivo</span>

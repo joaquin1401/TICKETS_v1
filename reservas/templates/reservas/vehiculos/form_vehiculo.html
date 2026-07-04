@@ -112,6 +112,34 @@
       </p>
     </div>
   </div>
+
+  <div class="card" style="margin-top:16px;border-color:rgba(234,179,8,0.3);">
+    <div class="card-header" style="background-color:rgba(234,179,8,0.05);">
+      <span class="card-title" style="color:#eab308;">⚠ Baja Temporal (Mantenimiento)</span>
+    </div>
+    <div class="card-body">
+      {% if vehiculo.esta_en_baja_temporal %}
+        <div class="alert alert-warning" style="margin-bottom:12px;">
+          <span>⚠</span>
+          <span>El vehículo está inactivo temporalmente hasta el <strong>{{ vehiculo.inactivo_hasta|date:"d/m/Y" }}</strong>.</span>
+        </div>
+        <form method="post" action="{% url 'levantar_baja_vehiculo' vehiculo.pk %}" onsubmit="return confirm('¿Estás seguro de levantar la baja temporal? El vehículo volverá a estar disponible para reservas.');">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline" style="color:var(--text-dim);border-color:var(--border);">Levantar Baja Temporal</button>
+        </form>
+      {% else %}
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:12px;">
+          Suspende el vehículo por <strong>X días</strong>. Esto <strong>cancelará e intentará reasignar automáticamente</strong> las reservas futuras afectadas en ese período.
+        </p>
+        <form method="post" action="{% url 'baja_temporal_vehiculo' vehiculo.pk %}" style="display:flex; gap:10px; align-items:center;" onsubmit="return confirm('ATENCIÓN: Esto cancelará e intentará reasignar todas las reservas afectadas. Se notificará a los usuarios. ¿Confirmar?');">
+          {% csrf_token %}
+          <input type="number" name="dias_baja" class="form-control" style="width:100px;" placeholder="Ej: 7" min="1" required>
+          <span style="font-size:13px;color:var(--text-muted);">días</span>
+          <button type="submit" class="btn" style="background-color:rgba(234,179,8,0.1);color:#eab308;border:1px solid rgba(234,179,8,0.2);">Dar de Baja Temporal</button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
   {% endif %}
 </div>
 {% endblock %}

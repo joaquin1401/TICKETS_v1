@@ -61,22 +61,33 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # ── Base de datos PostgreSQL ──────────────────────────────────────────────────
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME":     os.environ.get("DB_NAME"),
-        "USER":     os.environ.get("DB_USER"),
-        "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST":     os.environ.get("DB_HOST"),
-        "PORT":     os.environ.get("DB_PORT"),
+import sys
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+
+if TESTING:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME":     os.environ.get("DB_NAME"),
+            "USER":     os.environ.get("DB_USER"),
+            "PASSWORD": os.environ.get("DB_PASSWORD"),
+            "HOST":     os.environ.get("DB_HOST"),
+            "PORT":     os.environ.get("DB_PORT"),
+        }
+    }
 
 # ── Internacionalización ─────────────────────────────────────────────────────
 LANGUAGE_CODE = "es-ar"
 TIME_ZONE = "America/Argentina/Buenos_Aires"
 USE_I18N = True
-USE_TZ = False
+USE_TZ = TESTING
 
 # ── Estáticos ────────────────────────────────────────────────────────────────
 STATIC_URL = "/static/"
@@ -114,6 +125,9 @@ EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", str(not DEBUG)) == "True"
 SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", str(not DEBUG)) == "True"
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split()
+# ── URL base para enlaces en emails ───────────────────────────────────────
+SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
+
 
 # ── Django Q2 (Tareas Asíncronas) ────────────────────────────────────────────
 Q_CLUSTER = {

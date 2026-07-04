@@ -379,10 +379,10 @@ def inicio(request):
     usuario = get_usuario_sesion(request)
     es_admin = usuario.id_cargo.prioridad == 0
     es_usuario_general = usuario.id_cargo.nombre == Cargo.USUARIO
-    form = TicketForm(es_admin=es_admin, es_usuario_general=es_usuario_general)
+    form = TicketForm(es_admin=es_admin, es_usuario_general=es_usuario_general, usuario=usuario)
 
     if request.method == "POST":
-        form = TicketForm(request.POST, es_admin=es_admin, es_usuario_general=es_usuario_general)
+        form = TicketForm(request.POST, es_admin=es_admin, es_usuario_general=es_usuario_general, usuario=usuario)
         if form.is_valid():
             cd = form.cleaned_data
             hora_fin = cd.get("hora_fin") or (cd["hora_inicio"] + timedelta(hours=2))
@@ -727,8 +727,10 @@ def detalle_ticket(request, ticket_id):
         ticket = get_object_or_404(Ticket, pk=ticket_id, id_usuario=usuario)
 
     from django.utils import timezone
+    from .models import ConfiguracionGlobal
+    dias_cancelacion = ConfiguracionGlobal.get_solo().dias_anticipacion_cancelacion
     puede_cancelar = False
-    if ticket.estado == Ticket.ESTADO_APROBADO and ticket.hora_inicio >= timezone.now() + timezone.timedelta(days=5):
+    if ticket.estado == Ticket.ESTADO_APROBADO and ticket.hora_inicio >= timezone.now() + timezone.timedelta(days=dias_cancelacion):
         puede_cancelar = True
 
     return render(request, "reservas/tickets/detalle_ticket.html", {
@@ -937,8 +939,10 @@ def finalizar_ticket(request, ticket_id):
                 
             # Validar justificación por retraso > 2h (comparando con la HORA ACTUAL de Argentina, no la ingresada)
             if ticket.hora_fin:
-                from django.utils.timezone import localtime
-                retraso = localtime(timezone.now()) - localtime(ticket.hora_fin)
+                from django.utils.timezone import localtime, is_aware
+                now_local = localtime(timezone.now()) if is_aware(timezone.now()) else timezone.now()
+                fin_local = localtime(ticket.hora_fin) if is_aware(ticket.hora_fin) else ticket.hora_fin
+                retraso = now_local - fin_local
                 if retraso.total_seconds() > 7200:
                     justificacion = request.POST.get("justificacion_retraso", "").strip()
                     if not justificacion:
@@ -1604,6 +1608,59 @@ def edicion_vehiculo(request, vehiculo_id):
         "vehiculo": vehiculo,
         "usuario": get_usuario_sesion(request),
     })
+
+
+@login_requerido
+@admin_requerido
+def baja_temporal_vehiculo(request, vehiculo_id):
+    """
+    Vista POST para dar de baja temporalmente a un vehículo por X días.
+    Utiliza el servicio `dar_baja_temporal_vehiculo` para manejar cancelaciones y reasignaciones.
+    """
+    if request.method != "POST":
+        return redirect("edicion_vehiculo", vehiculo_id=vehiculo_id)
+
+    vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id)
+    
+    try:
+        dias = int(request.POST.get("dias_baja", 0))
+        if dias <= 0:
+            messages.error(request, "La cantidad de días debe ser mayor a 0.")
+            return redirect("edicion_vehiculo", vehiculo_id=vehiculo_id)
+    except ValueError:
+        messages.error(request, "Cantidad de días inválida.")
+        return redirect("edicion_vehiculo", vehiculo_id=vehiculo_id)
+
+    usuario_admin = get_usuario_sesion(request)
+    from .utils.services import dar_baja_temporal_vehiculo
+    
+    resultado = dar_baja_temporal_vehiculo(vehiculo, dias, usuario_admin)
+    
+    inactivo_str = resultado["inactivo_hasta"].strftime('%d/%m/%Y')
+    msg = f"Vehículo dado de baja temporalmente hasta el {inactivo_str}. "
+    msg += f"Tickets afectados: {resultado['total_afectados']} "
+    msg += f"({resultado['reasignados']} reasignados, {resultado['cancelados']} cancelados)."
+    
+    messages.success(request, msg)
+    return redirect("listado_vehiculos")
+
+
+@login_requerido
+@admin_requerido
+def levantar_baja_vehiculo(request, vehiculo_id):
+    """
+    Vista POST para levantar la baja temporal de un vehículo de forma anticipada.
+    """
+    if request.method != "POST":
+        return redirect("edicion_vehiculo", vehiculo_id=vehiculo_id)
+
+    vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id)
+    
+    vehiculo.inactivo_hasta = None
+    vehiculo.save(update_fields=["inactivo_hasta"])
+    
+    messages.success(request, "Baja temporal levantada. El vehículo vuelve a estar disponible.")
+    return redirect("listado_vehiculos")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

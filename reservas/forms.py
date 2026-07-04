@@ -14,7 +14,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado
+from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado, get_localdate, get_localtime
 
 
 # ══════════════════════════════════════════════
@@ -292,6 +292,7 @@ class TicketForm(forms.ModelForm):
         """
         self.es_admin = kwargs.pop('es_admin', False)
         self.es_usuario_general = kwargs.pop('es_usuario_general', False)
+        self.usuario = kwargs.pop('usuario', None)
         super().__init__(*args, **kwargs)
         # Solo mostrar vehículos activos
         self.fields["id_vehiculo"].queryset = Vehiculo.objects.filter(activo=True)
@@ -335,8 +336,24 @@ class TicketForm(forms.ModelForm):
                     self.add_error("hora_inicio", "No se pueden realizar reservas con más de 2 meses (60 días) de antelación.")
                     
                 dias_anticipacion = ConfiguracionGlobal.get_solo().dias_anticipacion_reservas
-                if hora_inicio < ahora + timedelta(days=dias_anticipacion):
-                    self.add_error("hora_inicio", f"Debe reservar con al menos {dias_anticipacion} días de anticipación.")
+                # Saltar anticipación mínima si el usuario tiene permiso de emergencia vigente
+                _tiene_permiso_emergencia = False
+                if self.usuario:
+                    from .models import PermisoReservaExtraordinaria
+                    _permiso_qs = PermisoReservaExtraordinaria.objects.filter(
+                        usuario=self.usuario,
+                        usado=False,
+                        valido_hasta__gte=get_localdate(),
+                    )
+                    if _permiso_qs.exists():
+                        _limite_permitido = get_localdate() + timedelta(days=dias_anticipacion)
+                        _fecha_inicio_date = hora_inicio.date() if hasattr(hora_inicio, 'date') else hora_inicio
+                        if _fecha_inicio_date <= _limite_permitido:
+                            _tiene_permiso_emergencia = True
+
+                if not _tiene_permiso_emergencia:
+                    if hora_inicio < ahora + timedelta(days=dias_anticipacion):
+                        self.add_error("hora_inicio", f"Debe reservar con al menos {dias_anticipacion} días de anticipación.")
 
         if hora_inicio and hora_fin:
             if hora_fin <= hora_inicio:

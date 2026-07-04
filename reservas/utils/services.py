@@ -17,9 +17,10 @@ from django.utils import timezone
 import math
 import requests
 import logging
-from ..models import Ticket
+from ..models import Ticket, get_localdate, get_localtime
 
 logger = logging.getLogger(__name__)
+
 
 def calcular_distancia_y_tiempo_osrm(destino):
     """
@@ -290,13 +291,33 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         - Los timestamps de observación se generan con timezone.now().
         - Transacción ACID para garantizar consistencia en sobrescrituras.
     """
+    from ..models import ConfiguracionGlobal
+    config_global = ConfiguracionGlobal.get_solo()
+    dias_anticipacion = config_global.dias_anticipacion_reservas
+    dias_cancelacion = config_global.dias_anticipacion_cancelacion
+
     prioridad_solicitante = usuario.prioridad  # número: menor = más alto en jerarquía
-    
-    # ── Regla: Vehículo en mantenimiento ─────────────────────────────────────────────
+
+    # ── Regla: Vehículo en mantenimiento permanente ─────────────────────────────────
     if not vehiculo.activo:
         return ResultadoCreacion(
             estado=ResultadoCreacion.BLOQUEADO,
             mensaje="El vehículo seleccionado se encuentra en mantenimiento o inactivo."
+        )
+
+    # ── Regla: Vehículo en baja temporal (inactivo_hasta) ───────────────────────────
+    from datetime import timedelta as _td
+    _fecha_inicio_date = hora_inicio.date() if hasattr(hora_inicio, 'date') else hora_inicio
+    _hora_fin_tmp = hora_fin or (hora_inicio + _td(hours=2))
+    _fecha_fin_date = _hora_fin_tmp.date() if hasattr(_hora_fin_tmp, 'date') else _hora_fin_tmp
+    if vehiculo.esta_inactivo_en_rango(_fecha_inicio_date, _fecha_fin_date):
+        return ResultadoCreacion(
+            estado=ResultadoCreacion.BLOQUEADO,
+            mensaje=(
+                f"El vehículo seleccionado está temporalmente inactivo hasta el "
+                f"{vehiculo.inactivo_hasta.strftime('%d/%m/%Y')}. "
+                "Por favor, seleccioná otro vehículo o una fecha fuera de ese período."
+            )
         )
 
     # ── Regla: Vehículo exclusivo del Decanato ───────────────────────────────────────
@@ -351,17 +372,38 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
     from datetime import timedelta
     ahora = timezone.now()
     es_admin = usuario.id_cargo.prioridad == 0
-    
+
+    # ── Regla: Permiso de emergencia (baja temporal o prioridad) ────────────────────────────
+    # Si el usuario tiene un permiso de emergencia vigente y la hora_inicio cae dentro
+    # de los próximos 5 días, se saltea la restricción de anticipación mínima (una sola vez).
+    from ..models import PermisoReservaExtraordinaria
+    permiso_emergencia = None
+    tiene_permiso_activo = False
+
     if not es_admin:
+        ahora_date = get_localdate()
+        permiso_qs = PermisoReservaExtraordinaria.objects.filter(
+            usuario=usuario,
+            usado=False,
+            valido_hasta__gte=ahora_date,
+        )
+        if permiso_qs.exists():
+            # Verificar que hora_inicio esté dentro de los próximos dias_anticipacion días
+            limite_permitido = ahora_date + timedelta(days=dias_anticipacion)
+            if fecha_inicio_date <= limite_permitido:
+                permiso_emergencia = permiso_qs.first()
+                tiene_permiso_activo = True
+
+    if not es_admin and not tiene_permiso_activo:
         if hora_inicio > ahora + timedelta(days=60):
             return ResultadoCreacion(
                 estado=ResultadoCreacion.BLOQUEADO,
                 mensaje="No se pueden realizar reservas con más de 2 meses (60 días) de antelación."
             )
-        if hora_inicio < ahora + timedelta(days=3):
+        if hora_inicio < ahora + timedelta(days=dias_anticipacion):
             return ResultadoCreacion(
                 estado=ResultadoCreacion.BLOQUEADO,
-                mensaje="Debe reservar con al menos 3 días de anticipación."
+                mensaje=f"Debe reservar con al menos {dias_anticipacion} días de anticipación."
             )
 
     tickets_conflicto = list(
@@ -416,6 +458,10 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
             distancia_est=distancia_est,
             **kwargs,
         )
+        # Consumir permiso de emergencia si fue usado en esta reserva
+        if permiso_emergencia:
+            permiso_emergencia.usado = True
+            permiso_emergencia.save(update_fields=["usado"])
         return ResultadoCreacion(
             estado=ResultadoCreacion.OK,
             ticket=ticket,
@@ -439,13 +485,12 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
 
     # ── Caso 3: El solicitante tiene MAYOR jerarquía que todos los conflictos ───────
     # Sobrescribir y notificar
-    from django_q.tasks import async_task
-    from django.conf import settings
-    
+    from ..models import PermisoReservaExtraordinaria
+    from ..utils.notifications import notify_priority_cancelled
+
     tickets_cancelados = []
     correos_notificados = set()
     for t_existente in tickets_conflicto:
-        propietario = t_existente.id_usuario.nombre_completo
         cargo_solicitante = usuario.id_cargo.nombre
         motivo = (
             f"Reserva cancelada automáticamente el {timezone.now().strftime('%d/%m/%Y %H:%M')} "
@@ -456,26 +501,31 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         t_existente.observacion = motivo
         t_existente.save(update_fields=["estado", "observacion"])
         tickets_cancelados.append(t_existente)
-        
-        # Enviar notificación por correo solo una vez por usuario
+
+        # Permiso de emergencia si la salida era en los próximos dias_cancelacion días
+        hoy_local = get_localdate()
+        salida_date = t_existente.hora_inicio.date() if hasattr(t_existente.hora_inicio, 'date') else t_existente.hora_inicio
+        tiene_permiso_5dias = salida_date <= hoy_local + timedelta(days=dias_cancelacion)
+        if tiene_permiso_5dias:
+            PermisoReservaExtraordinaria.objects.create(
+                usuario=t_existente.id_usuario,
+                ticket_cancelado=t_existente,
+                motivo=PermisoReservaExtraordinaria.MOTIVO_PRIORIDAD,
+                valido_hasta=hoy_local + timedelta(days=dias_cancelacion),
+            )
+
+        # ── Reasignación automática (si hay vehículo y chofer disponibles) ──
+        from ..utils.notifications import notify_priority_reassigned
+        nuevo_ticket_prioridad = _reasignar_ticket(t_existente, contexto="prioridad")
+
+        # Notificar por correo con template amigable (una vez por usuario)
         correo_usuario = t_existente.id_usuario.correo
         if correo_usuario not in correos_notificados:
             try:
-                async_task(
-                    "reservas.tasks.enviar_correo_async",
-                    subject=f"⚠️ Reserva Cancelada: {t_existente.id_vehiculo}",
-                    message=(
-                        f"Hola {propietario},\n\n"
-                        f"Te informamos que tu reserva para el vehículo {t_existente.id_vehiculo} "
-                        f"ha sido cancelada.\n\n"
-                        f"Motivo: {motivo}\n\n"
-                        "Por favor, ingresa al sistema para realizar una nueva reserva si es necesario.\n\n"
-                        "Saludos,\nSistema de Reservas SEU"
-                    ),
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[correo_usuario],
-                    fail_silently=True,
-                )
+                if nuevo_ticket_prioridad:
+                    notify_priority_reassigned(t_existente, nuevo_ticket_prioridad)
+                else:
+                    notify_priority_cancelled(t_existente, tiene_permiso_5dias=tiene_permiso_5dias)
                 correos_notificados.add(correo_usuario)
             except Exception:
                 pass
@@ -490,7 +540,10 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         **kwargs,
     )
 
-
+    # Consumir permiso de emergencia del solicitante si fue usado
+    if permiso_emergencia:
+        permiso_emergencia.usado = True
+        permiso_emergencia.save(update_fields=["usado"])
 
     nombres_cancelados = ", ".join(
         t.id_usuario.nombre_completo for t in tickets_cancelados
@@ -615,3 +668,183 @@ def get_tickets_del_dia(vehiculo, fecha):
         Q(hora_fin__date__gte=fecha) |
         Q(hora_fin__isnull=True, hora_inicio__date=fecha)
     ).order_by("hora_inicio").select_related("id_usuario")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HU 6.x — Baja temporal de vehículo (Admin)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
+    """
+    Intenta reasignar automáticamente un ticket cancelado a otro vehículo disponible.
+
+    Args:
+        ticket_original (Ticket): Ticket cancelado que se intenta reasignar.
+        contexto (str): "baja_temporal" o "prioridad" — usado en la observación del nuevo ticket.
+
+    Criterios de selección:
+      - Activo y sin baja temporal en la franja del ticket.
+      - No exclusivo_decanato, salvo que el usuario sea Decano.
+      - cant_pasajeros >= ticket.cant_pasajeros.
+      - Sin conflicto de horario en esa franja.
+      - Si requiere chofer: verifica disponibilidad.
+      - Ordena por cant_pasajeros ASC (menor suficiente primero).
+
+    Returns:
+        Ticket | None: Nuevo ticket APROBADO si pudo reasignar, None si no.
+    """
+    from ..models import Vehiculo, Cargo, Usuario as UsuarioModel
+    from datetime import timedelta
+
+    hora_inicio = ticket_original.hora_inicio
+    hora_fin = ticket_original.hora_fin or (hora_inicio + timedelta(hours=2))
+    usuario = ticket_original.id_usuario
+
+    candidatos = (
+        Vehiculo.objects.filter(
+            activo=True,
+            cant_pasajeros__gte=ticket_original.cant_pasajeros,
+        )
+        .exclude(pk=ticket_original.id_vehiculo_id)
+        .order_by("cant_pasajeros")
+    )
+
+    if usuario.id_cargo.nombre != Cargo.DECANO:
+        candidatos = candidatos.filter(exclusivo_decanato=False)
+
+    for vehiculo_cand in candidatos:
+        fecha_inicio_date = hora_inicio.date()
+        fecha_fin_date = hora_fin.date()
+        if vehiculo_cand.esta_inactivo_en_rango(fecha_inicio_date, fecha_fin_date):
+            continue
+
+        conflictos = Ticket.objects.filter(
+            id_vehiculo=vehiculo_cand,
+            estado=Ticket.ESTADO_APROBADO,
+            hora_inicio__lt=hora_fin,
+            hora_fin__gt=hora_inicio,
+        )
+        if conflictos.exists():
+            continue
+
+        if ticket_original.requiere_chofer:
+            total_choferes = UsuarioModel.objects.filter(
+                id_cargo__nombre=Cargo.CHOFER, valido=True
+            ).count()
+            tickets_chofer = Ticket.objects.filter(
+                estado__in=[Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO],
+                requiere_chofer=True,
+                hora_inicio__lt=hora_fin,
+                hora_fin__gt=hora_inicio,
+            )
+            if tickets_chofer.count() >= total_choferes:
+                continue
+
+        nuevo_ticket = Ticket.objects.create(
+            id_usuario=usuario,
+            id_vehiculo=vehiculo_cand,
+            hora_inicio=hora_inicio,
+            hora_fin=ticket_original.hora_fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino=ticket_original.destino,
+            cant_pasajeros=ticket_original.cant_pasajeros,
+            descripcion=ticket_original.descripcion,
+            requiere_chofer=ticket_original.requiere_chofer,
+            para_tercero=ticket_original.para_tercero,
+            distancia_est=ticket_original.distancia_est,
+            observacion=(
+                f"Reasignado automáticamente desde ticket #{ticket_original.pk} "
+                f"({"vehículo original en baja temporal" if contexto == "baja_temporal" else "cancelado por prioridad de otro usuario"})."
+            ),
+        )
+        return nuevo_ticket
+
+    return None
+
+
+@transaction.atomic
+def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
+    """
+    Marca un vehículo como temporalmente inactivo por N días y cancela/reasigna
+    todos los tickets futuros APROBADOS solapados con ese período.
+
+    Args:
+        vehiculo (Vehiculo): Vehículo a dar de baja temporalmente.
+        dias (int): Cantidad de días de inactividad (> 0).
+        admin_usuario (Usuario): Administrador que ejecuta la acción.
+
+    Returns:
+        dict: {cancelados, reasignados, total_afectados, inactivo_hasta}
+    """
+    from datetime import timedelta
+    from ..models import PermisoReservaExtraordinaria, ConfiguracionGlobal
+    from ..utils.notifications import (
+        notify_vehicle_inactive_cancelled,
+        notify_vehicle_inactive_reassigned,
+    )
+
+    config_global = ConfiguracionGlobal.get_solo()
+    dias_cancelacion = config_global.dias_anticipacion_cancelacion
+
+    hoy = get_localdate()
+    inactivo_hasta = hoy + timedelta(days=dias)
+
+    vehiculo.inactivo_hasta = inactivo_hasta
+    vehiculo.save(update_fields=["inactivo_hasta"])
+
+    tickets_afectados = Ticket.objects.filter(
+        id_vehiculo=vehiculo,
+        estado=Ticket.ESTADO_APROBADO,
+        hora_inicio__date__gte=hoy,
+        hora_inicio__date__lte=inactivo_hasta,
+    ).select_related("id_usuario", "id_vehiculo")
+
+    cancelados = 0
+    reasignados = 0
+
+    for ticket in tickets_afectados:
+        motivo = (
+            f"Reserva cancelada automáticamente el {timezone.now().strftime('%d/%m/%Y %H:%M')} "
+            f"porque el vehículo {vehiculo} fue dado de baja temporal por "
+            f"{dias} día{'s' if dias != 1 else ''} "
+            f"(hasta el {inactivo_hasta.strftime('%d/%m/%Y')}) "
+            f"por el administrador {admin_usuario.nombre_completo}."
+        )
+        ticket.estado = Ticket.ESTADO_CANCELADO
+        ticket.observacion = motivo
+        ticket.save(update_fields=["estado", "observacion"])
+
+        nuevo_ticket = _reasignar_ticket(ticket)
+        if nuevo_ticket:
+            reasignados += 1
+            try:
+                notify_vehicle_inactive_reassigned(ticket, nuevo_ticket)
+            except Exception:
+                pass
+        else:
+            cancelados += 1
+            # Solo si NO se pudo reasignar, otorgar permiso de emergencia (si aplica)
+            salida_date = ticket.hora_inicio.date() if hasattr(ticket.hora_inicio, 'date') else ticket.hora_inicio
+            tiene_permiso_5dias = salida_date <= hoy + timedelta(days=dias_cancelacion)
+            if tiene_permiso_5dias:
+                PermisoReservaExtraordinaria.objects.create(
+                    usuario=ticket.id_usuario,
+                    ticket_cancelado=ticket,
+                    motivo=PermisoReservaExtraordinaria.MOTIVO_BAJA_VEHICULO,
+                    valido_hasta=hoy + timedelta(days=dias_cancelacion),
+                )
+            try:
+                notify_vehicle_inactive_cancelled(
+                    ticket,
+                    inactivo_hasta=inactivo_hasta,
+                    tiene_permiso_5dias=tiene_permiso_5dias,
+                )
+            except Exception:
+                pass
+
+    return {
+        "cancelados": cancelados,
+        "reasignados": reasignados,
+        "total_afectados": cancelados + reasignados,
+        "inactivo_hasta": inactivo_hasta,
+    }

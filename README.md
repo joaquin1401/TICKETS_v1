@@ -18,6 +18,8 @@ El proyecto utiliza variables de entorno para la conexión a la base de datos. S
 - `DB_PASSWORD`: Contraseña del usuario.
 - `DB_HOST`: Host de la base de datos (ej. `localhost`).
 - `DB_PORT`: Puerto de conexión (ej. `5432`).
+- `SITE_URL`: URL base del sitio para enlaces en correos electrónicos (ej. `http://127.0.0.1:8000`). Por defecto `http://localhost:8000`.
+
 
 ### Cómo configurar en PostgreSQL
 
@@ -144,6 +146,7 @@ Asegúrate de configurar correctamente las variables de entorno principales para
 
 - `DJANGO_DEBUG`: **Debe** ser `False`.
 - `ALLOWED_HOSTS`: Lista de dominios permitidos (ej. `tu-dominio.onrender.com`).
+- `SITE_URL`: URL base de tu dominio en producción (ej. `https://tu-dominio.onrender.com`). Es usada para construir enlaces en los correos electrónicos.
 - `CSRF_TRUSTED_ORIGINS`: URLs confiables para peticiones POST (ej. `https://tu-dominio.onrender.com`).
 
 Además de la base de datos, debes configurar las credenciales de correo electrónico para que el sistema pueda enviar notificaciones y recuperar contraseñas:

@@ -12,7 +12,8 @@ class Command(BaseCommand):
     help = "Enviar recordatorios por correo para reservas próximas y devoluciones demoradas."
 
     def handle(self, *args, **options):
-        now = timezone.localtime(timezone.now())
+        from django.conf import settings
+        now = timezone.localtime(timezone.now()) if settings.USE_TZ else timezone.now()
         today = now.date()
         in_3_days = (now + timedelta(days=3)).date()
 

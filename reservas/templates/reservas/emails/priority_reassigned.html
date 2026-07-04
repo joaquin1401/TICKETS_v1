@@ -1,0 +1,28 @@
+{% extends "reservas/emails/base_email.html" %}
+
+{% block title %}Reserva Reasignada Automáticamente{% endblock %}
+
+{% block content %}
+<h1>🔄 Actualización de tu Reserva</h1>
+
+<p>Hola <strong>{{ usuario.nombre_completo }}</strong>,</p>
+
+<p>Te informamos que tu reserva original (Ticket #{{ ticket_original.pk }}) para el vehículo <strong>{{ ticket_original.id_vehiculo.marca }} {{ ticket_original.id_vehiculo.modelo }}</strong> ha sido cancelada debido a que un usuario de mayor prioridad solicitó el mismo vehículo en la misma franja horaria.</p>
+
+<p>Sin embargo, para no afectar tu viaje, el sistema <strong>ha reasignado tu reserva automáticamente</strong> a un nuevo vehículo que cumple con las características que solicitaste.</p>
+
+<div class="meta" style="border-color: #558bba; background: rgba(85, 139, 186, 0.1);">
+    <p style="color: #558bba; font-weight: bold; margin-top: 0;">Nuevos Datos de tu Reserva (Ticket #{{ nuevo_ticket.pk }}):</p>
+    <ul style="margin-top: 8px; margin-bottom: 0;">
+        <li><strong>Nuevo Vehículo:</strong> {{ nuevo_ticket.id_vehiculo.marca }} {{ nuevo_ticket.id_vehiculo.modelo }} ({{ nuevo_ticket.id_vehiculo.patente }})</li>
+        <li><strong>Fecha de salida:</strong> {{ nuevo_ticket.hora_inicio|date:"d/m/Y H:i" }}</li>
+        <li><strong>Destino:</strong> {{ nuevo_ticket.destino }}</li>
+    </ul>
+</div>
+
+<p>No tienes que hacer nada más. Tu nueva reserva ya se encuentra APROBADA en el sistema.</p>
+
+<a href="{{ site_url }}/tickets/{{ nuevo_ticket.pk }}/" class="boton">Ver Nueva Reserva</a>
+
+<p>Atentamente,<br><strong>Sistema de Reservas SEU</strong></p>
+{% endblock %}

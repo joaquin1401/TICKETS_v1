@@ -1,0 +1,37 @@
+{% extends "reservas/emails/base_email.html" %}
+
+{% block title %}Reserva Cancelada - Baja de Vehículo{% endblock %}
+
+{% block content %}
+<h1>⚠️ Aviso Importante sobre tu Reserva</h1>
+
+<p>Hola <strong>{{ usuario.nombre_completo }}</strong>,</p>
+
+<p>Lamentamos informarte que tu reserva para el vehículo <strong>{{ ticket.id_vehiculo.marca }} {{ ticket.id_vehiculo.modelo }} ({{ ticket.id_vehiculo.patente }})</strong> ha sido <strong>cancelada</strong>.</p>
+
+<div class="meta">
+    <p style="margin: 0;"><strong>Detalles de la reserva cancelada:</strong></p>
+    <ul style="margin-top: 8px; margin-bottom: 0;">
+        <li><strong>Nº de Ticket:</strong> #{{ ticket.pk }}</li>
+        <li><strong>Fecha de salida:</strong> {{ ticket.hora_inicio|date:"d/m/Y H:i" }}</li>
+        <li><strong>Destino:</strong> {{ ticket.destino }}</li>
+    </ul>
+</div>
+
+<p><strong>Motivo:</strong> El vehículo ha sido reportado con una baja temporal por la Secretaría de Extensión Universitaria (SEU), lo que lo imposibilita para circular hasta el <strong>{{ inactivo_hasta|date:"d/m/Y" }}</strong>.</p>
+
+{% if tiene_permiso_5dias %}
+<div class="meta" style="border-color: #558bba; background: rgba(85, 139, 186, 0.1);">
+    <p style="color: #558bba; font-weight: bold; margin-top: 0;">Permiso Excepcional de Reserva</p>
+    <p style="margin-bottom: 0;">Como tu viaje estaba programado para los próximos días, te hemos otorgado un permiso especial. <strong>Puedes ingresar al sistema y crear una nueva reserva de forma inmediata</strong> para los próximos 5 días, sin la restricción habitual de anticipación.</p>
+</div>
+{% else %}
+<p>Por favor, ingresa al sistema para gestionar una nueva reserva para otra fecha o selecciona otro vehículo disponible.</p>
+{% endif %}
+
+<a href="{{ site_url }}/inicio/" class="boton">Ir al Sistema de Reservas</a>
+
+<p>Te pedimos disculpas por los inconvenientes que esto pueda ocasionar.</p>
+
+<p>Atentamente,<br><strong>Sistema de Reservas SEU</strong></p>
+{% endblock %}

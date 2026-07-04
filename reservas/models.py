@@ -14,6 +14,21 @@ conflictos de disponibilidad según la prioridad del cargo del solicitante.
 from django.db import models
 from django.contrib.auth.hashers import make_password
 import uuid
+from django.conf import settings
+from django.utils import timezone
+
+def get_localdate():
+    if getattr(settings, 'USE_TZ', False):
+        return timezone.localdate()
+    return timezone.now().date()
+
+def get_localtime(value=None):
+    if getattr(settings, 'USE_TZ', False):
+        return timezone.localtime(value)
+    if value is None:
+        return timezone.now()
+    return value
+
 
 
 class Cargo(models.Model):
@@ -216,7 +231,12 @@ class Vehiculo(models.Model):
     cant_pasajeros = models.PositiveIntegerField()
     activo = models.BooleanField(
         default=True,
-        help_text="False = dado de baja (ej: fue al taller permanente)"
+        help_text="False = dado de baja permanente (ej: fue al taller o fue descartado)"
+    )
+    inactivo_hasta = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Fecha hasta la que el vehículo estará inactivo por baja temporal (ej: rotura). Null = sin baja temporal activa."
     )
     exclusivo_decanato = models.BooleanField(
         default=False,
@@ -233,6 +253,37 @@ class Vehiculo(models.Model):
 
     def __str__(self):
         return f"{self.marca} {self.modelo} {self.patente} ({self.cant_pasajeros} pasajeros)"
+
+    def save(self, *args, **kwargs):
+        """Limpia `inactivo_hasta` automáticamente si ya expiró."""
+        if self.inactivo_hasta is not None and self.inactivo_hasta < get_localdate():
+            self.inactivo_hasta = None
+        super().save(*args, **kwargs)
+
+    def esta_en_baja_temporal(self):
+        """
+        Retorna True si el vehículo tiene una baja temporal activa para hoy o días futuros.
+        """
+        if not self.inactivo_hasta:
+            return False
+        return self.inactivo_hasta >= get_localdate()
+
+    def esta_inactivo_en_rango(self, fecha_inicio, fecha_fin):
+        """
+        Retorna True si la baja temporal del vehículo se superpone con el rango dado.
+
+        Args:
+            fecha_inicio (date): Fecha de inicio del rango a verificar.
+            fecha_fin (date): Fecha de fin del rango a verificar.
+        """
+        if not self.inactivo_hasta:
+            return False
+        hoy = get_localdate()
+        # La baja aplica desde hoy hasta inactivo_hasta
+        baja_inicio = hoy
+        baja_fin = self.inactivo_hasta
+        # Solapamiento: los rangos se cruzan si baja_inicio <= fecha_fin AND baja_fin >= fecha_inicio
+        return baja_inicio <= fecha_fin and baja_fin >= fecha_inicio
 
 
 class Ticket(models.Model):
@@ -380,6 +431,9 @@ class NotificationLog(models.Model):
     TYPE_REMINDER_3_DAYS = "reminder_3_days"
     TYPE_REMINDER_SAME_DAY = "reminder_same_day"
     TYPE_REMINDER_RETURN_LATE = "reminder_return_late"
+    TYPE_VEHICLE_INACTIVE = "vehicle_inactive"        # Cancelado por baja temporal de vehículo
+    TYPE_PRIORITY_CANCELLED = "priority_cancelled"    # Cancelado por prioridad de otro usuario
+    TYPE_REASSIGNED = "reassigned"                    # Reasignado automáticamente a otro vehículo
 
     TYPES = [
         (TYPE_CREATED, "Creación"),
@@ -387,6 +441,9 @@ class NotificationLog(models.Model):
         (TYPE_REMINDER_3_DAYS, "Recordatorio 3 días"),
         (TYPE_REMINDER_SAME_DAY, "Recordatorio mismo día"),
         (TYPE_REMINDER_RETURN_LATE, "Recordatorio regreso tardío"),
+        (TYPE_VEHICLE_INACTIVE, "Baja temporal de vehículo"),
+        (TYPE_PRIORITY_CANCELLED, "Cancelado por prioridad"),
+        (TYPE_REASSIGNED, "Reasignado automáticamente"),
     ]
 
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="notification_logs")
@@ -601,3 +658,82 @@ class Feriado(models.Model):
     def __str__(self):
         desc = f" - {self.descripcion}" if self.descripcion else ""
         return f"{self.fecha.strftime('%d/%m/%Y')}{desc}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Permiso de reserva de emergencia tras cancelación forzada
+# ══════════════════════════════════════════════════════════════════════════════
+
+class PermisoReservaExtraordinaria(models.Model):
+    """
+    Otorga a un usuario el derecho excepcional de crear una reserva dentro de los
+    próximos 5 días, sin cumplir la restricción de anticipación mínima configurable.
+
+    Se genera automáticamente cuando:
+      1. El vehículo de un ticket futuro es dado de baja temporal.
+      2. Un ticket es cancelado por prioridad de un usuario con mayor jerarquía.
+
+    En ambos casos, solo aplica si la fecha de salida original estaba
+    dentro de los próximos 5 días desde el momento de la cancelación.
+
+    Reglas de uso:
+      - Solo puede usarse UNA vez (campo `usado`).
+      - Expira en `valido_hasta` (5 días desde la cancelación).
+      - No habilita reservar más de una vez ni extender la ventana.
+
+    Attributes:
+        usuario (ForeignKey): Usuario beneficiario del permiso.
+        ticket_cancelado (ForeignKey): Ticket que dio origen al permiso.
+        valido_hasta (DateField): Último día en el que el permiso es válido.
+        usado (BooleanField): True si ya fue utilizado para crear una reserva.
+        creado_en (DateTimeField): Timestamp de creación automático.
+    """
+
+    MOTIVO_BAJA_VEHICULO = "baja_vehiculo"
+    MOTIVO_PRIORIDAD = "prioridad"
+    MOTIVOS = [
+        (MOTIVO_BAJA_VEHICULO, "Baja temporal de vehículo"),
+        (MOTIVO_PRIORIDAD, "Cancelación por prioridad"),
+    ]
+
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name="permisos_emergencia",
+        help_text="Usuario que puede usar este permiso."
+    )
+    ticket_cancelado = models.ForeignKey(
+        "Ticket",
+        on_delete=models.CASCADE,
+        related_name="permisos_generados",
+        help_text="Ticket cancelado que originó este permiso."
+    )
+    motivo = models.CharField(
+        max_length=20,
+        choices=MOTIVOS,
+        default=MOTIVO_BAJA_VEHICULO,
+        help_text="Razón por la que se generó el permiso excepcional."
+    )
+    valido_hasta = models.DateField(
+        help_text="Último día en el que el permiso puede usarse (5 días desde la cancelación)."
+    )
+    usado = models.BooleanField(
+        default=False,
+        help_text="True = el permiso ya fue utilizado para crear una reserva."
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Permiso de Emergencia"
+        verbose_name_plural = "Permisos de Emergencia"
+        ordering = ["-creado_en"]
+
+    def __str__(self):
+        estado = "usado" if self.usado else "disponible"
+        return f"Permiso de {self.usuario.correo} — válido hasta {self.valido_hasta} ({estado})"
+
+    def esta_vigente(self):
+        """
+        Retorna True si el permiso no fue usado y todavía no venció.
+        """
+        return not self.usado and self.valido_hasta >= get_localdate()

@@ -1,35 +1,22 @@
-"""
-Test suite para la aplicación de reservas.
-
-Define casos de prueba unitarios e integración para validar:
-- Modelos (Cargo, Usuario, Vehículo, Ticket).
-- Servicios (detección de conflictos, resolución jerárquica).
-- Vistas (autenticación, creación de tickets, administración).
-- Formularios (validaciones, limpieza de datos).
-
-Estructura recomendada:
-- TestCasosModelos: Pruebas de lógica de modelos (save, properties).
-- TestCasosServicios: Pruebas de la lógica de negocio (HU 4.1 a 4.3).
-- TestCasosVistas: Pruebas de flujos HTTP y autorización.
-- TestCasosFormularios: Pruebas de validación de formularios.
-
-Ejecución:
-    python manage.py test reservas
-    python manage.py test reservas.tests.TestCasosServicios -v 2
-"""
-
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from .models import Cargo, Usuario, Vehiculo, Ticket
-from .utils.services import crear_ticket_con_reglas, cancelar_ticket_usuario, ResultadoCreacion
+from reservas.models import Cargo, Usuario, Vehiculo, Ticket
+from reservas.utils.services import crear_ticket_con_reglas, cancelar_ticket_usuario, ResultadoCreacion
+
+def get_cargo(nombre, prioridad):
+    cargo, created = Cargo.objects.get_or_create(nombre=nombre, defaults={'prioridad': prioridad})
+    if not created and cargo.prioridad != prioridad:
+        cargo.prioridad = prioridad
+        cargo.save()
+    return cargo
 
 class TestReglasNegocioTickets(TestCase):
     def setUp(self):
         # Cargos
-        self.cargo_decano = Cargo.objects.create(nombre=Cargo.DECANO, prioridad=1)
-        self.cargo_secretario = Cargo.objects.create(nombre=Cargo.SECRETARIO, prioridad=2)
-        self.cargo_usuario = Cargo.objects.create(nombre=Cargo.USUARIO, prioridad=3)
+        self.cargo_decano = get_cargo(Cargo.DECANO, 1)
+        self.cargo_secretario = get_cargo(Cargo.SECRETARIO, 2)
+        self.cargo_usuario = get_cargo(Cargo.USUARIO, 3)
         
         # Usuarios
         self.decano = Usuario.objects.create(
@@ -214,7 +201,7 @@ class TestReglasNegocioTickets(TestCase):
 class TestReservasMultiDia(TestCase):
     def setUp(self):
         # Create necessary Cargo, Usuario, Vehiculo
-        self.cargo = Cargo.objects.create(nombre=Cargo.USUARIO, prioridad=3)
+        self.cargo = get_cargo(Cargo.USUARIO, 3)
         self.usuario = Usuario.objects.create(
             nombre="User", apellido="Test", correo="test@test.com", id_cargo=self.cargo, valido=True
         )
@@ -225,7 +212,7 @@ class TestReservasMultiDia(TestCase):
     def test_get_tickets_del_mes_multi_dia(self):
         """Prueba que get_tickets_del_mes recupere tickets que se solapan con el mes consultado."""
         from datetime import datetime
-        from .utils.services import get_tickets_del_mes
+        from reservas.utils.services import get_tickets_del_mes
         
         # Reserva que empieza el mes anterior (Mayo 30) y termina este mes (Junio 2)
         ticket_anterior = Ticket.objects.create(
@@ -271,7 +258,7 @@ class TestReservasMultiDia(TestCase):
     def test_get_tickets_del_dia_multi_dia(self):
         """Prueba que get_tickets_del_dia recupere un ticket en cualquier día del rango reservado."""
         from datetime import datetime, date
-        from .utils.services import get_tickets_del_dia
+        from reservas.utils.services import get_tickets_del_dia
         
         ticket = Ticket.objects.create(
             id_usuario=self.usuario,
@@ -308,7 +295,7 @@ class TestMargenEntreReservas(TestCase):
     """Pruebas para la funcionalidad de margen configurable entre reservas (mismo vehículo)."""
 
     def setUp(self):
-        self.cargo_usuario = Cargo.objects.create(nombre=Cargo.USUARIO, prioridad=3)
+        self.cargo_usuario = get_cargo(Cargo.USUARIO, 3)
         self.usuario = Usuario.objects.create(
             nombre="Usuario", apellido="Test", correo="usuario@test.com",
             id_cargo=self.cargo_usuario, valido=True
@@ -316,7 +303,7 @@ class TestMargenEntreReservas(TestCase):
         self.vehiculo = Vehiculo.objects.create(
             marca="Toyota", modelo="Corolla", patente="ABC123", cant_pasajeros=4, activo=True
         )
-        from .models import ConfiguracionGlobal
+        from reservas.models import ConfiguracionGlobal
         self.config = ConfiguracionGlobal.get_solo()
         self.config.horas_margen_entre_reservas = 1
         self.config.minutos_margen_entre_reservas = 0
@@ -468,7 +455,7 @@ class TestMargenEntreReservas(TestCase):
         fin_nuevo = inicio_nuevo + timedelta(hours=2)
         
         # Crear admin
-        cargo_admin = Cargo.objects.create(nombre=Cargo.ADMIN_SEU, prioridad=0)
+        cargo_admin = get_cargo(Cargo.ADMIN_SEU, 0)
         admin = Usuario.objects.create(
             nombre="Admin", apellido="Sistema", correo="admin@test.com",
             id_cargo=cargo_admin, valido=True

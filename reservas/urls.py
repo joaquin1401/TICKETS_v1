@@ -103,6 +103,8 @@ urlpatterns = [
     path("admin-panel/vehiculos/", views.listado_vehiculos, name="listado_vehiculos"),
     path("admin-panel/vehiculos/nueva/", views.alta_vehiculo, name="alta_vehiculo"),
     path("admin-panel/vehiculos/<int:vehiculo_id>/editar/", views.edicion_vehiculo, name="edicion_vehiculo"),
+    path("admin-panel/vehiculos/<int:vehiculo_id>/baja-temporal/", views.baja_temporal_vehiculo, name="baja_temporal_vehiculo"),
+    path("admin-panel/vehiculos/<int:vehiculo_id>/levantar-baja/", views.levantar_baja_vehiculo, name="levantar_baja_vehiculo"),
     path("admin-panel/configuracion/", views.configuracion_global, name="configuracion_global"),
 
 
