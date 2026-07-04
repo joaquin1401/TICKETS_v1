@@ -395,10 +395,11 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
                 tiene_permiso_activo = True
 
     if not es_admin and not tiene_permiso_activo:
-        if hora_inicio > ahora + timedelta(days=60):
+        dias_maximo = config_global.dias_maximo_anticipacion_reservas
+        if hora_inicio > ahora + timedelta(days=dias_maximo):
             return ResultadoCreacion(
                 estado=ResultadoCreacion.BLOQUEADO,
-                mensaje="No se pueden realizar reservas con más de 2 meses (60 días) de antelación."
+                mensaje=f"No se pueden realizar reservas con más de {dias_maximo} días de antelación."
             )
         if hora_inicio < ahora + timedelta(days=dias_anticipacion):
             return ResultadoCreacion(

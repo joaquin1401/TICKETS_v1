@@ -332,8 +332,9 @@ class TicketForm(forms.ModelForm):
                 if hora_inicio <= ahora:
                     raise ValidationError("La fecha de inicio debe ser en el futuro.")
                 
-                if hora_inicio > ahora + timedelta(days=60):
-                    self.add_error("hora_inicio", "No se pueden realizar reservas con más de 2 meses (60 días) de antelación.")
+                dias_maximo = ConfiguracionGlobal.get_solo().dias_maximo_anticipacion_reservas
+                if hora_inicio > ahora + timedelta(days=dias_maximo):
+                    self.add_error("hora_inicio", f"No se pueden realizar reservas con más de {dias_maximo} días de antelación.")
                     
                 dias_anticipacion = ConfiguracionGlobal.get_solo().dias_anticipacion_reservas
                 # Saltar anticipación mínima si el usuario tiene permiso de emergencia vigente
@@ -627,18 +628,21 @@ class ConfiguracionGlobalForm(forms.ModelForm):
         model = ConfiguracionGlobal
         fields = [
             "dias_anticipacion_reservas",
+            "dias_maximo_anticipacion_reservas",
             "dias_anticipacion_cancelacion",
             "horas_margen_entre_reservas",
             "minutos_margen_entre_reservas",
         ]
         labels = {
             "dias_anticipacion_reservas": "Días de anticipación para reservas (Usuarios)",
+            "dias_maximo_anticipacion_reservas": "Días máximos de anticipación permitidos (Todos)",
             "dias_anticipacion_cancelacion": "Días de anticipación para cancelación (Usuarios)",
             "horas_margen_entre_reservas": "Horas de margen entre reservas (mismo vehículo)",
             "minutos_margen_entre_reservas": "Minutos de margen entre reservas (mismo vehículo)",
         }
         widgets = {
             "dias_anticipacion_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "dias_maximo_anticipacion_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "dias_anticipacion_cancelacion": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "horas_margen_entre_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
             "minutos_margen_entre_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),

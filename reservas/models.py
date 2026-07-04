@@ -610,6 +610,10 @@ class ConfiguracionGlobal(models.Model):
         default=3,
         help_text="Días mínimos de anticipación requeridos para hacer una reserva (usuarios normales)"
     )
+    dias_maximo_anticipacion_reservas = models.PositiveIntegerField(
+        default=60,
+        help_text="Días máximos de anticipación permitidos para hacer una reserva"
+    )
     dias_anticipacion_cancelacion = models.PositiveIntegerField(
         default=5,
         help_text="Días mínimos de anticipación requeridos para cancelar una reserva (usuarios normales)"

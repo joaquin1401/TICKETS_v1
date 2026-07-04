@@ -80,15 +80,21 @@ class TestReglasNegocioTickets(TestCase):
         res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_taller, inicio, fin, destino="X", cant_pasajeros=1)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
 
-    def test_limite_2_meses(self):
-        """No permitir reservas con más de 2 meses (60 días) de antelación."""
-        inicio = self.ahora + timedelta(days=61)
+    def test_limite_maximo_anticipacion(self):
+        """No permitir reservas que excedan el límite máximo de días de antelación."""
+        from reservas.models import ConfiguracionGlobal
+        config = ConfiguracionGlobal.get_solo()
+        config.dias_maximo_anticipacion_reservas = 45
+        config.save()
+        
+        inicio = self.ahora + timedelta(days=46)
         fin = inicio + timedelta(hours=2)
         
         res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
+        self.assertIn("No se pueden realizar reservas con más de 45 días de antelación.", res.mensaje)
         
-        inicio_valido = self.ahora + timedelta(days=59)
+        inicio_valido = self.ahora + timedelta(days=44)
         res_valido = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_valido, inicio_valido + timedelta(hours=2), destino="X", cant_pasajeros=1)
         self.assertEqual(res_valido.estado, ResultadoCreacion.OK)
 
