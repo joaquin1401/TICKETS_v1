@@ -500,6 +500,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         )
         t_existente.estado = Ticket.ESTADO_CANCELADO
         t_existente.observacion = motivo
+        t_existente._suppress_signals = True
         t_existente.save(update_fields=["estado", "observacion"])
         tickets_cancelados.append(t_existente)
 
@@ -741,7 +742,7 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
             if tickets_chofer.count() >= total_choferes:
                 continue
 
-        nuevo_ticket = Ticket.objects.create(
+        nuevo_ticket = Ticket(
             id_usuario=usuario,
             id_vehiculo=vehiculo_cand,
             hora_inicio=hora_inicio,
@@ -758,6 +759,8 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
                 f"({"vehículo original en baja temporal" if contexto == "baja_temporal" else "cancelado por prioridad de otro usuario"})."
             ),
         )
+        nuevo_ticket._suppress_signals = True
+        nuevo_ticket.save()
         return nuevo_ticket
 
     return None
@@ -813,6 +816,7 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
         )
         ticket.estado = Ticket.ESTADO_CANCELADO
         ticket.observacion = motivo
+        ticket._suppress_signals = True
         ticket.save(update_fields=["estado", "observacion"])
 
         nuevo_ticket = _reasignar_ticket(ticket)

@@ -24,6 +24,9 @@ def ticket_pre_save(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Ticket)
 def ticket_post_save(sender, instance, created, **kwargs):
+    if getattr(instance, "_suppress_signals", False):
+        return
+
     # on create: notify creator
     if created:
         try:
