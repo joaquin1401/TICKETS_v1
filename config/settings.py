@@ -61,32 +61,23 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 
 # ── Base de datos PostgreSQL ──────────────────────────────────────────────────
-import sys
-TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
-if TESTING:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME":     os.environ.get("DB_NAME"),
+        "USER":     os.environ.get("DB_USER"),
+        "PASSWORD": os.environ.get("DB_PASSWORD"),
+        "HOST":     os.environ.get("DB_HOST"),
+        "PORT":     os.environ.get("DB_PORT"),
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME":     os.environ.get("DB_NAME"),
-            "USER":     os.environ.get("DB_USER"),
-            "PASSWORD": os.environ.get("DB_PASSWORD"),
-            "HOST":     os.environ.get("DB_HOST"),
-            "PORT":     os.environ.get("DB_PORT"),
-        }
-    }
-
+}
 # ── Internacionalización ─────────────────────────────────────────────────────
 LANGUAGE_CODE = "es-ar"
 TIME_ZONE = "America/Argentina/Buenos_Aires"
 USE_I18N = True
+import sys
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 USE_TZ = TESTING
 
 # ── Estáticos ────────────────────────────────────────────────────────────────
