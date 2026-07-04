@@ -492,7 +492,7 @@ class VehiculoForm(forms.ModelForm):
             "modelo":         "Modelo",
             "patente":        "Patente (Dominio)",
             "cant_pasajeros": "Capacidad de pasajeros",
-            "activo":         "Vehículo activo (disponible para reservas)",
+            "activo":         "Vehículo activo (Desmarcar para dar de baja permanente)",
             "exclusivo_decanato": "Exclusivo del Decano",
             "requiere_chofer": "Requiere Chofer asignado",
         }

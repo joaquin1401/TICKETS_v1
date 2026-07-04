@@ -74,7 +74,7 @@
             <input type="checkbox" name="activo"
                    {% if form.activo.value %}checked{% endif %}
                    style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
-            <span style="font-size:13px;color:var(--text-dim);">Vehículo activo (disponible para reservas)</span>
+            <span style="font-size:13px;color:var(--text-dim);">Vehículo activo (desmarcar para <strong>baja permanente</strong>)</span>
           </label>
           {% if form.activo.errors %}<p class="form-error">{{ form.activo.errors.0 }}</p>{% endif %}
         </div>
