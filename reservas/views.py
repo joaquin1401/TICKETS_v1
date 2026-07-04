@@ -97,24 +97,17 @@ def paginate_queryset(request, queryset, per_page=ITEMS_PER_PAGE):
 
 def login_requerido(view_func):
     """
-    Decorador que redirige a login si no hay sesión activa.
+    Decorador que redirige a login si no hay sesión activa o el usuario fue eliminado.
 
-    Valida que request.session["usuario_id"] exista. Si no existe,
-    redirige a la ruta 'login'. Mantiene el nombre de la vista original
-    para introspección.
-
-    Args:
-        view_func: Función de vista a proteger.
-
-    Returns:
-        wrapper: Función decorada que aplica la validación.
-
-    Notas:
-        Patrón simple sin argumentos. Para vistas con parámetros,
-        usa *args y **kwargs en wrapper.
+    Valida que request.session["usuario_id"] exista y que el usuario siga en la BD.
+    Si no, limpia la sesión y redirige a la ruta 'login'.
     """
     def wrapper(request, *args, **kwargs):
         if not request.session.get("usuario_id"):
+            return redirect("login")
+        usuario = get_usuario_sesion(request)
+        if not usuario:
+            request.session.flush()
             return redirect("login")
         return view_func(request, *args, **kwargs)
     wrapper.__name__ = view_func.__name__
