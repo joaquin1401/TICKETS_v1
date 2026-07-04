@@ -1226,7 +1226,7 @@ def monitor_tickets_activos(request):
         request (HttpRequest): Objeto de solicitud (GET).
 
     Returns:
-        HttpResponse: Plantilla 'reservas/tickets/monitor_activos.html' con:
+        HttpResponse: Plantilla 'reservas/tickets/tickets_activos.html' con:
             - tickets: QuerySet de tickets aprobados futuros.
             - usuario: Instancia del usuario logueado (admin).
 
@@ -1289,7 +1289,7 @@ def monitor_tickets_activos(request):
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
     vehiculos_en_uso = tickets_qs.values("id_vehiculo").distinct().count()
 
-    return render(request, "reservas/tickets/monitor_activos.html", {
+    return render(request, "reservas/tickets/tickets_activos.html", {
         "form": form,
         "tickets": page_obj.object_list,
         "page_obj": page_obj,
