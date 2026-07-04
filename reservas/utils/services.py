@@ -390,7 +390,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         if permiso_qs.exists():
             # Verificar que hora_inicio esté dentro de los próximos dias_anticipacion días
             limite_permitido = ahora_date + timedelta(days=dias_anticipacion)
-            if fecha_inicio_date <= limite_permitido:
+            if _fecha_inicio_date <= limite_permitido:
                 permiso_emergencia = permiso_qs.first()
                 tiene_permiso_activo = True
 
