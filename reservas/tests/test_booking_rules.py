@@ -98,8 +98,13 @@ class TestReglasNegocioTickets(TestCase):
         res_valido = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_valido, inicio_valido + timedelta(hours=2), destino="X", cant_pasajeros=1)
         self.assertEqual(res_valido.estado, ResultadoCreacion.OK)
 
-    def test_minimo_3_dias(self):
-        """Bloqueo 3 días antes para crear reservas."""
+    def test_minimo_anticipacion_reservas(self):
+        """Bloqueo para crear reservas si no se cumple la anticipación mínima."""
+        from reservas.models import ConfiguracionGlobal
+        config = ConfiguracionGlobal.get_solo()
+        config.dias_anticipacion_reservas = 3
+        config.save()
+        
         inicio = self.ahora + timedelta(days=2)
         fin = inicio + timedelta(hours=2)
         
@@ -110,8 +115,13 @@ class TestReglasNegocioTickets(TestCase):
         res_valido = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_valido, inicio_valido + timedelta(hours=2), destino="X", cant_pasajeros=1)
         self.assertEqual(res_valido.estado, ResultadoCreacion.OK)
 
-    def test_cancelacion_5_dias(self):
+    def test_anticipacion_minima_cancelacion(self):
         """Cancelación permitida hasta los días de anticipación antes de la fecha."""
+        from reservas.models import ConfiguracionGlobal
+        config = ConfiguracionGlobal.get_solo()
+        config.dias_anticipacion_cancelacion = 5
+        config.save()
+        
         # Setup tickets
         inicio_lejos = self.ahora + timedelta(days=10)
         inicio_cerca = self.ahora + timedelta(days=4)
