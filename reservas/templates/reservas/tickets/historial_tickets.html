@@ -81,69 +81,33 @@
         <tr>
           <th>#</th>
           <th>Creado</th>
-          <th>Solicitante</th>
-          <th>Cargo</th>
-          <th>Vehículo</th>
-          <th>Conductor</th>
           <th>Destino</th>
-          <th>Distancia Est.</th>
-          <th>Distancia Real</th>
-          <th>Km Inicio</th>
-          <th>Km Fin</th>
-          <th>Salida Est.</th>
-          <th>Salida Real</th>
-          <th>Llegada Est.</th>
-          <th>Llegada Real</th>
+          <th>Vehículo</th>
+          <th>Salida</th>
+          <th>Llegada</th>
+          <th>Pasajeros</th>
           <th>Estado</th>
-          <th>Observación</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         {% for t in tickets %}
         <tr>
-          <td class="text-mono text-muted">#{{ t.pk }}</td>
+          <td><span class="text-mono text-muted">#{{ t.pk }}</span></td>
           <td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
-          <td><span class="primary">{{ t.id_usuario.nombre_completo }}</span></td>
-          <td><span class="badge badge-neutral">{{ t.id_usuario.id_cargo.nombre }}</span></td>
+          <td><span class="primary">{{ t.destino }}</span></td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {{ t.id_vehiculo.patente }}</td>
-          <td>{% if t.conductor %}{{ t.conductor.nombre_completo }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
-          <td>{{ t.destino }}</td>
-          <td>
-            {% if t.distancia_est > 0 %}{{ t.distancia_est }} km{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.distancia_real %}{{ t.distancia_real }} km{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.kilometraje_inicio %}{{ t.kilometraje_inicio }} km{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
-            {% if t.kilometraje_fin %}{{ t.kilometraje_fin }} km{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>{{ t.hora_inicio|date:"d/m/Y H:i" }}</td>
           <td>
             {% if t.hora_inicio_real %}{{ t.hora_inicio_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td>
-            {% if t.hora_fin %}{{ t.hora_fin|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
-          </td>
-          <td>
             {% if t.hora_fin_real %}{{ t.hora_fin_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
+          <td>{{ t.cant_pasajeros }}</td>
           <td>
             <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">
               {{ t.estado }}
             </span>
-          </td>
-          <td style="max-width:120px;">
-            {% if t.observacion %}
-            <div style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ t.observacion }}">
-              {{ t.observacion }}
-            </div>
-            {% else %}
-            <span class="text-muted">—</span>
-            {% endif %}
           </td>
           <td><a href="{% url 'detalle_ticket' t.pk %}" class="btn btn-outline btn-sm">Ver</a></td>
         </tr>
