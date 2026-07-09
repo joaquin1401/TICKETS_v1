@@ -13,6 +13,7 @@ Conceptos clave:
 """
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 import math
 import requests
@@ -504,10 +505,18 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
         t_existente.save(update_fields=["estado", "observacion"])
         tickets_cancelados.append(t_existente)
 
-        # Permiso de emergencia si la salida era en los próximos dias_cancelacion días
+        # ── Reasignación automática (si hay vehículo y chofer disponibles) ──
+        from ..utils.notifications import notify_priority_reassigned
+        nuevo_ticket_prioridad = _reasignar_ticket(t_existente, contexto="prioridad")
+
+        # Permiso de emergencia solo si NO hubo reasignación
+        # y la salida era en los próximos dias_cancelacion días
         hoy_local = get_localdate()
         salida_date = t_existente.hora_inicio.date() if hasattr(t_existente.hora_inicio, 'date') else t_existente.hora_inicio
-        tiene_permiso_excepcional = salida_date <= hoy_local + timedelta(days=dias_cancelacion)
+        tiene_permiso_excepcional = (
+            nuevo_ticket_prioridad is None
+            and salida_date <= hoy_local + timedelta(days=dias_cancelacion)
+        )
         if tiene_permiso_excepcional:
             PermisoReservaExtraordinaria.objects.create(
                 usuario=t_existente.id_usuario,
@@ -515,10 +524,6 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
                 motivo=PermisoReservaExtraordinaria.MOTIVO_PRIORIDAD,
                 valido_hasta=hoy_local + timedelta(days=dias_cancelacion),
             )
-
-        # ── Reasignación automática (si hay vehículo y chofer disponibles) ──
-        from ..utils.notifications import notify_priority_reassigned
-        nuevo_ticket_prioridad = _reasignar_ticket(t_existente, contexto="prioridad")
 
         # Notificar por correo con template amigable (una vez por usuario)
         correo_usuario = t_existente.id_usuario.correo
@@ -787,6 +792,9 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
         notify_vehicle_inactive_reassigned,
     )
 
+    if not isinstance(dias, int) or dias <= 0:
+        raise ValueError("`dias` debe ser un entero positivo mayor a 0.")
+
     config_global = ConfiguracionGlobal.get_solo()
     dias_cancelacion = config_global.dias_anticipacion_cancelacion
 
@@ -799,8 +807,15 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
     tickets_afectados = Ticket.objects.filter(
         id_vehiculo=vehiculo,
         estado=Ticket.ESTADO_APROBADO,
-        hora_inicio__date__gte=hoy,
-        hora_inicio__date__lte=inactivo_hasta,
+    ).filter(
+        # Solapamiento con [hoy, inactivo_hasta]:
+        #   ticket.hora_inicio <= inactivo_hasta
+        #   Y (ticket.hora_fin >= hoy  O  ticket es mismo-día Y empieza hoy o después)
+        Q(hora_inicio__date__lte=inactivo_hasta) &
+        (
+            Q(hora_fin__date__gte=hoy) |
+            Q(hora_fin__isnull=True, hora_inicio__date__gte=hoy)
+        )
     ).select_related("id_usuario", "id_vehiculo")
 
     cancelados = 0

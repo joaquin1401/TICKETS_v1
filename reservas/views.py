@@ -1651,6 +1651,10 @@ def levantar_baja_vehiculo(request, vehiculo_id):
 
     vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id)
     
+    if not vehiculo.esta_en_baja_temporal():
+        messages.info(request, "El vehículo no se encuentra actualmente en baja temporal.")
+        return redirect("edicion_vehiculo", vehiculo_id=vehiculo_id)
+    
     vehiculo.inactivo_hasta = None
     vehiculo.save(update_fields=["inactivo_hasta"])
     
