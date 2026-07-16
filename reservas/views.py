@@ -893,11 +893,15 @@ def finalizar_ticket(request, ticket_id):
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
             
             from django.utils.dateparse import parse_time
-            from django.utils.timezone import make_aware, is_naive, localtime
+            from django.utils import timezone
+            from django.utils.timezone import make_aware, is_naive, is_aware, localtime
             from datetime import datetime
             
             try:
                 ticket.kilometraje_fin = Decimal(km_fin_str)
+                if ticket.kilometraje_fin >= Decimal('100000000') or ticket.kilometraje_fin < 0:
+                    messages.error(request, "El kilometraje ingresado es inválido o demasiado grande (máximo 8 dígitos enteros).")
+                    return redirect(request.META.get('HTTP_REFERER', 'inicio'))
                 
                 t_fin = parse_time(hora_fin_real_str)
                 
@@ -924,6 +928,9 @@ def finalizar_ticket(request, ticket_id):
                 messages.error(request, "Datos reales inválidos.")
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
                 
+            if is_naive(ticket.hora_inicio_real):
+                ticket.hora_inicio_real = make_aware(ticket.hora_inicio_real)
+                
             if ticket.hora_fin_real < ticket.hora_inicio_real:
                 messages.error(request, "La hora de regreso no puede ser anterior a la hora de salida.")
                 return redirect(request.META.get('HTTP_REFERER', 'inicio'))
@@ -934,7 +941,6 @@ def finalizar_ticket(request, ticket_id):
                 
             # Validar justificación por retraso > 2h (comparando con la HORA ACTUAL de Argentina, no la ingresada)
             if ticket.hora_fin:
-                from django.utils.timezone import localtime, is_aware
                 now_local = localtime(timezone.now()) if is_aware(timezone.now()) else timezone.now()
                 fin_local = localtime(ticket.hora_fin) if is_aware(ticket.hora_fin) else ticket.hora_fin
                 retraso = now_local - fin_local
