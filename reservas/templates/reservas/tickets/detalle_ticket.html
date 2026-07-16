@@ -15,7 +15,9 @@
   </div>
   <div class="flex gap-8">
     {% if puede_cancelar %}
-    <form method="post" action="{% url 'cancelar_ticket' ticket.pk %}" onsubmit="return confirm('¿Estás seguro de que quieres cancelar este ticket? Esta acción no se puede deshacer.');" style="display:inline;">
+    <form method="post" action="{% url 'cancelar_ticket' ticket.pk %}"
+      onsubmit="return confirm('¿Estás seguro de que quieres cancelar este ticket? Esta acción no se puede deshacer.');"
+      style="display:inline;">
       {% csrf_token %}
       <button type="submit" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Cancelar Ticket</button>
     </form>
@@ -32,14 +34,16 @@
   <div class="card">
     <div class="card-header">
       <span class="card-title">◫ Información del ticket</span>
-      <span class="badge badge-{% if ticket.estado == 'aprobado' %}success{% elif ticket.estado == 'cancelado' %}danger{% else %}warning{% endif %} " style="font-size:11px;">
+      <span
+        class="badge badge-{% if ticket.estado == 'aprobado' %}success{% elif ticket.estado == 'cancelado' %}danger{% else %}warning{% endif %} "
+        style="font-size:11px;">
         {{ ticket.estado|upper }}
       </span>
     </div>
     <div class="card-body">
       <div class="detail-field">
         <div class="detail-field-label">Destino</div>
-        <div class="detail-field-value large">
+        <div class="detail-field-value">
           {{ ticket.destino }}
         </div>
       </div>
@@ -74,27 +78,41 @@
       {% endif %}
       <div class="form-row">
         <div class="detail-field">
-        <div class="detail-field-label">Salida</div>
-        <div class="detail-field-value text-mono">
-          Prog: {{ ticket.hora_inicio|date:"d/m/Y H:i" }}
-          {% if ticket.hora_inicio_real %}
-          <br><span style="color:var(--text);font-weight:600;">Real: {{ ticket.hora_inicio_real|date:"d/m/Y H:i" }}</span>
-          {% endif %}
+          <div class="detail-field-label">Salida Prog.</div>
+          <div class="detail-field-value">{{ ticket.hora_inicio|date:"d/m/Y H:i" }}</div>
+        </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Salida Real</div>
+          <div class="detail-field-value">
+            {% if ticket.hora_inicio_real %}
+            {{ ticket.hora_inicio_real|date:"d/m/Y H:i" }}
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </div>
         </div>
       </div>
-      <div class="detail-field">
-        <div class="detail-field-label">Llegada</div>
-        <div class="detail-field-value text-mono">
-          {% if ticket.hora_fin %}
-            Prog: {{ ticket.hora_fin|date:"d/m/Y H:i" }}
-          {% else %}
-            Prog: <span class="text-muted">—</span>
-          {% endif %}
-          {% if ticket.hora_fin_real %}
-          <br><span style="color:var(--text);font-weight:600;">Real: {{ ticket.hora_fin_real|date:"d/m/Y H:i" }}</span>
-          {% endif %}
+      <div class="form-row">
+        <div class="detail-field">
+          <div class="detail-field-label">Llegada Prog.</div>
+          <div class="detail-field-value">
+            {% if ticket.hora_fin %}
+            {{ ticket.hora_fin|date:"d/m/Y H:i" }}
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </div>
         </div>
-      </div>
+        <div class="detail-field">
+          <div class="detail-field-label">Llegada Real</div>
+          <div class="detail-field-value">
+            {% if ticket.hora_fin_real %}
+            {{ ticket.hora_fin_real|date:"d/m/Y H:i" }}
+            {% else %}
+            <span class="text-muted">—</span>
+            {% endif %}
+          </div>
+        </div>
       </div>
       <div class="form-row">
         <div class="detail-field">
@@ -103,7 +121,7 @@
         </div>
         <div class="detail-field">
           <div class="detail-field-label">Fecha de solicitud</div>
-          <div class="detail-field-value text-mono">{{ ticket.fecha|date:"d/m/Y" }}</div>
+          <div class="detail-field-value">{{ ticket.fecha|date:"d/m/Y" }}</div>
         </div>
       </div>
       <div class="form-row">
@@ -113,7 +131,8 @@
         </div>
         <div class="detail-field">
           <div class="detail-field-label">Conductor Asignado</div>
-          <div class="detail-field-value">{% if ticket.conductor %}{{ ticket.conductor.nombre_completo }}{% else %}<span class="text-muted">Sin asignar</span>{% endif %}</div>
+          <div class="detail-field-value">{% if ticket.conductor %}{{ ticket.conductor.nombre_completo }}{% else %}<span
+              class="text-muted">Sin asignar</span>{% endif %}</div>
         </div>
       </div>
       {% if ticket.para_tercero %}
@@ -145,7 +164,7 @@
       <div class="card-body">
         <div class="detail-field">
           <div class="detail-field-label">Marca y modelo</div>
-          <div class="detail-field-value" style="font-weight:500;">{{ ticket.id_vehiculo.marca }} {{ ticket.id_vehiculo.modelo }} {{ ticket.id_vehiculo.patente }}</div>
+          <div class="detail-field-value">{{ ticket.id_vehiculo.marca }} {{ ticket.id_vehiculo.modelo }} {{ ticket.id_vehiculo.patente }}</div>
         </div>
         <div class="detail-field" style="margin-bottom:0;">
           <div class="detail-field-label">Capacidad</div>
@@ -164,13 +183,13 @@
         </div>
         <div class="detail-field">
           <div class="detail-field-label">Correo</div>
-          <div class="detail-field-value text-mono" style="font-size:12px;">{{ ticket.id_usuario.correo }}</div>
+          <div class="detail-field-value">{{ ticket.id_usuario.correo }}</div>
         </div>
         <div class="detail-field" style="margin-bottom:0;">
           <div class="detail-field-label">Cargo</div>
           <div>
             <span class="badge badge-warning">{{ ticket.id_usuario.id_cargo.nombre }}</span>
-            <span class="text-muted text-mono" style="font-size:11px;margin-left:6px;">prioridad {{ ticket.id_usuario.id_cargo.prioridad }}</span>
+            <span class="text-muted" style="margin-left:6px;">prioridad {{ ticket.id_usuario.id_cargo.prioridad }}</span>
           </div>
         </div>
       </div>
