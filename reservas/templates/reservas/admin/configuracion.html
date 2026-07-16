@@ -22,7 +22,7 @@
           <label class="form-label">Días de anticipación para reservas (Usuarios) <span
               style="color:var(--danger);">*</span></label>
           <input type="number" name="dias_anticipacion_reservas" class="form-control" min="0" placeholder="Ej: 3"
-            value="{{ form.dias_anticipacion_reservas.value|default:'3' }}">
+            value="{{ form.dias_anticipacion_reservas.value }}">
           <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">Días mínimos de anticipación requeridos para
             que los usuarios puedan solicitar una reserva.</p>
           {% if form.dias_anticipacion_reservas.errors %}<p class="form-error">{{
@@ -32,7 +32,7 @@
           <label class="form-label">Días máximos de anticipación (Todos) <span
               style="color:var(--danger);">*</span></label>
           <input type="number" name="dias_maximo_anticipacion_reservas" class="form-control" min="0" placeholder="Ej: 60"
-            value="{{ form.dias_maximo_anticipacion_reservas.value|default:'60' }}">
+            value="{{ form.dias_maximo_anticipacion_reservas.value }}">
           <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">Días máximos de anticipación permitidos para
             hacer una reserva (aplica a todos los usuarios).</p>
           {% if form.dias_maximo_anticipacion_reservas.errors %}<p class="form-error">{{
@@ -42,7 +42,7 @@
           <label class="form-label">Días de anticipación para cancelación (Usuarios) <span
               style="color:var(--danger);">*</span></label>
           <input type="number" name="dias_anticipacion_cancelacion" class="form-control" min="0" placeholder="Ej: 5"
-            value="{{ form.dias_anticipacion_cancelacion.value|default:'5' }}">
+            value="{{ form.dias_anticipacion_cancelacion.value }}">
           <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">Días mínimos de anticipación requeridos para
             que los usuarios puedan cancelar una reserva.</p>
           {% if form.dias_anticipacion_cancelacion.errors %}<p class="form-error">{{
@@ -54,12 +54,12 @@
           <div style="display:flex;gap:10px;align-items:center;">
             <div style="flex:1;">
               <input type="number" name="horas_margen_entre_reservas" class="form-control" min="0" placeholder="Hs"
-                value="{{ form.horas_margen_entre_reservas.value|default_if_none:'1' }}">
+                value="{{ form.horas_margen_entre_reservas.value }}">
             </div>
             <span style="color:var(--text-muted);">horas</span>
             <div style="flex:1;">
               <input type="number" name="minutos_margen_entre_reservas" class="form-control" min="0" placeholder="Min"
-                value="{{ form.minutos_margen_entre_reservas.value|default:'0' }}">
+                value="{{ form.minutos_margen_entre_reservas.value }}">
             </div>
             <span style="color:var(--text-muted);">minutos</span>
           </div>

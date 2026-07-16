@@ -57,7 +57,7 @@
           </div>
 
           <div>
-            {% with fecha_regreso=t.hora_fin|default:t.hora_inicio %}
+            {% with fecha_regreso=t.hora_fin|default:"-" %}
             <label class="form-label" style="font-size: 12px;">Hora de Llegada ({{ fecha_regreso|date:'d/m/Y' }})</label>
             {% endwith %}
             <input type="time" name="hora_fin_real" class="form-control" required
