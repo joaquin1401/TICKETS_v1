@@ -110,9 +110,9 @@
     <tbody>
       {% for u in top_usuarios_veh %}
       <tr {% if forloop.first %}class="row-leader"{% endif %}>
-        <td style="color:var(--text-muted); font-family:var(--mono); font-size:11px;">{{ forloop.counter }}</td>
+        <td class="td-id">{{ forloop.counter }}</td>
         <td>{{ u.id_usuario__nombre }} {{ u.id_usuario__apellido }}</td>
-        <td style="color:var(--text-muted); font-size:12px;">{{ u.id_usuario__id_cargo__nombre }}</td>
+        <td class="td-small">{{ u.id_usuario__id_cargo__nombre }}</td>
         <td class="align-right">{{ u.total }}</td>
       </tr>
       {% endfor %}

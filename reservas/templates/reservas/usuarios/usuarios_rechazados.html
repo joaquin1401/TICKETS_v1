@@ -36,7 +36,7 @@
         {% for u in rechazados %}
         <tr>
           <td><span class="primary">{{ u.nombre }} {{ u.apellido }}</span></td>
-          <td class="text-mono" style="font-size:12px;">{{ u.correo }}</td>
+          <td class="td-id">{{ u.correo }}</td>
           <td>{{ u.id_cargo.nombre }}</td>
           <td><span class="badge badge-danger">Rechazado</span></td>
         </tr>

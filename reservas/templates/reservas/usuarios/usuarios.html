@@ -74,7 +74,7 @@
               <a href="{% url 'detalle_usuario' u.pk %}" class="primary" style="text-decoration:none;">{{ u.nombre }} {{ u.apellido }}</a>
             </div>
           </td>
-          <td class="text-mono" style="font-size:12px;">{{ u.correo }}</td>
+          <td class="td-id">{{ u.correo }}</td>
           <td><span class="badge badge-warning">{{ u.id_cargo.nombre }}</span></td>
           <td>
             {% if u.valido %}
@@ -85,7 +85,7 @@
               <span class="badge badge-danger">Desactivado</span>
             {% endif %}
           </td>
-          <td class="text-mono text-muted">{{ u.id_cargo.prioridad }}</td>
+          <td class="td-id">{{ u.id_cargo.prioridad }}</td>
           <td><a href="{% url 'detalle_usuario' u.pk %}" class="btn btn-outline btn-sm">Editar</a></td>
         </tr>
         {% endfor %}

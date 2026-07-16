@@ -93,7 +93,7 @@
       <tbody>
         {% for t in tickets %}
         <tr>
-          <td><span class="text-mono text-muted">#{{ t.pk }}</span></td>
+          <td class="td-id">#{{ t.pk }}</td>
           <td>{{ t.fecha|date:"d/m/Y H:i" }}</td>
           <td><span class="primary">{{ t.destino }}</span></td>
           <td>{{ t.id_vehiculo.marca }} {{ t.id_vehiculo.modelo }} {{ t.id_vehiculo.patente }}</td>
