@@ -701,5 +701,25 @@
     {% endif %}
   </div>
 </div>
+</div>
 {% endif %}
+
+{% if mostrar_confirmacion_prioridad %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    setTimeout(function() {
+      if (confirm("{{ mensaje_confirmacion|escapejs }}")) {
+        var form = document.querySelector('.quick-form form');
+        var hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'confirmacion_prioridad';
+        hiddenInput.value = 'true';
+        form.appendChild(hiddenInput);
+        form.submit();
+      }
+    }, 100);
+  });
+</script>
+{% endif %}
+
 {% endblock %}

@@ -220,6 +220,7 @@ class ResultadoCreacion:
     OK = "ok"
     BLOQUEADO = "bloqueado"          # El solicitante tiene MENOR prioridad
     SOBRESCRITO = "sobrescrito"      # El solicitante tiene MAYOR prioridad → canceló otros
+    REQUIERE_CONFIRMACION = "requiere_confirmacion" # El solicitante tiene MAYOR prioridad pero debe confirmar
 
     def __init__(self, estado, ticket=None, tickets_cancelados=None, mensaje=""):
         """
@@ -249,7 +250,7 @@ class ResultadoCreacion:
 
 
 @transaction.atomic
-def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
+def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado=False, **kwargs):
     """
     Crea un nuevo ticket aplicando reglas de jerarquía de cargos (HU 4.2, 4.3).
 
@@ -487,6 +488,15 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, **kwargs):
 
     # ── Caso 3: El solicitante tiene MAYOR jerarquía que todos los conflictos ───────
     # Sobrescribir y notificar
+    
+    if not confirmado:
+        nombres_cancelados = ", ".join(t.id_usuario.nombre_completo for t in tickets_conflicto)
+        return ResultadoCreacion(
+            estado=ResultadoCreacion.REQUIERE_CONFIRMACION,
+            mensaje=f"Su reserva se solapa con la de {nombres_cancelados}. ¿Está seguro de que desea cancelar su reserva para darle prioridad a la suya?",
+            tickets_cancelados=tickets_conflicto
+        )
+        
     from ..models import PermisoReservaExtraordinaria
     from ..utils.notifications import notify_priority_cancelled
 

@@ -40,12 +40,17 @@ def inicio(request):
     es_admin = usuario.id_cargo.prioridad == 0
     es_usuario_general = usuario.id_cargo.nombre == Cargo.USUARIO
     form = TicketForm(es_admin=es_admin, es_usuario_general=es_usuario_general, usuario=usuario)
+    
+    mostrar_confirmacion_prioridad = False
+    mensaje_confirmacion = ""
 
     if request.method == "POST":
         form = TicketForm(request.POST, es_admin=es_admin, es_usuario_general=es_usuario_general, usuario=usuario)
         if form.is_valid():
             cd = form.cleaned_data
             hora_fin = cd.get("hora_fin") or (cd["hora_inicio"] + timedelta(hours=2))
+
+            confirmado = request.POST.get("confirmacion_prioridad") == "true"
 
             resultado = crear_ticket_con_reglas(
                 usuario=usuario,
@@ -56,6 +61,7 @@ def inicio(request):
                 cant_pasajeros=cd["cant_pasajeros"],
                 descripcion=cd.get("descripcion", ""),
                 requiere_chofer=cd.get("requiere_chofer", False),
+                confirmado=confirmado,
             )
 
             if resultado.exito:
@@ -64,6 +70,9 @@ def inicio(request):
                 else:
                     messages.success(request, resultado.mensaje, extra_tags="clear_draft")
                 return redirect("historial")
+            elif resultado.estado == ResultadoCreacion.REQUIERE_CONFIRMACION:
+                mostrar_confirmacion_prioridad = True
+                mensaje_confirmacion = resultado.mensaje
             else:
                 messages.error(request, resultado.mensaje)
 
@@ -281,6 +290,8 @@ def inicio(request):
         "dias_anticipacion": dias_anticipacion,
         "dias_maximos": dias_maximos,
         "dias_cancelacion": dias_cancelacion,
+        "mostrar_confirmacion_prioridad": mostrar_confirmacion_prioridad,
+        "mensaje_confirmacion": mensaje_confirmacion,
     })
 
 

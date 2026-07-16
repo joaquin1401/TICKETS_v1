@@ -2,7 +2,11 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
 from reservas.models import Cargo, Usuario, Vehiculo, Ticket
-from reservas.utils.services import crear_ticket_con_reglas, cancelar_ticket_usuario, ResultadoCreacion
+from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas, cancelar_ticket_usuario, ResultadoCreacion
+
+def crear_ticket_con_reglas(*args, **kwargs):
+    kwargs.setdefault("confirmado", True)
+    return _crear_ticket_con_reglas(*args, **kwargs)
 
 def get_cargo(nombre, prioridad):
     cargo, created = Cargo.objects.get_or_create(nombre=nombre, defaults={'prioridad': prioridad})
@@ -48,11 +52,11 @@ class TestReglasNegocioTickets(TestCase):
         fin = inicio + timedelta(hours=2)
         
         # Falla para el Secretario
-        res_sec = crear_ticket_con_reglas(self.secretario, self.vehiculo_decanato, inicio, fin, destino="X", cant_pasajeros=1)
+        res_sec = crear_ticket_con_reglas(self.secretario, self.vehiculo_decanato, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res_sec.estado, ResultadoCreacion.BLOQUEADO)
         
         # Exito para el Decano
-        res_decano = crear_ticket_con_reglas(self.decano, self.vehiculo_decanato, inicio, fin, destino="X", cant_pasajeros=1)
+        res_decano = crear_ticket_con_reglas(self.decano, self.vehiculo_decanato, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res_decano.estado, ResultadoCreacion.OK)
 
     def test_decano_sobrescribe_reserva_normal(self):
@@ -61,11 +65,11 @@ class TestReglasNegocioTickets(TestCase):
         fin = inicio + timedelta(hours=2)
         
         # Usuario reserva vehículo normal
-        crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1)
+        crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         self.assertTrue(Ticket.objects.filter(id_usuario=self.usuario_comun, estado=Ticket.ESTADO_APROBADO).exists())
         
         # Decano sobrescribe
-        res_decano = crear_ticket_con_reglas(self.decano, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1)
+        res_decano = crear_ticket_con_reglas(self.decano, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res_decano.estado, ResultadoCreacion.SOBRESCRITO)
         
         # El ticket del usuario debe estar cancelado
@@ -77,7 +81,7 @@ class TestReglasNegocioTickets(TestCase):
         inicio = self.ahora + timedelta(days=10)
         fin = inicio + timedelta(hours=2)
         
-        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_taller, inicio, fin, destino="X", cant_pasajeros=1)
+        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_taller, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
 
     def test_limite_maximo_anticipacion(self):
@@ -90,12 +94,12 @@ class TestReglasNegocioTickets(TestCase):
         inicio = self.ahora + timedelta(days=46)
         fin = inicio + timedelta(hours=2)
         
-        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1)
+        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
         self.assertIn("No se pueden realizar reservas con más de 45 días de antelación.", res.mensaje)
         
         inicio_valido = self.ahora + timedelta(days=44)
-        res_valido = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_valido, inicio_valido + timedelta(hours=2), destino="X", cant_pasajeros=1)
+        res_valido = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_valido, inicio_valido + timedelta(hours=2), destino="X", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res_valido.estado, ResultadoCreacion.OK)
 
     def test_minimo_anticipacion_reservas(self):
@@ -108,11 +112,11 @@ class TestReglasNegocioTickets(TestCase):
         inicio = self.ahora + timedelta(days=2)
         fin = inicio + timedelta(hours=2)
         
-        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1)
+        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
         
         inicio_valido = self.ahora + timedelta(days=4)
-        res_valido = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_valido, inicio_valido + timedelta(hours=2), destino="X", cant_pasajeros=1)
+        res_valido = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_valido, inicio_valido + timedelta(hours=2), destino="X", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res_valido.estado, ResultadoCreacion.OK)
 
     def test_anticipacion_minima_cancelacion(self):
@@ -126,7 +130,7 @@ class TestReglasNegocioTickets(TestCase):
         inicio_lejos = self.ahora + timedelta(days=10)
         inicio_cerca = self.ahora + timedelta(days=4)
         
-        res_lejos = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_lejos, inicio_lejos + timedelta(hours=2), destino="X", cant_pasajeros=1)
+        res_lejos = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio_lejos, inicio_lejos + timedelta(hours=2), destino="X", cant_pasajeros=1, confirmado=True)
         t_lejos = res_lejos.ticket
         
         # Simulamos que lo creó hace tiempo cambiando la fecha directo en BD porque el servicio de creación bloquea a 3 días
@@ -154,10 +158,10 @@ class TestReglasNegocioTickets(TestCase):
         fin = inicio + timedelta(hours=2)
         
         # Decano reserva primero
-        crear_ticket_con_reglas(self.decano, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1)
+        crear_ticket_con_reglas(self.decano, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         
         # Usuario intenta sobrescribir
-        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1)
+        res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
 
     def test_usuario_misma_jerarquia_no_sobrescribe(self):
@@ -166,13 +170,13 @@ class TestReglasNegocioTickets(TestCase):
         fin = inicio + timedelta(hours=2)
         
         # Secretario reserva primero
-        crear_ticket_con_reglas(self.secretario, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1)
+        crear_ticket_con_reglas(self.secretario, self.vehiculo_normal, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         
         # Otro usuario con jerarquía Secretario intenta sobrescribir
         secretario2 = Usuario.objects.create(
             nombre="Sec2", apellido="2", correo="sec2@test.com", id_cargo=self.cargo_secretario, valido=True
         )
-        res = crear_ticket_con_reglas(secretario2, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1)
+        res = crear_ticket_con_reglas(secretario2, self.vehiculo_normal, inicio, fin, destino="Y", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
 
     def test_creacion_exitosa_sin_conflictos(self):

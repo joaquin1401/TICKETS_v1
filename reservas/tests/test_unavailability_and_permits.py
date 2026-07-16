@@ -2,7 +2,11 @@ from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
 from reservas.models import Cargo, Usuario, Vehiculo, Ticket, PermisoReservaExtraordinaria, ConfiguracionGlobal
-from reservas.utils.services import crear_ticket_con_reglas, ResultadoCreacion, dar_baja_temporal_vehiculo, _reasignar_ticket
+from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas, ResultadoCreacion, dar_baja_temporal_vehiculo, _reasignar_ticket
+
+def crear_ticket_con_reglas(*args, **kwargs):
+    kwargs.setdefault("confirmado", True)
+    return _crear_ticket_con_reglas(*args, **kwargs)
 from reservas.forms import TicketForm
 
 def get_cargo(nombre, prioridad):
