@@ -588,14 +588,17 @@ def cancelar_ticket_usuario(ticket, usuario):
     if ticket.estado != Ticket.ESTADO_APROBADO:
         return False, "El ticket ya no está activo."
         
-    ahora = timezone.now()
+    hoy = get_localdate()
     from ..models import ConfiguracionGlobal
     dias_cancelacion = ConfiguracionGlobal.get_solo().dias_anticipacion_cancelacion
-
-    if ticket.hora_inicio < ahora + timedelta(days=dias_cancelacion):
+    
+    fecha_inicio = ticket.hora_inicio.date() if hasattr(ticket.hora_inicio, 'date') else ticket.hora_inicio
+    
+    if fecha_inicio < hoy + timedelta(days=dias_cancelacion):
         return False, f"No se puede cancelar la reserva con menos de {dias_cancelacion} días de anticipación."
         
     ticket.estado = Ticket.ESTADO_CANCELADO
+    ahora = timezone.now()
     ticket.observacion = (
         f"Cancelado por el usuario el {ahora.strftime('%d/%m/%Y %H:%M')}."
     )
