@@ -179,16 +179,13 @@ python manage.py qcluster
 ### 4. Archivos Estáticos
 En producción, el servidor de desarrollo de Django (`DEBUG=False`) no sirve los archivos estáticos automáticamente. Tienes dos opciones para servirlos:
 
-**Opción A (Recomendada para Render/Heroku): Usar WhiteNoise**
-1. Instala WhiteNoise: `pip install whitenoise` y agrégalo a tu `requirements.txt`.
-2. En `settings.py`, agrégalo a la lista de `MIDDLEWARE` justo debajo de `SecurityMiddleware`:
-   ```python
-   MIDDLEWARE = [
-       "django.middleware.security.SecurityMiddleware",
-       "whitenoise.middleware.WhiteNoiseMiddleware",  # Añadir esta línea
-       # ...
-   ]
-   ```
+**Opción A (Recomendada para Render/Heroku): Usar WhiteNoise — ya configurado**
+
+WhiteNoise ya viene instalado (`requirements.txt`) y activado en el `MIDDLEWARE`
+de `settings.py`, junto con `CompressedManifestStaticFilesStorage`, que comprime
+los archivos y les agrega un hash al nombre para cachearlos indefinidamente.
+
+No hay que hacer nada extra salvo correr `collectstatic` en el build (ver abajo).
 
 **Opción B (Recomendada para VPS): Usar Nginx o Apache**
 Configura tu servidor web (Nginx/Apache) para que intercepte todas las peticiones a `/static/` y sirva los archivos directamente desde la carpeta `staticfiles`.
