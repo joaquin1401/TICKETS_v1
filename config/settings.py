@@ -5,6 +5,7 @@ Copiá este archivo como base y ajustá las variables de entorno.
 
 from pathlib import Path
 import os
+import sys
 from dotenv import load_dotenv
 
 # Carga las variables de entorno desde el archivo .env
@@ -148,6 +149,56 @@ SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", str(not DEBUG)) 
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split()
 # ── URL base para enlaces en emails ───────────────────────────────────────
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
+
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+# Sin esta configuración, los logger.error()/warning() de la app no tienen
+# ningún handler asociado y se pierden: quedaban invisibles justamente los
+# fallos de envío de correo y de cálculo de distancia, que son los que más
+# necesitamos ver en producción.
+# Se escribe a stdout, que es lo que esperan Render/Heroku/Docker/systemd.
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{asctime} {levelname} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "stream": sys.stdout,
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        # Logs de la propia app (reservas.utils.services, reservas.signals, ...)
+        "reservas": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        # Los 500 con DEBUG=False sólo se ven por acá.
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}
 
 
 # ── Django Q2 (Tareas Asíncronas) ────────────────────────────────────────────
