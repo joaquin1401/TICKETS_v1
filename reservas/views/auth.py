@@ -115,6 +115,10 @@ def login_view(request):
         - "usuario_id": PK del usuario.
         - "es_admin": bool (cargo.prioridad == 0).
 
+    Notes:
+        Se llama a session.cycle_key() antes de guardar los datos para
+        rotar el identificador de sesión y evitar session fixation.
+
     Messages:
         - error: Credenciales inválidas, rechazado.
         - warning: Pendiente de aprobación.
@@ -158,7 +162,12 @@ def login_view(request):
                 messages.warning(request, "Tu cuenta está pendiente de aprobación por un administrador.")
                 return render(request, "reservas/auth/login.html", {"form": form})
 
-            # Establecer sesión
+            # Establecer sesión.
+            # cycle_key() genera una clave de sesión nueva conservando los datos:
+            # sin esto, un atacante que logre fijar el session id de la víctima
+            # antes del login (session fixation) queda autenticado con ella.
+            # Django lo hace solo en django.contrib.auth.login(), que no usamos.
+            request.session.cycle_key()
             request.session["usuario_id"] = usuario.pk
             request.session["es_admin"] = (usuario.id_cargo.prioridad == 0)
             if usuario.id_cargo.nombre == Cargo.CHOFER:
