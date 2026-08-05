@@ -6,6 +6,7 @@ Copiá este archivo como base y ajustá las variables de entorno.
 from pathlib import Path
 import os
 import sys
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Carga las variables de entorno desde el archivo .env
@@ -14,9 +15,23 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ── Seguridad ────────────────────────────────────────────────────────────────
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "cambia-esto-en-produccion")
+SECRET_KEY_INSEGURA = "cambia-esto-en-produccion"
+
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", SECRET_KEY_INSEGURA)
 DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost 127.0.0.1").split()
+
+# Con DEBUG=False no arrancamos con la clave de ejemplo. Es la clave que firma
+# sesiones, tokens de recuperación de contraseña y CSRF: si es la del repo,
+# cualquiera puede falsificarlos. Antes el fallback se aplicaba en silencio y
+# se podía desplegar sin enterarse.
+if not DEBUG and SECRET_KEY == SECRET_KEY_INSEGURA:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY no está configurada (o quedó con el valor de ejemplo) "
+        "y DEBUG=False. Generá una con:\n"
+        "  python -c \"from django.core.management.utils import get_random_secret_key; "
+        "print(get_random_secret_key())\""
+    )
 
 # ── Apps ─────────────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
