@@ -293,7 +293,15 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
         - Los timestamps de observación se generan con timezone.now().
         - Transacción ACID para garantizar consistencia en sobrescrituras.
     """
-    from ..models import ConfiguracionGlobal
+    from ..models import ConfiguracionGlobal, Vehiculo
+
+    # ── Lock pesimista sobre el vehículo ────────────────────────────────────────────
+    # Serializa todas las reservas concurrentes del MISMO vehículo. Sin esto, dos
+    # requests simultáneos pueden leer ambos "sin conflicto" y crear dos tickets
+    # aprobados solapados: @transaction.atomic da rollback, no exclusión mutua.
+    # Se re-lee la fila para no operar sobre una instancia obsoleta del caller.
+    vehiculo = Vehiculo.objects.select_for_update().get(pk=vehiculo.pk)
+
     config_global = ConfiguracionGlobal.get_solo()
     dias_anticipacion = config_global.dias_anticipacion_reservas
     dias_cancelacion = config_global.dias_anticipacion_cancelacion
@@ -733,6 +741,11 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
         candidatos = candidatos.filter(exclusivo_decanato=False)
 
     for vehiculo_cand in candidatos:
+        # Mismo lock pesimista que en crear_ticket_con_reglas: sin él, la comprobación
+        # de conflictos de abajo puede quedar obsoleta antes del save() y generar un
+        # solapamiento. Ambos call sites de esta función corren dentro de @transaction.atomic.
+        vehiculo_cand = Vehiculo.objects.select_for_update().get(pk=vehiculo_cand.pk)
+
         fecha_inicio_date = hora_inicio.date()
         fecha_fin_date = hora_fin.date()
         if vehiculo_cand.esta_inactivo_en_rango(fecha_inicio_date, fecha_fin_date):
