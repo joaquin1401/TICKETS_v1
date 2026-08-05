@@ -15,7 +15,7 @@ from django.http import HttpResponse
 from django.db.models import Count, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
-from weasyprint import HTML
+from xhtml2pdf import pisa
 from django.template.loader import render_to_string
 
 from ..models import Vehiculo, Ticket, Cargo, Usuario
@@ -586,9 +586,14 @@ def reporte_analiticas_pdf(request):
     }
 
     html_string = render_to_string("reservas/analiticas/analiticas_pdf.html", context)
-    pdf_bytes = HTML(string=html_string).write_pdf()
-
-    filename = f"analiticas_{rango}_{hoy.strftime('%Y%m%d')}.pdf"
-    response = HttpResponse(pdf_bytes, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
+    
+    result = io.BytesIO()
+    pdf = pisa.pisaDocument(io.BytesIO(html_string.encode("UTF-8")), result)
+    
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type="application/pdf")
+        filename = f"analiticas_{rango}_{hoy.strftime('%Y%m%d')}.pdf"
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
+    else:
+        return HttpResponse("Error generando el PDF", status=400)
