@@ -85,6 +85,25 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# ── Política de contraseñas ──────────────────────────────────────────────────
+# El modelo Usuario es propio (no hereda de AbstractBaseUser), así que estos
+# validadores NO se aplican solos: los invocan explícitamente los formularios
+# que fijan contraseña (RegistroForm, AdminCrearUsuarioForm, NuevaContrasenaForm).
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        # Los atributos por defecto (username/first_name/last_name/email) no
+        # existen en Usuario; se mapean a los propios del modelo.
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "OPTIONS": {"user_attributes": ("nombre", "apellido", "correo")},
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
 # ── Sesiones ─────────────────────────────────────────────────────────────────
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 60 * 60 * 8     # 8 horas
