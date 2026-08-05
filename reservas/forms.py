@@ -14,7 +14,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado, get_localdate, get_localtime
+from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado
 
 
 # ══════════════════════════════════════════════
@@ -344,10 +344,10 @@ class TicketForm(forms.ModelForm):
                     _permiso_qs = PermisoReservaExtraordinaria.objects.filter(
                         usuario=self.usuario,
                         usado=False,
-                        valido_hasta__gte=get_localdate(),
+                        valido_hasta__gte=timezone.localdate(),
                     )
                     if _permiso_qs.exists():
-                        _limite_permitido = get_localdate() + timedelta(days=dias_anticipacion)
+                        _limite_permitido = timezone.localdate() + timedelta(days=dias_anticipacion)
                         _fecha_inicio_date = hora_inicio.date() if hasattr(hora_inicio, 'date') else hora_inicio
                         if _fecha_inicio_date <= _limite_permitido:
                             _tiene_permiso_emergencia = True

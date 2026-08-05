@@ -76,9 +76,7 @@ DATABASES = {
 LANGUAGE_CODE = "es-ar"
 TIME_ZONE = "America/Argentina/Buenos_Aires"
 USE_I18N = True
-import sys
-TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
-USE_TZ = TESTING
+USE_TZ = True
 
 # ── Estáticos ────────────────────────────────────────────────────────────────
 STATIC_URL = "/static/"

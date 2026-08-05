@@ -14,21 +14,7 @@ conflictos de disponibilidad según la prioridad del cargo del solicitante.
 from django.db import models
 from django.contrib.auth.hashers import make_password
 import uuid
-from django.conf import settings
 from django.utils import timezone
-
-def get_localdate():
-    if getattr(settings, 'USE_TZ', False):
-        return timezone.localdate()
-    return timezone.now().date()
-
-def get_localtime(value=None):
-    if getattr(settings, 'USE_TZ', False):
-        return timezone.localtime(value)
-    if value is None:
-        return timezone.now()
-    return value
-
 
 
 class Cargo(models.Model):
@@ -256,7 +242,7 @@ class Vehiculo(models.Model):
 
     def save(self, *args, **kwargs):
         """Limpia `inactivo_hasta` automáticamente si ya expiró."""
-        if self.inactivo_hasta is not None and self.inactivo_hasta < get_localdate():
+        if self.inactivo_hasta is not None and self.inactivo_hasta < timezone.localdate():
             self.inactivo_hasta = None
         super().save(*args, **kwargs)
 
@@ -266,7 +252,7 @@ class Vehiculo(models.Model):
         """
         if not self.inactivo_hasta:
             return False
-        return self.inactivo_hasta >= get_localdate()
+        return self.inactivo_hasta >= timezone.localdate()
 
     def esta_inactivo_en_rango(self, fecha_inicio, fecha_fin):
         """
@@ -278,7 +264,7 @@ class Vehiculo(models.Model):
         """
         if not self.inactivo_hasta:
             return False
-        hoy = get_localdate()
+        hoy = timezone.localdate()
         # La baja aplica desde hoy hasta inactivo_hasta
         baja_inicio = hoy
         baja_fin = self.inactivo_hasta
@@ -740,4 +726,4 @@ class PermisoReservaExtraordinaria(models.Model):
         """
         Retorna True si el permiso no fue usado y todavía no venció.
         """
-        return not self.usado and self.valido_hasta >= get_localdate()
+        return not self.usado and self.valido_hasta >= timezone.localdate()

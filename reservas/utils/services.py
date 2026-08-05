@@ -18,7 +18,7 @@ from django.utils import timezone
 import math
 import requests
 import logging
-from ..models import Ticket, get_localdate, get_localtime
+from ..models import Ticket
 
 logger = logging.getLogger(__name__)
 
@@ -383,7 +383,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
     tiene_permiso_activo = False
 
     if not es_admin:
-        ahora_date = get_localdate()
+        ahora_date = timezone.localdate()
         permiso_qs = PermisoReservaExtraordinaria.objects.filter(
             usuario=usuario,
             usado=False,
@@ -521,7 +521,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
 
         # Permiso de emergencia solo si NO hubo reasignación
         # y la salida era en los próximos dias_cancelacion días
-        hoy_local = get_localdate()
+        hoy_local = timezone.localdate()
         salida_date = t_existente.hora_inicio.date() if hasattr(t_existente.hora_inicio, 'date') else t_existente.hora_inicio
         tiene_permiso_excepcional = (
             nuevo_ticket_prioridad is None
@@ -598,7 +598,7 @@ def cancelar_ticket_usuario(ticket, usuario):
     if ticket.estado != Ticket.ESTADO_APROBADO:
         return False, "El ticket ya no está activo."
         
-    hoy = get_localdate()
+    hoy = timezone.localdate()
     from ..models import ConfiguracionGlobal
     dias_cancelacion = ConfiguracionGlobal.get_solo().dias_anticipacion_cancelacion
     
@@ -811,7 +811,7 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
     config_global = ConfiguracionGlobal.get_solo()
     dias_cancelacion = config_global.dias_anticipacion_cancelacion
 
-    hoy = get_localdate()
+    hoy = timezone.localdate()
     inactivo_hasta = hoy + timedelta(days=dias)
 
     vehiculo.inactivo_hasta = inactivo_hasta

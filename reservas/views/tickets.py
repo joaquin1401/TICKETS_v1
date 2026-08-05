@@ -400,12 +400,12 @@ def detalle_ticket(request, ticket_id):
         ticket = get_object_or_404(Ticket, pk=ticket_id, id_usuario=usuario)
 
     from django.utils import timezone
-    from ..models import ConfiguracionGlobal, get_localdate
+    from ..models import ConfiguracionGlobal
     import datetime
     dias_cancelacion = ConfiguracionGlobal.get_solo().dias_anticipacion_cancelacion
     puede_cancelar = False
     
-    hoy = get_localdate()
+    hoy = timezone.localdate()
     fecha_inicio = ticket.hora_inicio.date() if hasattr(ticket.hora_inicio, 'date') else ticket.hora_inicio
     
     if ticket.estado == Ticket.ESTADO_APROBADO and fecha_inicio >= hoy + datetime.timedelta(days=dias_cancelacion):
