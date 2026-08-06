@@ -21,13 +21,10 @@ Decoradores de vista:
     - @admin_requerido: Redirige a inicio si es_admin == False.
 """
 
-from django.contrib import admin
 from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 1: Autenticación
     # ═══════════════════════════════════════════════════════════════════════════════

@@ -18,7 +18,7 @@ from django.utils import timezone
 import math
 import requests
 import logging
-from ..models import Ticket, get_localdate, get_localtime
+from ..models import Ticket
 
 logger = logging.getLogger(__name__)
 
@@ -293,7 +293,15 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
         - Los timestamps de observación se generan con timezone.now().
         - Transacción ACID para garantizar consistencia en sobrescrituras.
     """
-    from ..models import ConfiguracionGlobal
+    from ..models import ConfiguracionGlobal, Vehiculo
+
+    # ── Lock pesimista sobre el vehículo ────────────────────────────────────────────
+    # Serializa todas las reservas concurrentes del MISMO vehículo. Sin esto, dos
+    # requests simultáneos pueden leer ambos "sin conflicto" y crear dos tickets
+    # aprobados solapados: @transaction.atomic da rollback, no exclusión mutua.
+    # Se re-lee la fila para no operar sobre una instancia obsoleta del caller.
+    vehiculo = Vehiculo.objects.select_for_update().get(pk=vehiculo.pk)
+
     config_global = ConfiguracionGlobal.get_solo()
     dias_anticipacion = config_global.dias_anticipacion_reservas
     dias_cancelacion = config_global.dias_anticipacion_cancelacion
@@ -383,7 +391,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
     tiene_permiso_activo = False
 
     if not es_admin:
-        ahora_date = get_localdate()
+        ahora_date = timezone.localdate()
         permiso_qs = PermisoReservaExtraordinaria.objects.filter(
             usuario=usuario,
             usado=False,
@@ -521,7 +529,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
 
         # Permiso de emergencia solo si NO hubo reasignación
         # y la salida era en los próximos dias_cancelacion días
-        hoy_local = get_localdate()
+        hoy_local = timezone.localdate()
         salida_date = t_existente.hora_inicio.date() if hasattr(t_existente.hora_inicio, 'date') else t_existente.hora_inicio
         tiene_permiso_excepcional = (
             nuevo_ticket_prioridad is None
@@ -598,7 +606,7 @@ def cancelar_ticket_usuario(ticket, usuario):
     if ticket.estado != Ticket.ESTADO_APROBADO:
         return False, "El ticket ya no está activo."
         
-    hoy = get_localdate()
+    hoy = timezone.localdate()
     from ..models import ConfiguracionGlobal
     dias_cancelacion = ConfiguracionGlobal.get_solo().dias_anticipacion_cancelacion
     
@@ -733,6 +741,11 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
         candidatos = candidatos.filter(exclusivo_decanato=False)
 
     for vehiculo_cand in candidatos:
+        # Mismo lock pesimista que en crear_ticket_con_reglas: sin él, la comprobación
+        # de conflictos de abajo puede quedar obsoleta antes del save() y generar un
+        # solapamiento. Ambos call sites de esta función corren dentro de @transaction.atomic.
+        vehiculo_cand = Vehiculo.objects.select_for_update().get(pk=vehiculo_cand.pk)
+
         fecha_inicio_date = hora_inicio.date()
         fecha_fin_date = hora_fin.date()
         if vehiculo_cand.esta_inactivo_en_rango(fecha_inicio_date, fecha_fin_date):
@@ -811,7 +824,7 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
     config_global = ConfiguracionGlobal.get_solo()
     dias_cancelacion = config_global.dias_anticipacion_cancelacion
 
-    hoy = get_localdate()
+    hoy = timezone.localdate()
     inactivo_hasta = hoy + timedelta(days=dias)
 
     vehiculo.inactivo_hasta = inactivo_hasta

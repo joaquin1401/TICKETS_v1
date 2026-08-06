@@ -11,10 +11,45 @@ Convención de sesión utilizada en vistas:
 """
 
 from django import forms
+from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado, get_localdate, get_localtime
+from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado
+
+
+def validar_fortaleza_password(form, password, campo, datos_usuario=None):
+    """
+    Aplica AUTH_PASSWORD_VALIDATORS a una contraseña en texto plano.
+
+    Usuario no hereda de AbstractBaseUser, así que Django no corre estos
+    validadores por su cuenta: hay que invocarlos desde cada formulario que
+    fije una contraseña.
+
+    Args:
+        form (forms.Form): Formulario sobre el que reportar el error.
+        password (str): Contraseña en texto plano a validar.
+        campo (str): Nombre del campo al que se adjunta el error.
+        datos_usuario (dict | None): cleaned_data para alimentar al
+            UserAttributeSimilarityValidator (nombre, apellido, correo).
+    """
+    if not password:
+        return
+
+    usuario = None
+    if datos_usuario:
+        # Instancia sin guardar: UserAttributeSimilarityValidator necesita un
+        # objeto con _meta para resolver el verbose_name del campo parecido.
+        usuario = Usuario(
+            nombre=datos_usuario.get("nombre", ""),
+            apellido=datos_usuario.get("apellido", ""),
+            correo=datos_usuario.get("correo", ""),
+        )
+
+    try:
+        validate_password(password, user=usuario)
+    except ValidationError as e:
+        form.add_error(campo, e)
 
 
 # ══════════════════════════════════════════════
@@ -86,8 +121,12 @@ class RegistroForm(forms.ModelForm):
         p1 = cleaned.get("contrasena")
         p2 = cleaned.get("confirmar_contrasena")
         if p1 and p2 and p1 != p2:
-            raise ValidationError("Las contraseñas no coinciden.")
-            
+            # add_error(None, ...) en vez de raise: produce el mismo error de
+            # formulario pero deja seguir con el resto de las validaciones.
+            self.add_error(None, "Las contraseñas no coinciden.")
+
+        validar_fortaleza_password(self, p1, "contrasena", cleaned)
+
         cargo = cleaned.get("id_cargo")
         departamento = cleaned.get("departamento")
         if cargo and cargo.nombre == Cargo.USUARIO:
@@ -344,10 +383,10 @@ class TicketForm(forms.ModelForm):
                     _permiso_qs = PermisoReservaExtraordinaria.objects.filter(
                         usuario=self.usuario,
                         usado=False,
-                        valido_hasta__gte=get_localdate(),
+                        valido_hasta__gte=timezone.localdate(),
                     )
                     if _permiso_qs.exists():
-                        _limite_permitido = get_localdate() + timedelta(days=dias_anticipacion)
+                        _limite_permitido = timezone.localdate() + timedelta(days=dias_anticipacion)
                         _fecha_inicio_date = hora_inicio.date() if hasattr(hora_inicio, 'date') else hora_inicio
                         if _fecha_inicio_date <= _limite_permitido:
                             _tiene_permiso_emergencia = True
@@ -620,7 +659,9 @@ class NuevaContrasenaForm(forms.Form):
         c1 = cleaned_data.get("contrasena_nueva")
         c2 = cleaned_data.get("contrasena_confirmacion")
         if c1 and c2 and c1 != c2:
-            raise forms.ValidationError("Las contraseñas no coinciden.")
+            self.add_error(None, "Las contraseñas no coinciden.")
+
+        validar_fortaleza_password(self, c1, "contrasena_nueva")
         return cleaned_data
 
 class ConfiguracionGlobalForm(forms.ModelForm):

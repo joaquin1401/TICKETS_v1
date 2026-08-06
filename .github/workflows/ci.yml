@@ -53,8 +53,10 @@ jobs:
       run: |
         python manage.py collectstatic --noinput
       env:
-        SECRET_KEY: 'dummy-secret-key-for-build'
-        DEBUG: 'True'
+        # settings.py lee DJANGO_SECRET_KEY / DJANGO_DEBUG, no SECRET_KEY / DEBUG:
+        # con los nombres viejos estas variables no se aplicaban.
+        DJANGO_SECRET_KEY: 'dummy-secret-key-for-build'
+        DJANGO_DEBUG: 'True'
         DB_NAME: test_db
         DB_USER: test_user
         DB_PASSWORD: test_password

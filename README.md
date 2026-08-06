@@ -107,6 +107,12 @@ Si deseas usar configuraciones diferentes a las predeterminadas, puedes definir 
 - `DB_PASSWORD`: Contraseña del usuario.
 - `DB_HOST`: Host de la base de datos.
 - `DB_PORT`: Puerto de conexión a la base de datos (por defecto 5432).
+- `LOG_LEVEL`: Nivel de log de la app (`DEBUG`, `INFO`, `WARNING`, `ERROR`). Por defecto `INFO`.
+
+⚠️ Si `DJANGO_DEBUG=False`, `DJANGO_SECRET_KEY` pasa a ser **obligatoria**: la app no arranca si falta o si quedó con el valor de ejemplo (`cambia-esto-en-produccion`). Generá una con:
+```bash
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
 
 ## Carga de Datos de Prueba
 
@@ -145,6 +151,7 @@ Para desplegar esta aplicación en un entorno de producción (como Render, Herok
 Asegúrate de configurar correctamente las variables de entorno principales para producción:
 
 - `DJANGO_DEBUG`: **Debe** ser `False`.
+- `DJANGO_SECRET_KEY`: **Obligatoria** cuando `DJANGO_DEBUG=False` — la app no arranca sin ella (ni con el valor de ejemplo del repo). Generála con `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`.
 - `ALLOWED_HOSTS`: Lista de dominios permitidos (ej. `tu-dominio.onrender.com`).
 - `SITE_URL`: URL base de tu dominio en producción (ej. `https://tu-dominio.onrender.com`). Es usada para construir enlaces en los correos electrónicos.
 - `CSRF_TRUSTED_ORIGINS`: URLs confiables para peticiones POST (ej. `https://tu-dominio.onrender.com`).
@@ -179,16 +186,13 @@ python manage.py qcluster
 ### 4. Archivos Estáticos
 En producción, el servidor de desarrollo de Django (`DEBUG=False`) no sirve los archivos estáticos automáticamente. Tienes dos opciones para servirlos:
 
-**Opción A (Recomendada para Render/Heroku): Usar WhiteNoise**
-1. Instala WhiteNoise: `pip install whitenoise` y agrégalo a tu `requirements.txt`.
-2. En `settings.py`, agrégalo a la lista de `MIDDLEWARE` justo debajo de `SecurityMiddleware`:
-   ```python
-   MIDDLEWARE = [
-       "django.middleware.security.SecurityMiddleware",
-       "whitenoise.middleware.WhiteNoiseMiddleware",  # Añadir esta línea
-       # ...
-   ]
-   ```
+**Opción A (Recomendada para Render/Heroku): Usar WhiteNoise — ya configurado**
+
+WhiteNoise ya viene instalado (`requirements.txt`) y activado en el `MIDDLEWARE`
+de `settings.py`, junto con `CompressedManifestStaticFilesStorage`, que comprime
+los archivos y les agrega un hash al nombre para cachearlos indefinidamente.
+
+No hay que hacer nada extra salvo correr `collectstatic` en el build (ver abajo).
 
 **Opción B (Recomendada para VPS): Usar Nginx o Apache**
 Configura tu servidor web (Nginx/Apache) para que intercepte todas las peticiones a `/static/` y sirva los archivos directamente desde la carpeta `staticfiles`.
