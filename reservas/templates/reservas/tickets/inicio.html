@@ -501,6 +501,7 @@
             updateMaxPassengers();
             const v = this.value;
             if (v) {
+              sessionStorage.setItem('ticket_scroll_target', 'calendario-section');
               window.location.href = "?vehiculo=" + v;
             } else {
               window.location.href = "?";
@@ -522,6 +523,7 @@
               input.value = newVal;
               localStorage.setItem('form_hora_inicio', newVal);
             }
+            sessionStorage.setItem('ticket_scroll_target', 'timeline-section');
             window.location.href = '?vehiculo=' + vehiculo + '&anio=' + anio + '&mes=' + mes + '&dia=' + dia;
           }
 
@@ -548,24 +550,26 @@
             toggleTerceros(); // Llamada inicial
           }
 
-          // Scroll to calendar or timeline on mobile
-          // Only do this on GET requests, not on POST (form submission errors)
+          // Scroll a calendario/timeline en mobile, pero SOLO la primera vez que
+          // aparecen (justo al elegir vehículo o hacer clic en un día del
+          // calendario), no en cada recarga de la página.
+          //
+          // Antes esto miraba los parámetros ?dia=/?vehiculo= de la URL, pero esos
+          // quedan pegados en la URL después de la navegación - cualquier recarga
+          // posterior (F5, volver con el botón atrás, etc.) volvía a scrollear
+          // aunque el usuario no hubiera tocado nada. selectDateAndNavigate() y el
+          // listener de vehiculoSelect dejan un flag en sessionStorage justo antes
+          // de navegar; acá se lee y se borra en el mismo golpe, así que solo
+          // dispara en el load que sigue inmediatamente a esa navegación puntual.
           document.addEventListener("DOMContentLoaded", function () {
-            const isPost = "{{ request.method }}" === "POST";
-            if (window.innerWidth <= 768 && !isPost) {
-              const urlParams = new URLSearchParams(window.location.search);
-              if (urlParams.has('dia')) {
-                const timelineSection = document.getElementById('timeline-section');
-                if (timelineSection) {
+            const scrollTargetId = sessionStorage.getItem('ticket_scroll_target');
+            if (scrollTargetId) {
+              sessionStorage.removeItem('ticket_scroll_target');
+              if (window.innerWidth <= 768) {
+                const target = document.getElementById(scrollTargetId);
+                if (target) {
                   setTimeout(() => {
-                    timelineSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 200);
-                }
-              } else if (urlParams.has('vehiculo')) {
-                const calSection = document.getElementById('calendario-section');
-                if (calSection) {
-                  setTimeout(() => {
-                    calSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }, 200);
                 }
               }
