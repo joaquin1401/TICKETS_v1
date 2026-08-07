@@ -292,6 +292,7 @@ def descargar_historial_csv(request):
             "Destino",
             "Salida",
             "Regreso",
+            "Distancia Real (km)",
             "Estado",
             "Observacion",
         ]
@@ -319,6 +320,7 @@ def descargar_historial_csv(request):
                 t.destino,
                 salida,
                 regreso,
+                t.distancia_real if t.distancia_real is not None else "",
                 t.estado,
                 t.observacion,
             ]

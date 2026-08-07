@@ -73,6 +73,7 @@
           <th>Salida</th>
           <th>Llegada</th>
           <th>Pasajeros</th>
+          <th>Distancia Real</th>
           <th>Estado</th>
           <th></th>
         </tr>
@@ -91,6 +92,9 @@
             {% if t.hora_fin_real %}{{ t.hora_fin_real|date:"d/m/Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}
           </td>
           <td>{{ t.cant_pasajeros }}</td>
+          <td>
+            {% if t.distancia_real %}{{ t.distancia_real }} km{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
           <td>
             <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">
               {{ t.estado }}
