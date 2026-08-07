@@ -55,8 +55,13 @@ jobs:
       env:
         # settings.py lee DJANGO_SECRET_KEY / DJANGO_DEBUG, no SECRET_KEY / DEBUG:
         # con los nombres viejos estas variables no se aplicaban.
+        # DJANGO_DEBUG=False a propósito: es lo que hace que STORAGES use
+        # CompressedManifestStaticFilesStorage (el storage real de producción)
+        # en vez del storage simple. Con DEBUG=True este paso no estaría
+        # probando nada — collectstatic pasaría igual aunque el manifest
+        # estuviera roto.
         DJANGO_SECRET_KEY: 'dummy-secret-key-for-build'
-        DJANGO_DEBUG: 'True'
+        DJANGO_DEBUG: 'False'
         DB_NAME: test_db
         DB_USER: test_user
         DB_PASSWORD: test_password

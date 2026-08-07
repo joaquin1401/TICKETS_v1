@@ -104,11 +104,21 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # WhiteNoise comprime los estáticos y les agrega un hash en el nombre para
-# poder cachearlos indefinidamente. Requiere correr collectstatic en el build.
+# poder cachearlos indefinidamente, pero ese manifest (staticfiles.json) solo
+# existe después de correr collectstatic. Si se usa incondicionalmente,
+# cualquier template que renderice {% static %} sin haber corrido
+# collectstatic antes (como `manage.py test`, tanto en CI como en local)
+# revienta con "Missing staticfiles manifest entry". Por eso el manifest
+# solo se activa con DEBUG=False; en desarrollo/test se usa el storage
+# simple, que no lo necesita.
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "whitenoise.storage.CompressedManifestStaticFilesStorage"
+        ),
     },
 }
 
