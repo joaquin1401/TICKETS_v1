@@ -14,6 +14,7 @@ from datetime import date, datetime, time, timedelta
 from django.contrib import messages
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from ..forms import FiltroTicketsForm, TicketForm
 from ..models import (
@@ -105,8 +106,9 @@ def inicio(request):
 
     # Lógica de calendario y timeline
     vehiculo_id = request.GET.get("vehiculo")
-    anio = int(request.GET.get("anio", date.today().year))
-    mes = int(request.GET.get("mes", date.today().month))
+    hoy_local = timezone.localdate()
+    anio = int(request.GET.get("anio", hoy_local.year))
+    mes = int(request.GET.get("mes", hoy_local.month))
     dia_str = request.GET.get("dia")
 
     vehiculo_cal = None
@@ -150,8 +152,6 @@ def inicio(request):
                 # Calculate proportional positioning for the timeline
                 # 1 hour = 60px. Timeline starts at 06:00 (which is top: 0)
                 # Max visual grid ends at 23:00, which is 17 hours * 60px = 1020px height
-                from django.utils import timezone
-
                 is_tz_aware = timezone.is_aware(timezone.now())
                 config_margin = ConfiguracionGlobal.get_solo()
                 margen = timedelta(
@@ -313,12 +313,14 @@ def inicio(request):
     dias_anticipacion = config.dias_anticipacion_reservas
     dias_cancelacion = config.dias_anticipacion_cancelacion
     dias_maximos = config.dias_maximo_anticipacion_reservas
-    from django.utils import timezone
 
     fecha_minima = timezone.localdate() + timedelta(days=dias_anticipacion)
-    fecha_minima_str = (timezone.now() + timedelta(days=dias_anticipacion)).strftime(
-        "%Y-%m-%dT%H:%M"
-    )
+    # Usar localtime, no timezone.now() crudo (UTC): si no se convierte antes
+    # de formatear, el atributo `min` del input queda 3hs adelantado/atrasado
+    # respecto de la hora de Argentina.
+    fecha_minima_str = (
+        timezone.localtime(timezone.now()) + timedelta(days=dias_anticipacion)
+    ).strftime("%Y-%m-%dT%H:%M")
 
     dias_inhabilitados = []
 
@@ -494,8 +496,6 @@ def detalle_ticket(request, ticket_id):
         ticket = get_object_or_404(Ticket, pk=ticket_id, id_usuario=usuario)
 
     import datetime
-
-    from django.utils import timezone
 
     from ..models import ConfiguracionGlobal
 

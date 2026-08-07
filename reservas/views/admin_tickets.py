@@ -284,9 +284,9 @@ def descargar_historial_csv(request):
         if fecha_fin:
             tickets_qs = tickets_qs.filter(hora_inicio__date__lte=fecha_fin)
 
-    from datetime import datetime
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    # localtime, no datetime.now(): esta última usa la hora del sistema
+    # operativo (típicamente UTC en el server), no la de Argentina.
+    timestamp = timezone.localtime(timezone.now()).strftime("%Y-%m-%d_%H-%M-%S")
     response = HttpResponse(content_type="text/csv")
     response["Content-Disposition"] = (
         f'attachment; filename="historial_ticket_{timestamp}.csv"'

@@ -658,7 +658,7 @@ def crear_ticket_con_reglas(
     for t_existente in tickets_conflicto:
         cargo_solicitante = usuario.id_cargo.nombre
         motivo = (
-            f"Reserva cancelada automáticamente el {timezone.now().strftime('%d/%m/%Y %H:%M')} "
+            f"Reserva cancelada automáticamente el {timezone.localtime(timezone.now()).strftime('%d/%m/%Y %H:%M')} "
             f"porque {usuario.nombre_completo} ({cargo_solicitante}) "
             f"con mayor jerarquía tomó el vehículo para la misma franja horaria."
         )
@@ -1031,7 +1031,7 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
 
     for ticket in tickets_afectados:
         motivo = (
-            f"Reserva cancelada automáticamente el {timezone.now().strftime('%d/%m/%Y %H:%M')} "
+            f"Reserva cancelada automáticamente el {timezone.localtime(timezone.now()).strftime('%d/%m/%Y %H:%M')} "
             f"porque el vehículo {vehiculo} fue dado de baja temporal por "
             f"{dias} día{'s' if dias != 1 else ''} "
             f"(hasta el {inactivo_hasta.strftime('%d/%m/%Y')}) "
@@ -1130,7 +1130,7 @@ def dar_baja_permanente_vehiculo(vehiculo, admin_usuario):
 
     for ticket in tickets_afectados:
         motivo = (
-            f"Reserva cancelada automáticamente el {timezone.now().strftime('%d/%m/%Y %H:%M')} "
+            f"Reserva cancelada automáticamente el {timezone.localtime(timezone.now()).strftime('%d/%m/%Y %H:%M')} "
             f"porque el vehículo {vehiculo} fue dado de baja permanente (mantenimiento) "
             f"por el administrador {admin_usuario.nombre_completo}."
         )

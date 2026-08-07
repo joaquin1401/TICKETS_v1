@@ -67,7 +67,7 @@ def reporte_analiticas(request):
     filtro_departamento = request.GET.get("departamento", "")
 
     # ── Calcular fecha de corte ──────────────────────────────────────────────
-    hoy = timezone.now()
+    hoy = timezone.localtime(timezone.now())
     if rango == "30d":
         desde = hoy - timedelta(days=30)
         rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
@@ -357,7 +357,7 @@ def analiticas_vehiculo(request, vehiculo_id):
         12: "Diciembre",
     }
 
-    hoy = timezone.now()
+    hoy = timezone.localtime(timezone.now())
     if rango == "30d":
         desde = hoy - timedelta(days=30)
         rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
@@ -488,7 +488,7 @@ def reporte_analiticas_pdf(request):
 
     filtro_departamento = request.GET.get("departamento", "")
 
-    hoy = timezone.now()
+    hoy = timezone.localtime(timezone.now())
     if rango == "30d":
         desde = hoy - timedelta(days=30)
         rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"

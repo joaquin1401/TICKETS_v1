@@ -7,12 +7,13 @@ Contiene:
     - preview_email() — utilidad de desarrollo para plantillas de email.
 """
 
-from datetime import date, datetime
+from datetime import datetime
 
 from django.conf import settings
 from django.contrib import messages
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from ..forms import ConfiguracionGlobalForm
 from ..models import ConfiguracionGlobal, Feriado
@@ -134,7 +135,7 @@ def configuracion_global(request):
             try:
                 import holidays
 
-                anio = date.today().year
+                anio = timezone.localdate().year
 
                 # Se agregan los de Argentina en general, y los de Chaco ('H')
                 ar_holidays = holidays.AR(subdiv="H", years=anio)
@@ -183,9 +184,9 @@ def configuracion_global(request):
     else:
         form = ConfiguracionGlobalForm(instance=config)
 
-    feriados = Feriado.objects.filter(fecha__year__gte=date.today().year).order_by(
-        "fecha"
-    )
+    feriados = Feriado.objects.filter(
+        fecha__year__gte=timezone.localdate().year
+    ).order_by("fecha")
 
     return render(
         request,
