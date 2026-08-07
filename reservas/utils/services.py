@@ -260,11 +260,6 @@ def hay_conflicto_por_margen(
     if not conflictos:
         return False
 
-    # Si no se pasó horas_margen explícito, lo resolvemos igual que en obtener_tickets_en_conflicto
-    if horas_margen is None:
-        horas_margen = _get_horas_margen()
-    margen = timedelta(hours=horas_margen)
-
     # Solapamiento real, SIN margen
     solapamientos_reales = Ticket.objects.filter(
         id_vehiculo=vehiculo,

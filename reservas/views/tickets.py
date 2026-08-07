@@ -172,7 +172,7 @@ def inicio(request):
 
                 margenes_dia = []
 
-                for idx, t in enumerate(tickets_dia):
+                for _idx, t in enumerate(tickets_dia):
                     effective_start = max(t.hora_inicio, day_start)
 
                     if t.hora_fin:

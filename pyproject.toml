@@ -47,9 +47,25 @@ select = [
     "W",  # pycodestyle warnings
     "F",  # pyflakes
     "I",  # isort
-    "C",  # flake8-comprehensions
+    "C",  # flake8-comprehensions (C4) + mccabe complexity (C901)
     "B",  # flake8-bugbear
 ]
 ignore = [
     "E501",  # line too long, handled by black
+
+    # Deuda conocida, preexistente al momento de habilitar el gate de lint en CI
+    # (ver commit "formatear todo el codigo..."). No son bugs: requieren criterio
+    # o refactor, no son mecanicos. Sacar de esta lista a medida que se atienden.
+    "C901",  # complejidad ciclomatica alta en algunas funciones de services.py/
+             # views/ (crear_ticket_con_reglas y afines) - requiere refactor real,
+             # no un fix de una linea.
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# reservas/views/__init__.py re-exporta TODAS las vistas de cada submodulo con
+# `from .x import *` a proposito: es lo que le permite a urls.py seguir haciendo
+# `from . import views` y referenciar `views.nombre_de_vista` sin saber en que
+# submodulo vive cada una. Pasar a imports explicitos significaria mantener a
+# mano una lista gigante que se rompe en silencio cada vez que alguien agrega
+# una vista nueva y se olvida de sumarla aca - peor tradeoff que el wildcard.
+"reservas/views/__init__.py" = ["F403"]

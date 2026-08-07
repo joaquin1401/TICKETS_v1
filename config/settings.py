@@ -7,6 +7,7 @@ import os
 import sys
 from pathlib import Path
 
+from django.contrib.messages import constants as messages_constants
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -150,8 +151,6 @@ SESSION_COOKIE_AGE = 60 * 60 * 8  # 8 horas
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # ── Mensajes ─────────────────────────────────────────────────────────────────
-from django.contrib.messages import constants as messages_constants
-
 MESSAGE_TAGS = {
     messages_constants.DEBUG: "secondary",
     messages_constants.INFO: "info",

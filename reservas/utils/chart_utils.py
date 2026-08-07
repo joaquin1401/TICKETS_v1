@@ -63,19 +63,19 @@ def generar_grafico_torta(labels, data):
     colores = ["#4ade80", "#38bdf8", "#fbbf24", "#f87171", "#a78bfa"]
 
     # Filtrar datos en cero
-    l_d = [(l, d) for l, d in zip(labels, data) if d > 0]
-    if not l_d:
+    label_data = [(label, d) for label, d in zip(labels, data, strict=True) if d > 0]
+    if not label_data:
         return ""
 
-    f_labels = [i[0] for i in l_d]
-    f_data = [i[1] for i in l_d]
+    f_labels = [i[0] for i in label_data]
+    f_data = [i[1] for i in label_data]
 
     wedges, texts, autotexts = ax.pie(
         f_data,
         colors=colores,
         autopct="%1.0f",
         startangle=90,
-        textprops=dict(color="white", fontsize=10, fontweight="bold"),
+        textprops={"color": "white", "fontsize": 10, "fontweight": "bold"},
     )
 
     # Formatear el autotext para mostrar el valor absoluto en vez de porcentaje

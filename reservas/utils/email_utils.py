@@ -8,7 +8,9 @@ from django.utils.html import strip_tags
 try:
     from premailer import transform
 except ImportError:
-    transform = lambda html: html
+
+    def transform(html):
+        return html
 
 
 def send_templated_email(subject, template_name, context, to_email, from_email=None):

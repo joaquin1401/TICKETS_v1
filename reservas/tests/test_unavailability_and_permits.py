@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.test import TestCase
 from django.utils import timezone
 
+from reservas.forms import TicketForm
 from reservas.models import (
     Cargo,
     ConfiguracionGlobal,
@@ -22,9 +23,6 @@ from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con
 def crear_ticket_con_reglas(*args, **kwargs):
     kwargs.setdefault("confirmado", True)
     return _crear_ticket_con_reglas(*args, **kwargs)
-
-
-from reservas.forms import TicketForm
 
 
 def get_cargo(nombre, prioridad):
@@ -262,7 +260,7 @@ class TestBajaTemporalVehiculo(TestCase):
             hours=8
         )  # Hoy mismo (dentro de los días de gracia)
         fin = inicio + timedelta(hours=2)
-        ticket = Ticket.objects.create(
+        Ticket.objects.create(
             id_usuario=self.usuario,
             id_vehiculo=self.vehiculo1,
             hora_inicio=inicio,
@@ -288,7 +286,7 @@ class TestBajaTemporalVehiculo(TestCase):
             hours=8
         )  # Hoy mismo (dentro de los días de gracia)
         fin = inicio + timedelta(hours=2)
-        ticket = Ticket.objects.create(
+        Ticket.objects.create(
             id_usuario=self.usuario,
             id_vehiculo=self.vehiculo1,
             hora_inicio=inicio,
@@ -316,7 +314,7 @@ class TestBajaTemporalVehiculo(TestCase):
             days=dias_gracia + 1
         )  # Fuera de los días de gracia
         fin = inicio + timedelta(hours=2)
-        ticket = Ticket.objects.create(
+        Ticket.objects.create(
             id_usuario=self.usuario,
             id_vehiculo=self.vehiculo1,
             hora_inicio=inicio,
@@ -782,7 +780,7 @@ class TestLimitesConfigurables(TestCase):
             destino="Test",
             cant_pasajeros=2,
         )
-        permiso = PermisoReservaExtraordinaria.objects.create(
+        PermisoReservaExtraordinaria.objects.create(
             usuario=self.usuario,
             ticket_cancelado=ticket_cancelado,
             motivo=PermisoReservaExtraordinaria.MOTIVO_BAJA_VEHICULO,
@@ -980,7 +978,7 @@ class TestEdgeCasesBajaTemporal(TestCase):
         self.vehiculo3.save()
 
         inicio = self.ahora + timedelta(days=1, hours=8)
-        ticket = Ticket.objects.create(
+        Ticket.objects.create(
             id_usuario=self.usuario,
             id_vehiculo=self.vehiculo1,
             hora_inicio=inicio,

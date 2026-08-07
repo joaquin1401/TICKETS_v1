@@ -403,7 +403,6 @@ class TicketForm(forms.ModelForm):
         cleaned = super().clean()
         hora_inicio = cleaned.get("hora_inicio")
         hora_fin = cleaned.get("hora_fin")
-        destino = cleaned.get("destino")
         ahora = timezone.now()
 
         if hora_inicio:

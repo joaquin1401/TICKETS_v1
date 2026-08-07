@@ -109,7 +109,6 @@ def reporte_analiticas(request):
     # ── Métricas por vehículo ────────────────────────────────────────────────
     vehiculos = Vehiculo.objects.all().order_by("marca", "modelo")
     stats_vehiculos = []
-    max_horas = 0
 
     for v in vehiculos:
         t_aprobados = filtro_base(
@@ -528,7 +527,6 @@ def reporte_analiticas_pdf(request):
 
     vehiculos = Vehiculo.objects.all().order_by("marca", "modelo")
     stats_vehiculos = []
-    max_horas = 0
 
     for v in vehiculos:
         t_aprobados = filtro_base(

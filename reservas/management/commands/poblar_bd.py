@@ -91,15 +91,22 @@ class Command(BaseCommand):
         patcher1 = patch("django_q.tasks.async_task", return_value="dummy")
         patcher1.start()
 
-        try:
-            import reservas.utils.notifications
+        # importlib.util.find_spec en vez de un import directo: solo nos interesa
+        # confirmar que el módulo existe antes de parchear su ruta como string,
+        # no necesitamos el nombre importado en este scope.
+        import importlib.util
 
+        try:
+            existe = (
+                importlib.util.find_spec("reservas.utils.notifications") is not None
+            )
+        except (ImportError, AttributeError):
+            existe = False
+        if existe:
             patcher2 = patch(
                 "reservas.utils.notifications.async_task", return_value="dummy"
             )
             patcher2.start()
-        except (ImportError, AttributeError):
-            pass
 
         if hasattr(sys.stdout, "reconfigure"):
             sys.stdout.reconfigure(encoding="utf-8")
@@ -127,7 +134,7 @@ class Command(BaseCommand):
             self.stdout.write(
                 self.style.ERROR(f"\n❌ Error durante el poblamiento: {str(e)}")
             )
-            raise CommandError(f"Fallo el poblamiento: {str(e)}")
+            raise CommandError(f"Fallo el poblamiento: {str(e)}") from e
 
     def _limpiar_datos(self):
         """
@@ -562,7 +569,7 @@ class Command(BaseCommand):
 
         # ESCENARIO 1: Reservas pasadas (historial)
         self.stdout.write("  📅 Escenario 1: Reservas PASADAS (historial)...")
-        for i in range(3):
+        for _i in range(3):
             ticket = self._crear_reserva(
                 usuario=random.choice(usuarios),
                 vehiculo=random.choice(vehiculos),
@@ -577,7 +584,7 @@ class Command(BaseCommand):
 
         # ESCENARIO 2: Reservas en progreso (actualmente en uso)
         self.stdout.write("\n  ⏳ Escenario 2: Reservas EN PROGRESO (ahora mismo)...")
-        for i in range(2):
+        for _i in range(2):
             ticket = self._crear_reserva(
                 usuario=random.choice(usuarios),
                 vehiculo=random.choice(vehiculos),
@@ -592,7 +599,7 @@ class Command(BaseCommand):
 
         # ESCENARIO 3: Reservas futuras sin conflictos
         self.stdout.write("\n  🔮 Escenario 3: Reservas FUTURAS (sin conflictos)...")
-        for i in range(4):
+        for _i in range(4):
             ticket = self._crear_reserva(
                 usuario=random.choice(usuarios),
                 vehiculo=random.choice(vehiculos),
@@ -704,7 +711,7 @@ class Command(BaseCommand):
 
         # ESCENARIO 6: Reservas CANCELADAS
         self.stdout.write("\n  ❌ Escenario 6: Reservas CANCELADAS...")
-        for i in range(2):
+        for _i in range(2):
             ticket_cancelado = self._crear_reserva(
                 usuario=random.choice(usuarios),
                 vehiculo=random.choice(vehiculos),
@@ -737,7 +744,7 @@ class Command(BaseCommand):
         )
         choferes = [u for u in usuarios if u.id_cargo.nombre == Cargo.CHOFER]
         tickets_faltantes = 100 - contador_creados
-        for i in range(max(0, tickets_faltantes + 5)):  # Asegurar más de 100
+        for _i in range(max(0, tickets_faltantes + 5)):  # Asegurar más de 100
             es_en_curso = random.random() < 0.1
             es_finalizado = random.random() < 0.3 and not es_en_curso
 

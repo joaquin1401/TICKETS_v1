@@ -107,7 +107,7 @@ def _cuerpo_html(usuario, codigo, enlace):
           <td style="padding:28px 32px;">
             <p style="margin:0 0 8px;font-size:17px;color:#dde1ea;font-weight:500;">Hola, {usuario.nombre} 👋</p>
             <p style="margin:0 0 24px;font-size:14px;color:#9aa0ad;line-height:1.6;">Recibimos una solicitud para restablecer tu contraseña. Elegí una opción:</p>
-            
+
             <div style="background:#1f232d;border:1px solid #2a2f3d;border-radius:6px;padding:20px 24px;margin-bottom:16px;">
               <p style="margin:0 0 12px;font-size:11px;font-family:monospace;color:#6b7280;text-transform:uppercase;">Opción 1 — Código numérico</p>
               <div style="text-align:center;">
