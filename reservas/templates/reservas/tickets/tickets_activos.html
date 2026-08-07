@@ -1,4 +1,5 @@
 {% extends "reservas/base.html" %}
+{% load estado_tags %}
 {% block title %}Tickets Activos — Sistema de Reserva de Vehículos{% endblock %}
 {% block breadcrumb %}Monitor de Tickets{% endblock %}
 
@@ -109,7 +110,7 @@
           </td>
           <td>{{ t.cant_pasajeros }}</td>
           <td>
-            <span class="badge badge-{% if t.estado == 'aprobado' %}success{% elif t.estado == 'cancelado' %}danger{% else %}warning{% endif %}">
+            <span class="badge badge-{{ t.estado|badge_estado }}">
               {{ t.estado }}
             </span>
           </td>

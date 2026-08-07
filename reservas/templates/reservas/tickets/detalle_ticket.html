@@ -1,5 +1,6 @@
 {% extends "reservas/base.html" %}
 {% load static %}
+{% load estado_tags %}
 {% block title %}Ticket #{{ ticket.pk }} — Sistema de Reserva de Vehículos{% endblock %}
 {% block breadcrumb %}Ticket #{{ ticket.pk }}{% endblock %}
 
@@ -35,7 +36,7 @@
     <div class="card-header">
       <span class="card-title">◫ Información del ticket</span>
       <span
-        class="badge badge-{% if ticket.estado == 'aprobado' %}success{% elif ticket.estado == 'cancelado' %}danger{% else %}warning{% endif %} "
+        class="badge badge-{{ ticket.estado|badge_estado }}"
         style="font-size:11px;">
         {{ ticket.estado|upper }}
       </span>
