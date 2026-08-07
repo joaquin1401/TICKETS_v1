@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from reservas.models import Cargo, Usuario, Vehiculo, Ticket
+from reservas.models import Cargo, Usuario, Vehiculo, Ticket, to_local_date
 from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas, cancelar_ticket_usuario, ResultadoCreacion
 
 def crear_ticket_con_reglas(*args, **kwargs):
@@ -83,6 +83,43 @@ class TestReglasNegocioTickets(TestCase):
         
         res = crear_ticket_con_reglas(self.usuario_comun, self.vehiculo_taller, inicio, fin, destino="X", cant_pasajeros=1, confirmado=True)
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
+
+    def test_feriado_bloquea_incluso_sin_pasar_por_el_form(self):
+        """
+        crear_ticket_con_reglas debe rechazar un feriado por sí solo, sin depender
+        de TicketForm. Antes de este fix, la única validación de feriados vivía en
+        el form: cualquier caller que llamara al service directo (admin, reasignación
+        automática, poblar_bd, este mismo test) se la saltaba entera.
+        """
+        from reservas.models import Feriado
+
+        inicio = self.ahora + timedelta(days=10)
+        fin = inicio + timedelta(hours=2)
+        # to_local_date, no inicio.date(): crear_ticket_con_reglas compara contra la
+        # fecha LOCAL de hora_inicio, no la fecha UTC del datetime aware.
+        Feriado.objects.create(fecha=to_local_date(inicio), descripcion="Feriado de prueba")
+
+        res = crear_ticket_con_reglas(
+            self.usuario_comun, self.vehiculo_normal, inicio, fin,
+            destino="X", cant_pasajeros=1, confirmado=True,
+        )
+        self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
+        self.assertFalse(Ticket.objects.filter(id_usuario=self.usuario_comun).exists())
+
+    def test_feriado_no_bloquea_fuera_del_feriado(self):
+        """Confirma que la regla nueva no bloquea de más: un día normal debe pasar."""
+        from reservas.models import Feriado
+
+        inicio = self.ahora + timedelta(days=10)
+        fin = inicio + timedelta(hours=2)
+        # Feriado en un día distinto al de la reserva.
+        Feriado.objects.create(fecha=to_local_date(inicio) + timedelta(days=1), descripcion="Otro día")
+
+        res = crear_ticket_con_reglas(
+            self.usuario_comun, self.vehiculo_normal, inicio, fin,
+            destino="X", cant_pasajeros=1, confirmado=True,
+        )
+        self.assertEqual(res.estado, ResultadoCreacion.OK)
 
     def test_limite_maximo_anticipacion(self):
         """No permitir reservas que excedan el límite máximo de días de antelación."""

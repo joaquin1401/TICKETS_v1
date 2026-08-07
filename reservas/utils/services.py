@@ -330,6 +330,19 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
             )
         )
 
+    # ── Regla: Días feriados ─────────────────────────────────────────────────────────
+    # Vivía solo en TicketForm.clean(), así que cualquier caller que no pasara por ese
+    # form (creación por admin, reasignación automática, poblar_bd, uso directo del
+    # servicio) se lo saltaba entero. Se agrega acá para que sea la única autoridad;
+    # TicketForm.clean() sigue teniendo su propio chequeo, que corre antes y da un
+    # error específico por campo (mejor UX) — este es el que realmente bloquea.
+    from ..models import Feriado
+    if Feriado.objects.filter(fecha__in=[_fecha_inicio_date, _fecha_fin_date]).exists():
+        return ResultadoCreacion(
+            estado=ResultadoCreacion.BLOQUEADO,
+            mensaje="No se pueden realizar reservas que inicien o finalicen en días feriados."
+        )
+
     # ── Regla: Vehículo exclusivo del Decanato ───────────────────────────────────────
     from ..models import Cargo
     if vehiculo.exclusivo_decanato and usuario.id_cargo.nombre != Cargo.DECANO:
