@@ -15,11 +15,10 @@ Conceptos clave:
 import logging
 from datetime import timedelta
 
+import requests
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
-
-import requests
 
 from ..models import Ticket, to_local_date
 
@@ -886,9 +885,8 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
     Returns:
         Ticket | None: Nuevo ticket APROBADO si pudo reasignar, None si no.
     """
-    from ..models import Cargo
+    from ..models import Cargo, Vehiculo
     from ..models import Usuario as UsuarioModel
-    from ..models import Vehiculo
 
     hora_inicio = ticket_original.hora_inicio
     hora_fin = ticket_original.hora_fin or (hora_inicio + timedelta(hours=2))

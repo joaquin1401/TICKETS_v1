@@ -16,12 +16,10 @@ from reservas.models import (
 from reservas.utils.services import (
     ResultadoCreacion,
     _reasignar_ticket,
-)
-from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas
-from reservas.utils.services import (
     dar_baja_permanente_vehiculo,
     dar_baja_temporal_vehiculo,
 )
+from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas
 
 
 def crear_ticket_con_reglas(*args, **kwargs):

@@ -1,5 +1,4 @@
 from django.conf import settings
-
 from django_q.tasks import async_task
 
 from ..models import NotificationLog
