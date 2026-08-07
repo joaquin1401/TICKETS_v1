@@ -20,7 +20,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY_INSEGURA = "cambia-esto-en-produccion"
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", SECRET_KEY_INSEGURA)
-DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
+# Default "False", no "True": si un deploy se olvida de setear DJANGO_DEBUG,
+# tiene que fallar cerrado (modo producción, sin stack traces ni valores de
+# settings expuestos), no abierto. .env y .env.example ya fijan
+# DJANGO_DEBUG=True explícito para desarrollo local, así que esto no cambia
+# nada ahí - solo el caso de un deploy que se olvidó de configurar la env var.
+DEBUG = os.environ.get("DJANGO_DEBUG", "False") == "True"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost 127.0.0.1").split()
 
 # Con DEBUG=False no arrancamos con la clave de ejemplo. Es la clave que firma

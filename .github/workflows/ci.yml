@@ -49,6 +49,14 @@ jobs:
 
     - name: Run Tests
       env:
+        # settings.py ahora default a DJANGO_DEBUG=False cuando la env var no
+        # está seteada (antes era True) - fail-closed si un deploy real se
+        # olvida de configurarla. Este runner no tiene el .env local (está en
+        # .gitignore), así que sin esto DEBUG=False + sin DJANGO_SECRET_KEY
+        # dispara el ImproperlyConfigured de settings.py antes de correr un
+        # solo test. Mismo dummy key que usan los steps de abajo.
+        DJANGO_SECRET_KEY: 'ci-dummy-key-not-real-8f3k2n9x7q1w5e6r4t8y0u2i3o5p7a9s1d3f-not-a-secret'
+        DJANGO_DEBUG: 'False'
         DB_NAME: test_db
         DB_USER: test_user
         DB_PASSWORD: test_password
@@ -56,7 +64,7 @@ jobs:
         DB_PORT: 5432
       run: |
         python manage.py test
-        
+
     - name: Run Build (Collect Static)
       run: |
         python manage.py collectstatic --noinput
