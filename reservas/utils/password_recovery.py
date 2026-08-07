@@ -3,7 +3,9 @@ password_recovery.py — Servicio de recuperación de contraseñas.
 
 Responsabilidades:
     1. Crear el registro RecuperacionPassword con código OTP + token UUID.
-    2. Enviar el correo HTML con el código de recuperación y el enlace rápido.
+    2. Enviar el correo con el código de recuperación y el enlace rápido
+       (vía send_templated_email/enviar_correo_templated_async — la plantilla
+       vive en templates/reservas/emails/password_recovery.html, no acá).
     3. Validar el código ingresado o el enlace rápido.
 """
 
@@ -11,7 +13,6 @@ import logging
 import random
 import uuid
 
-from django.conf import settings
 from django.urls import reverse
 from django_q.tasks import async_task
 
@@ -47,19 +48,23 @@ def crear_recuperacion(usuario):
 def enviar_correo_recuperacion(usuario, recuperacion, request):
     """
     Envía el correo de recuperación con código y enlace mágico.
+
+    Usa send_templated_email (vía la tarea async enviar_correo_templated_async):
+    renderiza templates/reservas/emails/password_recovery.html y genera el
+    texto plano automáticamente con strip_tags(), en vez de mantener dos
+    versiones del cuerpo a mano.
     """
     enlace = _construir_enlace_recuperacion(recuperacion.token, request)
     asunto = "Sistema de Reservas — Recuperación de Contraseña"
+    contexto = {"usuario": usuario, "codigo": recuperacion.codigo, "enlace": enlace}
 
     try:
         async_task(
-            "reservas.tasks.enviar_correo_async",
-            subject=asunto,
-            message=_cuerpo_texto(usuario, recuperacion.codigo, enlace),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[usuario.correo],
-            html_message=_cuerpo_html(usuario, recuperacion.codigo, enlace),
-            fail_silently=False,
+            "reservas.tasks.enviar_correo_templated_async",
+            asunto,
+            "reservas/emails/password_recovery",
+            contexto,
+            usuario.correo,
         )
         logger.info("Correo de recuperación enviado a %s", usuario.correo)
         return True
@@ -71,69 +76,6 @@ def enviar_correo_recuperacion(usuario, recuperacion, request):
 def _construir_enlace_recuperacion(token, request):
     path = reverse("verificar_recuperacion_enlace", kwargs={"token": str(token)})
     return request.build_absolute_uri(path)
-
-
-def _cuerpo_texto(usuario, codigo, enlace):
-    return f"""Hola {usuario.nombre},
-
-Recibimos una solicitud para restablecer tu contraseña.
-
-OPCIÓN 1 — Ingresá este código numérico:
-  {codigo}
-
-OPCIÓN 2 — Hacé clic en este enlace:
-  {enlace}
-
-Si no solicitaste recuperar tu contraseña, podés ignorar este correo de forma segura. El código expirará en 30 minutos.
-
-— Sistema de Reserva de Vehículos
-"""
-
-
-def _cuerpo_html(usuario, codigo, enlace):
-    return f"""<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#0f1014;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1014;padding:40px 16px;">
-    <tr><td align="center">
-      <table width="520" cellpadding="0" cellspacing="0" style="background:#181b22;border:1px solid #2a2f3d;border-radius:8px;max-width:520px;width:100%;">
-        <tr>
-          <td style="padding:24px 32px 20px;border-bottom:1px solid #2a2f3d;">
-            <span style="font-size:18px;color:#e8a020;font-weight:700;">Sistema de Reservas</span>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:28px 32px;">
-            <p style="margin:0 0 8px;font-size:17px;color:#dde1ea;font-weight:500;">Hola, {usuario.nombre} 👋</p>
-            <p style="margin:0 0 24px;font-size:14px;color:#9aa0ad;line-height:1.6;">Recibimos una solicitud para restablecer tu contraseña. Elegí una opción:</p>
-
-            <div style="background:#1f232d;border:1px solid #2a2f3d;border-radius:6px;padding:20px 24px;margin-bottom:16px;">
-              <p style="margin:0 0 12px;font-size:11px;font-family:monospace;color:#6b7280;text-transform:uppercase;">Opción 1 — Código numérico</p>
-              <div style="text-align:center;">
-                <span style="font-size:40px;font-family:monospace;font-weight:700;color:#e8a020;letter-spacing:12px;">{codigo}</span>
-              </div>
-            </div>
-
-            <div style="background:#1f232d;border:1px solid #2a2f3d;border-radius:6px;padding:20px 24px;margin-bottom:24px;">
-              <p style="margin:0 0 12px;font-size:11px;font-family:monospace;color:#6b7280;text-transform:uppercase;">Opción 2 — Enlace rápido</p>
-              <a href="{enlace}" style="display:block;text-align:center;background:#e8a020;color:#0f1014;padding:12px 24px;border-radius:5px;text-decoration:none;font-weight:600;font-size:14px;">
-                Restablecer Contraseña
-              </a>
-            </div>
-
-            <p style="margin:0;font-size:12px;color:#6b7280;text-align:center;">⏱ Expira en <strong style="color:#9aa0ad;">30 minutos</strong></p>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:16px 32px;border-top:1px solid #2a2f3d;background:#0f1014;">
-            <p style="margin:0;font-size:11px;color:#6b7280;text-align:center;">Si no solicitaste esto, ignorá el mensaje.</p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>"""
 
 
 # ══════════════════════════════════════════════════════════════════════════════

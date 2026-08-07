@@ -16,7 +16,9 @@ Dos métodos de verificación, un solo correo:
     Ambos comparten el mismo VerificacionCorreo y expiran a los 30 minutos.
 
 Dependencias:
-    - django.core.mail.send_mail  (configurado en settings.py con Gmail SMTP)
+    - utils.email_utils.send_templated_email (vía la tarea async
+      enviar_correo_templated_async). La plantilla vive en
+      templates/reservas/emails/email_verification.html, no en este archivo.
     - .models.VerificacionCorreo  (modelo nuevo en models.py)
     - django.urls.reverse          (para construir el enlace absoluto)
 
@@ -33,7 +35,6 @@ import logging
 import random
 import uuid
 
-from django.conf import settings
 from django.urls import reverse
 from django_q.tasks import async_task
 
@@ -106,12 +107,11 @@ def enviar_correo_verificacion(usuario, verificacion, request):
     """
     Envía el correo con el código de 6 dígitos y el enlace mágico.
 
-    Usa send_mail() de Django, que está configurado con Gmail SMTP en
-    settings.py (EMAIL_HOST, EMAIL_HOST_USER, etc.).
-
-    El correo se envía con dos partes:
-        - cuerpo_texto: versión plana para clientes sin soporte HTML.
-        - cuerpo_html:  versión visual con el código grande y botón de enlace.
+    Usa send_templated_email (vía la tarea async
+    enviar_correo_templated_async): renderiza
+    templates/reservas/emails/email_verification.html y genera el texto
+    plano automáticamente con strip_tags(), en vez de mantener dos
+    versiones del cuerpo a mano.
 
     Args:
         usuario (Usuario): Destinatario del correo.
@@ -129,16 +129,15 @@ def enviar_correo_verificacion(usuario, verificacion, request):
     """
     enlace = _construir_enlace(verificacion.token, request)
     asunto = "Sistema de Reserva de Vehículos — Verificá tu correo"
+    contexto = {"usuario": usuario, "codigo": verificacion.codigo, "enlace": enlace}
 
     try:
         async_task(
-            "reservas.tasks.enviar_correo_async",
-            subject=asunto,
-            message=_cuerpo_texto(usuario, verificacion.codigo, enlace),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[usuario.correo],
-            html_message=_cuerpo_html(usuario, verificacion.codigo, enlace),
-            fail_silently=False,
+            "reservas.tasks.enviar_correo_templated_async",
+            asunto,
+            "reservas/emails/email_verification",
+            contexto,
+            usuario.correo,
         )
         logger.info("Correo de verificación enviado a %s", usuario.correo)
         return True
@@ -163,137 +162,6 @@ def _construir_enlace(token, request):
     """
     path = reverse("verificar_correo_enlace", kwargs={"token": str(token)})
     return request.build_absolute_uri(path)
-
-
-def _cuerpo_texto(usuario, codigo, enlace):
-    """
-    Cuerpo del correo en texto plano (fallback para clientes sin HTML).
-
-    Args:
-        usuario (Usuario): Para personalizar el saludo.
-        codigo (str): Código de 6 dígitos.
-        enlace (str): URL del enlace mágico.
-
-    Returns:
-        str: Texto plano del correo.
-    """
-    return f"""Hola {usuario.nombre},
-
-Para verificar tu correo en el Sistema de Reserva de Vehículos tenés dos opciones:
-
-OPCIÓN 1 — Ingresá este código en el formulario:
-  {codigo}
-
-OPCIÓN 2 — Hacé clic en este enlace:
-  {enlace}
-
-El código y el enlace expiran en 30 minutos.
-
-Si no creaste una cuenta, ignorá este mensaje.
-
-— Sistema de Reserva de Vehículos
-"""
-
-
-def _cuerpo_html(usuario, codigo, enlace):
-    """
-    Cuerpo del correo en HTML con diseño visual adaptado al sistema.
-
-    El diseño replica la paleta oscura del sistema (--bg: #0f1014,
-    --accent: #e8a020) para consistencia visual con la interfaz web.
-    Usa estilos inline para máxima compatibilidad con clientes de correo.
-
-    Args:
-        usuario (Usuario): Para personalizar el saludo con nombre.
-        codigo (str): Código de 6 dígitos a mostrar en grande.
-        enlace (str): URL del botón de verificación.
-
-    Returns:
-        str: HTML completo del correo.
-    """
-    return f"""<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#0f1014;font-family:'Segoe UI',Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1014;padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <table width="520" cellpadding="0" cellspacing="0"
-               style="background:#181b22;border:1px solid #2a2f3d;border-radius:8px;overflow:hidden;max-width:520px;width:100%;">
-
-          <!-- Header -->
-          <tr>
-            <td style="padding:24px 32px 20px;border-bottom:1px solid #2a2f3d;">
-              <span style="font-size:18px;color:#e8a020;font-weight:700;letter-spacing:0.02em;">
-                Sistema de Reserva de Vehículos
-              </span>
-            </td>
-          </tr>
-
-          <!-- Body -->
-          <tr>
-            <td style="padding:28px 32px;">
-              <p style="margin:0 0 8px;font-size:17px;color:#dde1ea;font-weight:500;">
-                Hola, {usuario.nombre} 👋
-              </p>
-              <p style="margin:0 0 24px;font-size:14px;color:#9aa0ad;line-height:1.6;">
-                Para completar tu registro necesitamos verificar tu correo electrónico.<br>
-                Usá cualquiera de estas dos opciones:
-              </p>
-
-              <!-- Opción 1: Código -->
-              <div style="background:#1f232d;border:1px solid #2a2f3d;border-radius:6px;padding:20px 24px;margin-bottom:16px;">
-                <p style="margin:0 0 12px;font-size:11px;font-family:monospace;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">
-                  Opción 1 — Código de verificación
-                </p>
-                <div style="text-align:center;">
-                  <span style="font-size:40px;font-family:monospace;font-weight:700;color:#e8a020;letter-spacing:12px;">
-                    {codigo}
-                  </span>
-                </div>
-                <p style="margin:10px 0 0;font-size:11px;color:#6b7280;text-align:center;">
-                  Ingresá este código en el formulario de verificación
-                </p>
-              </div>
-
-              <!-- Opción 2: Enlace mágico -->
-              <div style="background:#1f232d;border:1px solid #2a2f3d;border-radius:6px;padding:20px 24px;margin-bottom:24px;">
-                <p style="margin:0 0 12px;font-size:11px;font-family:monospace;color:#6b7280;text-transform:uppercase;letter-spacing:0.1em;">
-                  Opción 2 — Enlace mágico
-                </p>
-                <a href="{enlace}"
-                   style="display:block;text-align:center;background:#e8a020;color:#0f1014;padding:12px 24px;border-radius:5px;text-decoration:none;font-weight:600;font-size:14px;">
-                  ✓ Verificar mi correo
-                </a>
-              </div>
-
-              <!-- Expiración -->
-              <p style="margin:0;font-size:12px;color:#6b7280;text-align:center;">
-                ⏱ El código y el enlace expiran en
-                <strong style="color:#9aa0ad;">30 minutos</strong>
-              </p>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding:16px 32px;border-top:1px solid #2a2f3d;background:#0f1014;">
-              <p style="margin:0;font-size:11px;color:#6b7280;text-align:center;">
-                Si no creaste una cuenta en este sistema, ignorá este mensaje.<br>
-                Este correo fue generado automáticamente, por favor no respondas.
-              </p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>"""
 
 
 # ══════════════════════════════════════════════════════════════════════════════

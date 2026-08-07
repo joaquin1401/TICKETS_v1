@@ -1,0 +1,24 @@
+{% extends "reservas/emails/base_email.html" %}
+
+{% block title %}Verificá tu correo{% endblock %}
+
+{% block content %}
+    <h1>Verificá tu correo electrónico</h1>
+    <p>Hola, {{ usuario.nombre }} 👋</p>
+    <p>Para completar tu registro necesitamos verificar tu correo electrónico. Usá cualquiera de estas dos opciones:</p>
+
+    <div class="meta">
+        <p class="opcion-label">Opción 1 — Código de verificación</p>
+        <span class="codigo">{{ codigo }}</span>
+        <p class="muted" style="text-align:center;margin:10px 0 0;">Ingresá este código en el formulario de verificación</p>
+    </div>
+
+    <div class="meta">
+        <p class="opcion-label">Opción 2 — Enlace mágico</p>
+        <a href="{{ enlace }}" class="boton" style="display:block;text-align:center;">✓ Verificar mi correo</a>
+    </div>
+
+    <p class="muted" style="text-align:center;">⏱ El código y el enlace expiran en <strong>30 minutos</strong></p>
+    <br>
+    <p class="muted">Si no creaste una cuenta en este sistema, ignorá este mensaje.</p>
+{% endblock %}

@@ -6,6 +6,8 @@ directamente), estos tests usan self.client, con lo cual pasan por el stack
 real de middleware: sesiones, CSRF y mensajes.
 """
 
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.urls import reverse
 
@@ -212,3 +214,59 @@ class TestRateLimitingRecuperacionPassword(TestCase):
         resp = self._intentar_codigo(self.recuperacion.codigo)
         self.assertEqual(resp.status_code, 302)
         self.assertTrue(self.client.session.get("can_reset_password"))
+
+
+class TestEmailsUsanTemplates(TestCase):
+    """
+    Confirma que el registro y la recuperación de contraseña disparan el
+    envío por la vía de templates (enviar_correo_templated_async), no la
+    vieja de HTML hardcodeado en Python (enviar_correo_async). No se
+    prueba el envío real: Q_CLUSTER no corre síncrono en tests, así que
+    async_task solo encola una fila - alcanza con verificar que la llamada
+    apunta al template correcto.
+    """
+
+    def setUp(self):
+        self.cargo = Cargo.objects.create(nombre=Cargo.USUARIO, prioridad=3)
+
+    def test_registro_encola_email_verification(self):
+        with patch("reservas.utils.email_verification.async_task") as mock_async:
+            resp = self.client.post(
+                reverse("registro"),
+                {
+                    "nombre": "Ana",
+                    "apellido": "Gomez",
+                    "correo": "ana@test.com",
+                    "id_cargo": self.cargo.pk,
+                    "departamento": "TUL",
+                    "contrasena": PASSWORD_VALIDA,
+                    "confirmar_contrasena": PASSWORD_VALIDA,
+                },
+            )
+        self.assertEqual(resp.status_code, 302)
+        mock_async.assert_called_once()
+        args = mock_async.call_args.args
+        self.assertEqual(args[0], "reservas.tasks.enviar_correo_templated_async")
+        self.assertEqual(args[2], "reservas/emails/email_verification")
+
+    def test_solicitar_recuperacion_encola_password_recovery(self):
+        usuario = Usuario(
+            nombre="Juan",
+            apellido="Perez",
+            correo="juan@test.com",
+            id_cargo=self.cargo,
+            valido=True,
+            correo_verificado=True,
+        )
+        usuario.set_password(PASSWORD_VALIDA)
+        usuario.save()
+
+        with patch("reservas.utils.password_recovery.async_task") as mock_async:
+            resp = self.client.post(
+                reverse("solicitar_recuperacion"), {"correo": "juan@test.com"}
+            )
+        self.assertEqual(resp.status_code, 302)
+        mock_async.assert_called_once()
+        args = mock_async.call_args.args
+        self.assertEqual(args[0], "reservas.tasks.enviar_correo_templated_async")
+        self.assertEqual(args[2], "reservas/emails/password_recovery")

@@ -266,6 +266,9 @@ def preview_email(request, template_name):
         "url_sistema": "http://localhost:8000",
         "dias_anticipacion": 2,
         "dias_cancelacion": 1,
+        # Para email_verification.html / password_recovery.html
+        "codigo": "048721",
+        "enlace": "http://localhost:8000/verificar-correo/00000000-0000-0000-0000-000000000000/",
     }
 
     try:
