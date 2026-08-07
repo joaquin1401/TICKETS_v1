@@ -1,0 +1,149 @@
+{% extends "reservas/base.html" %}
+{% block title %}Carga Manual de Ticket — Sistema de Reserva de Vehículos{% endblock %}
+{% block breadcrumb %}<a href="{% url 'historial_tickets' %}">Historial de Tickets</a> / Carga Manual{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Carga Manual de Ticket</h1>
+    <p class="sub">Digitalizar una reserva hecha por teléfono/papel, o registrar un viaje histórico</p>
+  </div>
+  <a href="{% url 'historial_tickets' %}" class="btn btn-outline">← Volver al historial</a>
+</div>
+
+<div style="max-width:640px;">
+  <div class="alert alert-warning" style="margin-bottom:16px;">
+    <span>⚠</span>
+    <span>Esta carga <strong>no aplica</strong> las reglas normales de reserva (feriados, anticipación mínima/máxima, margen entre reservas, exclusividad de decanato). Solo se valida que el vehículo no tenga otra reserva activa en la misma franja. Usala para registrar reservas que ya se acordaron por otro medio, no como atajo del formulario normal.</span>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">◧ Nuevo ticket manual</span>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-row">
+          <div class="form-group" style="width:100%;">
+            <label class="form-label">Usuario solicitante</label>
+            <select name="id_usuario" class="form-control">
+              <option value="">— Sin especificar (queda a tu nombre) —</option>
+              {% for u in form.id_usuario.field.queryset %}
+              <option value="{{ u.pk }}" {% if form.id_usuario.value|stringformat:"s" == u.pk|stringformat:"s" %}selected{% endif %}>
+                {{ u.nombre_completo }} ({{ u.correo }})
+              </option>
+              {% endfor %}
+            </select>
+            <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">{{ form.id_usuario.help_text }}</p>
+            {% if form.id_usuario.errors %}<p class="form-error">{{ form.id_usuario.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Vehículo <span style="color:var(--danger);">*</span></label>
+            <select name="id_vehiculo" class="form-control">
+              <option value="">---------</option>
+              {% for v in form.id_vehiculo.field.queryset %}
+              <option value="{{ v.pk }}" {% if form.id_vehiculo.value|stringformat:"s" == v.pk|stringformat:"s" %}selected{% endif %}>
+                {{ v.marca }} {{ v.modelo }} — {{ v.patente }}{% if not v.activo %} (inactivo){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.id_vehiculo.errors %}<p class="form-error">{{ form.id_vehiculo.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Conductor / chofer</label>
+            <select name="conductor" class="form-control">
+              <option value="">— Sin asignar —</option>
+              {% for c in form.conductor.field.queryset %}
+              <option value="{{ c.pk }}" {% if form.conductor.value|stringformat:"s" == c.pk|stringformat:"s" %}selected{% endif %}>
+                {{ c.nombre_completo }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.conductor.errors %}<p class="form-error">{{ form.conductor.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="width:100%;">
+            <label class="form-label">Destino <span style="color:var(--danger);">*</span></label>
+            <input type="text" name="destino" class="form-control" placeholder="Ej: San Martín 1050"
+                   value="{{ form.destino.value|default:'' }}">
+            {% if form.destino.errors %}<p class="form-error">{{ form.destino.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Fecha y hora de salida <span style="color:var(--danger);">*</span></label>
+            <input type="datetime-local" name="hora_inicio" class="form-control"
+                   value="{{ form.hora_inicio.value|date:'Y-m-d\TH:i'|default:'' }}">
+            {% if form.hora_inicio.errors %}<p class="form-error">{{ form.hora_inicio.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Fecha y hora de regreso</label>
+            <input type="datetime-local" name="hora_fin" class="form-control"
+                   value="{{ form.hora_fin.value|date:'Y-m-d\TH:i'|default:'' }}">
+            {% if form.hora_fin.errors %}<p class="form-error">{{ form.hora_fin.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Pasajeros <span style="color:var(--danger);">*</span></label>
+            <input type="number" name="cant_pasajeros" class="form-control" min="1"
+                   value="{{ form.cant_pasajeros.value|default:'' }}">
+            {% if form.cant_pasajeros.errors %}<p class="form-error">{{ form.cant_pasajeros.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estado <span style="color:var(--danger);">*</span></label>
+            <select name="estado" class="form-control">
+              {% for valor, etiqueta in form.estado.field.choices %}
+              <option value="{{ valor }}" {% if form.estado.value|default:"aprobado" == valor %}selected{% endif %}>{{ etiqueta }}</option>
+              {% endfor %}
+            </select>
+            {% if form.estado.errors %}<p class="form-error">{{ form.estado.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group" style="width:100%;">
+            <label class="form-label">Descripción / motivo</label>
+            <textarea name="descripcion" class="form-control" rows="2">{{ form.descripcion.value|default:'' }}</textarea>
+            {% if form.descripcion.errors %}<p class="form-error">{{ form.descripcion.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Kilometraje inicio (odómetro)</label>
+            <input type="number" step="0.01" name="kilometraje_inicio" class="form-control"
+                   value="{{ form.kilometraje_inicio.value|default:'' }}">
+            {% if form.kilometraje_inicio.errors %}<p class="form-error">{{ form.kilometraje_inicio.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="form-group">
+            <label class="form-label">Kilometraje fin (odómetro)</label>
+            <input type="number" step="0.01" name="kilometraje_fin" class="form-control"
+                   value="{{ form.kilometraje_fin.value|default:'' }}">
+            {% if form.kilometraje_fin.errors %}<p class="form-error">{{ form.kilometraje_fin.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        {% if form.non_field_errors %}
+        <p class="form-error" style="margin-bottom:12px;">{{ form.non_field_errors.0 }}</p>
+        {% endif %}
+
+        <p style="font-size:11px;color:var(--text-muted);margin-bottom:12px;"><span style="color:var(--danger);">*</span> Campos requeridos</p>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button type="submit" class="btn btn-primary btn-lg">Cargar ticket</button>
+          <a href="{% url 'historial_tickets' %}" class="btn btn-outline btn-lg">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

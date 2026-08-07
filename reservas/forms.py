@@ -463,6 +463,115 @@ class TicketForm(forms.ModelForm):
         return cleaned
 
 
+class TicketManualForm(forms.ModelForm):
+    """
+    Carga manual de un ticket por un administrador (HU 5.x): digitalizar
+    reservas hechas por teléfono/papel, o backfill histórico.
+
+    A diferencia de TicketForm (usada en el flujo normal de autoreserva),
+    esto NO pasa por services.crear_ticket_con_reglas(): el admin está
+    afirmando directamente que la reserva es válida, no pidiendo que el
+    sistema la evalúe con las reglas de un usuario común (anticipación,
+    feriados, margen, exclusividad de decanato, etc. no aplican acá). Solo
+    valida lo estructural - la vista además revisa que no haya otro ticket
+    activo (aprobado/en_curso) para el mismo vehículo en la misma franja,
+    pero sin la lógica de sobrescritura por jerarquía: no tiene sentido que
+    cargar un registro manual cancele en silencio la reserva de otra
+    persona y le mande un correo de aviso.
+
+    Usuario solicitante y conductor son OPCIONALES a propósito: el admin
+    puede no saber a nombre de quién fue el viaje. Si se deja vacío,
+    queda asignado al propio admin (ver help_text del campo).
+    """
+
+    id_usuario = forms.ModelChoiceField(
+        queryset=Usuario.objects.filter(valido=True).order_by("nombre", "apellido"),
+        required=False,
+        label="Usuario solicitante",
+        help_text="Opcional. Si lo dejás vacío, el ticket queda a TU nombre (administrador).",
+    )
+    conductor = forms.ModelChoiceField(
+        queryset=Usuario.objects.filter(
+            id_cargo__nombre=Cargo.CHOFER, valido=True
+        ).order_by("nombre", "apellido"),
+        required=False,
+        label="Conductor / chofer",
+        help_text="Opcional. Podés dejarlo sin asignar.",
+    )
+
+    class Meta:
+        model = Ticket
+        fields = [
+            "id_usuario",
+            "id_vehiculo",
+            "conductor",
+            "destino",
+            "cant_pasajeros",
+            "descripcion",
+            "hora_inicio",
+            "hora_fin",
+            "estado",
+            "kilometraje_inicio",
+            "kilometraje_fin",
+        ]
+        labels = {
+            "id_vehiculo": "Vehículo",
+            "destino": "Destino",
+            "cant_pasajeros": "Cantidad de pasajeros",
+            "descripcion": "Descripción / motivo",
+            "hora_inicio": "Fecha y hora de salida",
+            "hora_fin": "Fecha y hora de regreso",
+            "estado": "Estado",
+            "kilometraje_inicio": "Kilometraje inicio (odómetro)",
+            "kilometraje_fin": "Kilometraje fin (odómetro)",
+        }
+        widgets = {
+            "destino": forms.TextInput(attrs={"placeholder": "Ej: San Martín 1050"}),
+            "descripcion": forms.Textarea(attrs={"rows": 3}),
+            "hora_inicio": forms.DateTimeInput(
+                attrs={"type": "datetime-local", "class": "form-control"},
+                format="%Y-%m-%dT%H:%M",
+            ),
+            "hora_fin": forms.DateTimeInput(
+                attrs={"type": "datetime-local", "class": "form-control"},
+                format="%Y-%m-%dT%H:%M",
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["id_vehiculo"].queryset = Vehiculo.objects.all().order_by(
+            "marca", "modelo"
+        )
+        self.fields["hora_inicio"].input_formats = ["%Y-%m-%dT%H:%M"]
+        self.fields["hora_fin"].input_formats = ["%Y-%m-%dT%H:%M"]
+        self.fields["hora_fin"].required = False
+        # PENDIENTE no se usa en ningún flujo real de la app (ver models.Ticket).
+        self.fields["estado"].choices = [
+            c for c in Ticket.ESTADOS if c[0] != Ticket.ESTADO_PENDIENTE
+        ]
+        self.fields["estado"].initial = Ticket.ESTADO_APROBADO
+
+    def clean(self):
+        cleaned = super().clean()
+        hora_inicio = cleaned.get("hora_inicio")
+        hora_fin = cleaned.get("hora_fin")
+        if hora_inicio and hora_fin and hora_fin <= hora_inicio:
+            self.add_error(
+                "hora_fin", "La hora de regreso debe ser posterior a la de salida."
+            )
+
+        km_inicio = cleaned.get("kilometraje_inicio")
+        km_fin = cleaned.get("kilometraje_fin")
+        if km_inicio is not None and km_fin is not None and km_fin < km_inicio:
+            self.add_error(
+                "kilometraje_fin",
+                "El kilometraje de fin no puede ser menor al de inicio.",
+            )
+
+        return cleaned
+
+
 # ══════════════════════════════════════════════
 # Épica 3 — Consulta de Calendario
 # ══════════════════════════════════════════════

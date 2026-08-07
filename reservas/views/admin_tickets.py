@@ -5,16 +5,19 @@ Vistas administrativas de supervisión de tickets.
     - HU 5.3: monitor_tickets_activos() — tickets aprobados/en curso.
     - HU 5.4: historial_tickets() — tickets finalizados y cancelados.
     - descargar_historial_csv() — exportación CSV del historial.
+    - crear_ticket_manual() — carga manual de un ticket por un admin.
 """
 
 import csv
+from datetime import timedelta
 
+from django.contrib import messages
 from django.db.models import Q
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from ..forms import FiltroTicketsForm
+from ..forms import FiltroTicketsForm, TicketManualForm
 from ..models import Ticket
 from ._base import (
     admin_requerido,
@@ -334,3 +337,112 @@ def descargar_historial_csv(request):
         )
 
     return response
+
+
+@login_requerido
+@admin_requerido
+def crear_ticket_manual(request):
+    """
+    Carga manual de un ticket por un admin: digitalizar reservas hechas
+    por teléfono/papel, o backfill histórico.
+
+    No pasa por services.crear_ticket_con_reglas() (ver docstring de
+    TicketManualForm) - el admin está afirmando directamente que la
+    reserva es válida. Solo se valida:
+        - lo estructural (hora_fin > hora_inicio, kilometraje_fin >=
+          kilometraje_inicio), en el form.
+        - que no haya otro ticket ACTIVO (aprobado/en_curso) para el mismo
+          vehículo en la misma franja, y solo si el ticket que se está
+          creando también queda en un estado activo. Un backfill
+          finalizado/cancelado no reclama la agenda del vehículo, así que
+          no tiene sentido bloquearlo por "conflicto" con una reserva
+          vigente de otra persona - a diferencia de crear_ticket_con_reglas,
+          acá NO hay lógica de sobrescritura por jerarquía: si hay
+          conflicto real, se rechaza sin más (nada de cancelar en silencio
+          la reserva de otra persona y mandarle un correo de aviso).
+
+    Usuario solicitante y conductor son opcionales: si no se especifican,
+    el ticket queda a nombre del propio admin (usuario_admin) y sin
+    conductor asignado.
+
+    Notificación por correo: se omite para estados FINALIZADO/CANCELADO
+    (backfill histórico - avisar "tu reserva fue creada" de un viaje que
+    ya pasó hace semanas sería confuso), pero se envía normalmente para
+    APROBADO/EN_CURSO, igual que cualquier otra reserva nueva.
+    """
+    usuario_admin = get_usuario_sesion(request)
+
+    if request.method == "POST":
+        form = TicketManualForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            id_usuario = cd.get("id_usuario") or usuario_admin
+            vehiculo = cd["id_vehiculo"]
+            hora_inicio = cd["hora_inicio"]
+            hora_fin = cd.get("hora_fin") or (hora_inicio + timedelta(hours=2))
+            estado = cd["estado"]
+
+            if estado in (Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO):
+                conflicto = (
+                    Ticket.objects.filter(
+                        id_vehiculo=vehiculo,
+                        estado__in=[Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO],
+                        hora_inicio__lt=hora_fin,
+                        hora_fin__gt=hora_inicio,
+                    )
+                    .select_related("id_usuario")
+                    .first()
+                )
+                if conflicto:
+                    form.add_error(
+                        None,
+                        f"El vehículo ya tiene una reserva activa para esa franja "
+                        f"(#{conflicto.pk}, {conflicto.id_usuario.nombre_completo}). "
+                        "Cambiá el vehículo, el horario, o cancelá la otra reserva "
+                        "primero.",
+                    )
+                    return render(
+                        request,
+                        "reservas/tickets/crear_ticket_manual.html",
+                        {"form": form},
+                    )
+
+            ticket = Ticket(
+                id_usuario=id_usuario,
+                id_vehiculo=vehiculo,
+                conductor=cd.get("conductor"),
+                destino=cd["destino"],
+                cant_pasajeros=cd["cant_pasajeros"],
+                descripcion=cd.get("descripcion", ""),
+                hora_inicio=hora_inicio,
+                hora_fin=hora_fin,
+                estado=estado,
+                kilometraje_inicio=cd.get("kilometraje_inicio"),
+                kilometraje_fin=cd.get("kilometraje_fin"),
+                requiere_chofer=vehiculo.requiere_chofer or bool(cd.get("conductor")),
+            )
+            if estado in (Ticket.ESTADO_FINALIZADO, Ticket.ESTADO_CANCELADO):
+                ticket._suppress_signals = True
+            ticket.save()
+
+            if cd.get("id_usuario"):
+                messages.success(
+                    request,
+                    f"Ticket #{ticket.pk} cargado a nombre de "
+                    f"{id_usuario.nombre_completo}.",
+                )
+            else:
+                messages.success(
+                    request,
+                    f"Ticket #{ticket.pk} cargado a tu nombre (no se especificó "
+                    "un usuario solicitante).",
+                )
+            return redirect("detalle_ticket", ticket_id=ticket.pk)
+    else:
+        form = TicketManualForm()
+
+    return render(
+        request,
+        "reservas/tickets/crear_ticket_manual.html",
+        {"form": form, "usuario": usuario_admin},
+    )

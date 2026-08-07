@@ -116,6 +116,11 @@ urlpatterns = [
         views.descargar_historial_csv,
         name="descargar_historial_csv",
     ),
+    path(
+        "admin-panel/tickets/crear-manual/",
+        views.crear_ticket_manual,
+        name="crear_ticket_manual",
+    ),
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 6: ABM (Alta, Baja, Modificación) de Vehículos
     # ═══════════════════════════════════════════════════════════════════════════════

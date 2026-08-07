@@ -8,7 +8,10 @@
     <h1>Historial de Tickets</h1>
     <p class="sub">Tickets históricos y cancelados</p>
   </div>
-  <a href="{% url 'monitor_tickets_activos' %}" class="btn btn-outline">← Tickets activos</a>
+  <div style="display:flex;gap:10px;">
+    <a href="{% url 'crear_ticket_manual' %}" class="btn btn-primary">+ Carga manual</a>
+    <a href="{% url 'monitor_tickets_activos' %}" class="btn btn-outline">← Tickets activos</a>
+  </div>
 </div>
 
 <div class="card" style="margin-bottom:16px;">
