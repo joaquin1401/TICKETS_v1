@@ -216,6 +216,75 @@ class TestRateLimitingRecuperacionPassword(TestCase):
         self.assertTrue(self.client.session.get("can_reset_password"))
 
 
+class TestRateLimitingVerificacionCorreo(TestCase):
+    """
+    Rate limiting del código de verificación de correo (VerificacionCorreo.
+    MAX_INTENTOS_CODIGO). Mismo mecanismo y mismo motivo que
+    TestRateLimitingRecuperacionPassword: el código de 6 dígitos tiene 10**6
+    combinaciones y, antes de agregar intentos_fallidos a este modelo, no
+    había ningún límite acá (a diferencia de RecuperacionPassword, que sí lo
+    tenía desde antes) - se podían probar las 10**6 dentro de la ventana de
+    30 minutos.
+    """
+
+    def setUp(self):
+        self.cargo = Cargo.objects.create(nombre=Cargo.USUARIO, prioridad=3)
+        self.usuario = Usuario(
+            nombre="Juan",
+            apellido="Perez",
+            correo="juan_verif@test.com",
+            id_cargo=self.cargo,
+            valido=False,
+            correo_verificado=False,
+        )
+        self.usuario.set_password(PASSWORD_VALIDA)
+        self.usuario.save()
+
+        from reservas.utils.email_verification import crear_verificacion
+
+        self.verificacion = crear_verificacion(self.usuario)
+
+        # Simula la sesión que registro() deja tras crear la cuenta - no hace
+        # falta pasar por esa vista para este test.
+        sesion = self.client.session
+        sesion["verificacion_uid"] = self.usuario.pk
+        sesion.save()
+
+    def _intentar_codigo(self, codigo):
+        return self.client.post(reverse("verificar_correo"), {"codigo": codigo})
+
+    def test_codigo_correcto_deja_de_funcionar_tras_agotar_intentos(self):
+        from reservas.models import VerificacionCorreo
+
+        resp = None
+        for _ in range(VerificacionCorreo.MAX_INTENTOS_CODIGO):
+            resp = self._intentar_codigo("000000")  # nunca es el código real
+
+        mensajes = [str(m) for m in resp.context["messages"]]
+        self.assertTrue(any("Agotaste los intentos" in m for m in mensajes))
+
+        self.verificacion.refresh_from_db()
+        self.assertFalse(self.verificacion.esta_vigente())
+
+        # El código real, el que se mandó por correo, ya no sirve: se
+        # agotaron los intentos aunque falten minutos para que expire por
+        # tiempo.
+        self._intentar_codigo(self.verificacion.codigo)
+        self.usuario.refresh_from_db()
+        self.assertFalse(self.usuario.correo_verificado)
+
+    def test_codigo_correcto_funciona_por_debajo_del_limite(self):
+        from reservas.models import VerificacionCorreo
+
+        for _ in range(VerificacionCorreo.MAX_INTENTOS_CODIGO - 1):
+            self._intentar_codigo("000000")
+
+        resp = self._intentar_codigo(self.verificacion.codigo)
+        self.assertEqual(resp.status_code, 302)
+        self.usuario.refresh_from_db()
+        self.assertTrue(self.usuario.correo_verificado)
+
+
 class TestEmailsUsanTemplates(TestCase):
     """
     Confirma que el registro y la recuperación de contraseña disparan el

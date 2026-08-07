@@ -177,10 +177,12 @@ class ResultadoVerificacion:
     no necesiten conocer la lógica interna de validación.
 
     Estados:
-        OK:         Verificación exitosa. correo_verificado pasó a True.
-        EXPIRADO:   El código/token tiene más de 30 minutos. Solicitar reenvío.
-        INCORRECTO: El código no coincide o el token UUID no existe.
-        YA_USADO:   Ya fue verificado anteriormente con este mismo registro.
+        OK:                 Verificación exitosa. correo_verificado pasó a True.
+        EXPIRADO:           El código/token tiene más de 30 minutos. Solicitar reenvío.
+        INCORRECTO:         El código no coincide o el token UUID no existe.
+        YA_USADO:           Ya fue verificado anteriormente con este mismo registro.
+        DEMASIADOS_INTENTOS: Se agotaron los intentos de código permitidos
+            (VerificacionCorreo.MAX_INTENTOS_CODIGO); hay que pedir reenvío.
 
     Uso en vistas:
         resultado = verificar_por_codigo(usuario, codigo)
@@ -194,12 +196,14 @@ class ResultadoVerificacion:
     EXPIRADO = "expirado"
     INCORRECTO = "incorrecto"
     YA_USADO = "ya_usado"
+    DEMASIADOS_INTENTOS = "demasiados_intentos"
 
     MENSAJES = {
         OK: "¡Correo verificado correctamente!",
         EXPIRADO: "El código expiró (30 minutos). Hacé clic en 'Reenviar correo'.",
         INCORRECTO: "Código incorrecto. Verificá que lo hayas copiado bien.",
         YA_USADO: "Este código ya fue utilizado anteriormente.",
+        DEMASIADOS_INTENTOS: "Agotaste los intentos permitidos para este código. Hacé clic en 'Reenviar correo'.",
     }
 
     def __init__(self, estado):
@@ -233,6 +237,12 @@ def verificar_por_codigo(usuario, codigo_ingresado):
         Si el código es correcto:
             - usuario.correo_verificado = True (guardado en BD).
             - verificacion.usado = True (guardado en BD).
+        Si el código es incorrecto:
+            - intentos_fallidos += 1 (guardado en BD). Al llegar a
+              MAX_INTENTOS_CODIGO, esta_vigente() empieza a devolver False
+              (mismo mecanismo de rate limiting que
+              password_recovery.verificar_recuperacion_por_codigo(), ver
+              el comentario en VerificacionCorreo.intentos_fallidos).
     """
     try:
         v = VerificacionCorreo.objects.get(usuario=usuario)
@@ -247,6 +257,10 @@ def verificar_por_codigo(usuario, codigo_ingresado):
         return ResultadoVerificacion(ResultadoVerificacion.EXPIRADO)
 
     if v.codigo != codigo_ingresado.strip():
+        v.intentos_fallidos += 1
+        v.save(update_fields=["intentos_fallidos"])
+        if v.intentos_fallidos >= VerificacionCorreo.MAX_INTENTOS_CODIGO:
+            return ResultadoVerificacion(ResultadoVerificacion.DEMASIADOS_INTENTOS)
         return ResultadoVerificacion(ResultadoVerificacion.INCORRECTO)
 
     # Todo correcto: marcar como verificado y consumir el registro

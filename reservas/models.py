@@ -552,10 +552,21 @@ class VerificacionCorreo(models.Model):
             la expiración de 30 minutos en esta_vigente().
         usado (BooleanField): True si ya fue verificado (por cualquier método).
             Previene reutilización del mismo código o enlace.
+        intentos_fallidos (PositiveIntegerField): Intentos de código
+            incorrecto. Al llegar a MAX_INTENTOS_CODIGO, esta_vigente()
+            empieza a devolver False (mismo efecto que si hubiera expirado
+            por tiempo). Mismo mecanismo que RecuperacionPassword: el código
+            tiene 10**6 combinaciones posibles y, sin este límite, alguien
+            con la sesión apuntando a este registro (basta con conocer el
+            correo, ver registro()/verificar_correo()) podría probarlas
+            todas dentro de la ventana de 30 minutos.
 
     Methods:
-        esta_vigente(): Retorna True si no fue usado y no expiró.
+        esta_vigente(): Retorna True si no fue usado, no expiró y no
+            agotó los intentos de código permitidos.
     """
+
+    MAX_INTENTOS_CODIGO = 5
 
     usuario = models.OneToOneField(
         Usuario,
@@ -577,6 +588,11 @@ class VerificacionCorreo(models.Model):
         default=False,
         help_text="True = ya verificado. Invalida tanto el código como el token.",
     )
+    intentos_fallidos = models.PositiveIntegerField(
+        default=0,
+        help_text="Intentos de código incorrecto. Al llegar a MAX_INTENTOS_CODIGO, "
+        "el código deja de ser válido aunque no haya expirado por tiempo.",
+    )
 
     class Meta:
         verbose_name = "Verificación de correo"
@@ -590,9 +606,10 @@ class VerificacionCorreo(models.Model):
         """
         Determina si el código/token todavía puede usarse para verificar.
 
-        Evalúa dos condiciones:
+        Evalúa tres condiciones:
             1. El registro no fue marcado como usado.
-            2. No pasaron más de 30 minutos desde su creación.
+            2. No agotó los intentos de código incorrecto permitidos.
+            3. No pasaron más de 30 minutos desde su creación.
 
         Returns:
             bool: True si está vigente y puede verificar, False si no.
@@ -605,8 +622,10 @@ class VerificacionCorreo(models.Model):
 
         from django.utils import timezone
 
-        return not self.usado and timezone.now() < self.creado_en + timedelta(
-            minutes=30
+        return (
+            not self.usado
+            and self.intentos_fallidos < self.MAX_INTENTOS_CODIGO
+            and timezone.now() < self.creado_en + timedelta(minutes=30)
         )
 
 
