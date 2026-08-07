@@ -57,6 +57,13 @@ jobs:
         # solo test. Mismo dummy key que usan los steps de abajo.
         DJANGO_SECRET_KEY: 'ci-dummy-key-not-real-8f3k2n9x7q1w5e6r4t8y0u2i3o5p7a9s1d3f-not-a-secret'
         DJANGO_DEBUG: 'False'
+        # SECURE_SSL_REDIRECT default a str(not DEBUG): con DEBUG=False acá
+        # arriba, sin esto quedaba en True y SecurityMiddleware redirigía
+        # (301) cada request de self.client a https antes de llegar a la
+        # vista - el test client no marca sus requests como "secure", así
+        # que rompía prácticamente cualquier test que chequeara un
+        # status_code o siguiera un redirect (302 esperado, 301 real).
+        SECURE_SSL_REDIRECT: 'False'
         DB_NAME: test_db
         DB_USER: test_user
         DB_PASSWORD: test_password
