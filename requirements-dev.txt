@@ -1,0 +1,11 @@
+# Herramientas de desarrollo (lint/formato). No se instalan en producción.
+#
+# isort y flake8 quedan configurados (pyproject.toml / .flake8) para quien
+# quiera usarlos en su editor, pero el gate de CI corre solo black + ruff:
+# ruff ya cubre lo mismo que isort (import sorting) y flake8 (E/W/F), y en la
+# práctica isort y ruff llegan a contradecirse en como agrupar imports con
+# alias — correr ambos en CI puede dejar un estado que no satisface a los dos
+# a la vez. Ver el commit "resolver a mano los hallazgos de ruff..." para el
+# caso concreto que lo confirmó.
+black==26.5.1
+ruff==0.16.1
