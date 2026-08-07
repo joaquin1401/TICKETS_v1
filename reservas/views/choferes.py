@@ -7,13 +7,14 @@ Vistas del panel de choferes.
     - finalizar_ticket(): Finalizar un viaje en curso.
 """
 
-from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from ..models import Ticket, to_local_date
+from ..utils.services import agregar_dias_habiles
 from ._base import (
     chofer_requerido,
     get_usuario_sesion,
@@ -33,11 +34,12 @@ def chofer_dashboard(request):
     Panel principal del chofer. Muestra en una sola pantalla:
       - Viajes en curso (asignados y activos)
       - Viajes de hoy (fecha de inicio = hoy, aún no iniciados)
-      - Viajes futuros (aprobados sin conductor, con inicio después de hoy)
+      - Próximos viajes (aprobados sin conductor, con inicio después de hoy
+        y hasta 2 días hábiles - domingo no cuenta, sábado sí)
     """
     usuario = get_usuario_sesion(request)
 
-    hoy = date.today()
+    hoy = timezone.localdate()
 
     # Viajes en curso: asignados a este chofer con estado en_curso
     tickets_en_curso = (
@@ -57,13 +59,16 @@ def chofer_dashboard(request):
         .order_by("hora_inicio")
     )
 
-    # Viajes futuros: aprobados, sin conductor, con hora_inicio después de hoy, y dentro de los próximos 7 días
+    # Próximos viajes: aprobados, sin conductor, con hora_inicio después de hoy,
+    # hasta 2 días hábiles desde hoy (domingo no cuenta como hábil, sábado sí -
+    # ver agregar_dias_habiles en utils/services.py).
+    limite_proximos_viajes = agregar_dias_habiles(hoy, 2)
     tickets_futuros_qs = (
         Ticket.objects.filter(
             estado=Ticket.ESTADO_APROBADO,
             conductor__isnull=True,
             hora_inicio__date__gt=hoy,
-            hora_inicio__date__lte=hoy + timedelta(days=7),
+            hora_inicio__date__lte=limite_proximos_viajes,
         )
         .select_related("id_vehiculo")
         .order_by("hora_inicio")

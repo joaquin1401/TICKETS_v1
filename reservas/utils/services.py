@@ -122,6 +122,32 @@ def evaluar_ventana_anticipacion(usuario, hora_inicio, ahora=None):
     return resultado
 
 
+def agregar_dias_habiles(fecha_base, cantidad_dias_habiles):
+    """
+    Suma `cantidad_dias_habiles` días hábiles a `fecha_base`.
+
+    "Día hábil" en esta organización = todos los días salvo domingo (el
+    sábado SÍ es día hábil, decisión explícita de los stakeholders). No
+    saltea feriados: es intencional, no un olvido — esta regla puntual
+    (ventana de "Próximos Viajes" del chofer, ver HU 8) solo excluye
+    domingos.
+
+    Args:
+        fecha_base (date): Fecha de partida (no se cuenta a sí misma).
+        cantidad_dias_habiles (int): Cantidad de días hábiles a sumar.
+
+    Returns:
+        date: fecha_base + N días hábiles.
+    """
+    fecha = fecha_base
+    restantes = cantidad_dias_habiles
+    while restantes > 0:
+        fecha += timedelta(days=1)
+        if fecha.weekday() != 6:  # weekday(): lunes=0 ... domingo=6
+            restantes -= 1
+    return fecha
+
+
 def calcular_distancia_y_tiempo_osrm(destino):
     """
     Calcula la distancia en kilómetros desde UTN FRRE hasta el destino usando OSRM.

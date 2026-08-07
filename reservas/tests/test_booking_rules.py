@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.test import TestCase
 from django.utils import timezone
@@ -6,6 +6,7 @@ from django.utils import timezone
 from reservas.models import Cargo, Ticket, Usuario, Vehiculo, to_local_date
 from reservas.utils.services import (
     ResultadoCreacion,
+    agregar_dias_habiles,
     cancelar_ticket_usuario,
 )
 from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas
@@ -789,3 +790,33 @@ class TestMargenEntreReservas(TestCase):
         )
         # El admin debe poder crear el ticket a pesar de violar el margen
         self.assertEqual(res.estado, ResultadoCreacion.OK)
+
+
+class TestAgregarDiasHabiles(TestCase):
+    """
+    agregar_dias_habiles(): "día hábil" en esta organización = todos salvo
+    domingo (el sábado SÍ es hábil). Usado por la ventana de "Próximos
+    Viajes" del chofer.
+    """
+
+    def test_desde_viernes_2_dias_habiles_cae_lunes(self):
+        # sábado (hábil, 1) + domingo (no cuenta) + lunes (hábil, 2)
+        viernes = date(2026, 8, 7)
+        self.assertEqual(viernes.strftime("%A"), "Friday")
+        self.assertEqual(agregar_dias_habiles(viernes, 2), date(2026, 8, 10))
+
+    def test_desde_sabado_2_dias_habiles_cae_martes(self):
+        # domingo (no cuenta) + lunes (hábil, 1) + martes (hábil, 2)
+        sabado = date(2026, 8, 8)
+        self.assertEqual(sabado.strftime("%A"), "Saturday")
+        self.assertEqual(agregar_dias_habiles(sabado, 2), date(2026, 8, 11))
+
+    def test_desde_domingo_2_dias_habiles_cae_martes(self):
+        domingo = date(2026, 8, 9)
+        self.assertEqual(domingo.strftime("%A"), "Sunday")
+        self.assertEqual(agregar_dias_habiles(domingo, 2), date(2026, 8, 11))
+
+    def test_desde_lunes_2_dias_habiles_cae_miercoles(self):
+        lunes = date(2026, 8, 10)
+        self.assertEqual(lunes.strftime("%A"), "Monday")
+        self.assertEqual(agregar_dias_habiles(lunes, 2), date(2026, 8, 12))
