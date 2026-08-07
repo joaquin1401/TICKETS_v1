@@ -12,7 +12,7 @@ if __package__ in (None, ""):
 
 from django.core.management.base import BaseCommand
 from django.core.management import call_command
-from reservas.models import Cargo, Ticket, Usuario, Vehiculo
+from reservas.models import Cargo, Ticket, Usuario, Vehiculo, IntentoLoginFallido
 
 class Command(BaseCommand):
     help = "Elimina toda la base de datos (tickets, usuarios, vehículos y cargos) y crea un usuario administrador SEU."
@@ -24,11 +24,13 @@ class Command(BaseCommand):
         count_tickets = Ticket.objects.all().delete()[0]
         count_usuarios = Usuario.objects.all().delete()[0]
         count_vehiculos = Vehiculo.objects.all().delete()[0]
+        count_intentos = IntentoLoginFallido.objects.all().delete()[0]
         count_cargos = Cargo.objects.all().delete()[0]
         
         self.stdout.write(f"  - {count_tickets} tickets eliminados")
         self.stdout.write(f"  - {count_usuarios} usuarios eliminados")
         self.stdout.write(f"  - {count_vehiculos} vehículos eliminados")
+        self.stdout.write(f"  - {count_intentos} intentos de login eliminados")
         self.stdout.write(f"  - {count_cargos} cargos eliminados")
         self.stdout.write(self.style.SUCCESS("Base de datos limpia."))
 
