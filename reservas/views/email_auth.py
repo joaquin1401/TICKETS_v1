@@ -182,6 +182,17 @@ def verificar_correo_enlace(request, token):
 
 
 def solicitar_recuperacion(request):
+    """
+    Nota de seguridad: request.session["recuperacion_uid"] queda apuntando al
+    usuario dueño del correo ingresado, sin que quien lo pidió necesite ser
+    esa persona ni conocer el código que se le mandó por mail. Cualquiera que
+    sepa el correo de la víctima puede llegar a verificar_recuperacion() con
+    su sesión apuntando al registro correcto y ponerse a adivinar el código
+    de 6 dígitos - por eso el límite de intentos vive en el propio
+    RecuperacionPassword (ver esta_vigente() y
+    utils.password_recovery.verificar_recuperacion_por_codigo()), no en la
+    sesión ni solo por IP: esas dos cosas las controla el propio atacante.
+    """
     from ..forms import SolicitarRecuperacionForm
     from ..utils.password_recovery import crear_recuperacion, enviar_correo_recuperacion
 

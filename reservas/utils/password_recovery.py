@@ -146,12 +146,14 @@ class ResultadoRecuperacion:
     EXPIRADO = "expirado"
     INCORRECTO = "incorrecto"
     YA_USADO = "ya_usado"
+    DEMASIADOS_INTENTOS = "demasiados_intentos"
 
     MENSAJES = {
         OK: "Validado correctamente.",
         EXPIRADO: "El código/enlace expiró (30 minutos). Solicitá uno nuevo.",
         INCORRECTO: "Código incorrecto.",
         YA_USADO: "Este código ya fue utilizado.",
+        DEMASIADOS_INTENTOS: "Agotaste los intentos permitidos para este código. Solicitá uno nuevo.",
     }
 
     def __init__(self, estado):
@@ -164,7 +166,18 @@ class ResultadoRecuperacion:
 
 
 def verificar_recuperacion_por_codigo(usuario, codigo_ingresado):
-    """Valida el código de 6 dígitos."""
+    """
+    Valida el código de 6 dígitos.
+
+    Rate limiting: el código tiene 10**6 combinaciones posibles. Alguien con
+    la sesión apuntando a este registro de recuperación -algo que se consigue
+    con solo saber el correo de la víctima, sin necesitar el código real: ver
+    el comentario en views/email_auth.solicitar_recuperacion()- podría
+    probarlas todas dentro de la ventana de 30 minutos si no hubiera límite
+    de intentos. Cada código incorrecto suma uno a `intentos_fallidos`; al
+    llegar a RecuperacionPassword.MAX_INTENTOS_CODIGO, esta_vigente() empieza
+    a devolver False (mismo efecto que si hubiera expirado por tiempo).
+    """
     try:
         v = RecuperacionPassword.objects.get(usuario=usuario)
     except RecuperacionPassword.DoesNotExist:
@@ -175,6 +188,10 @@ def verificar_recuperacion_por_codigo(usuario, codigo_ingresado):
     if not v.esta_vigente():
         return ResultadoRecuperacion(ResultadoRecuperacion.EXPIRADO)
     if v.codigo != codigo_ingresado.strip():
+        v.intentos_fallidos += 1
+        v.save(update_fields=["intentos_fallidos"])
+        if v.intentos_fallidos >= RecuperacionPassword.MAX_INTENTOS_CODIGO:
+            return ResultadoRecuperacion(ResultadoRecuperacion.DEMASIADOS_INTENTOS)
         return ResultadoRecuperacion(ResultadoRecuperacion.INCORRECTO)
 
     return ResultadoRecuperacion(ResultadoRecuperacion.OK)

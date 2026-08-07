@@ -13,6 +13,7 @@ from django.shortcuts import redirect, render
 from ..forms import LoginForm, RegistroForm
 from ..models import Cargo, Usuario
 from ..utils.email_verification import crear_verificacion, enviar_correo_verificacion
+from ..utils.rate_limit import login_bloqueado, registrar_intento_fallido
 
 
 def registro(request):
@@ -123,8 +124,12 @@ def login_view(request):
         Se llama a session.cycle_key() antes de guardar los datos para
         rotar el identificador de sesión y evitar session fixation.
 
+        Rate limiting (ver utils/rate_limit.py): tras demasiados intentos
+        fallidos recientes por IP o por correo intentado, se rechaza el
+        intento sin ni siquiera consultar la BD para validar credenciales.
+
     Messages:
-        - error: Credenciales inválidas, rechazado.
+        - error: Credenciales inválidas, rechazado, demasiados intentos.
         - warning: Pendiente de aprobación.
     """
     if request.session.get("usuario_id"):
@@ -135,13 +140,26 @@ def login_view(request):
         if form.is_valid():
             correo = form.cleaned_data["correo"]
             contrasena = form.cleaned_data["contrasena"]
+
+            # Rate limiting: ni siquiera se toca la BD para validar
+            # credenciales si ya hay demasiados intentos fallidos recientes
+            # para esta IP o para este correo (ver utils/rate_limit.py).
+            if login_bloqueado(request, correo):
+                messages.error(
+                    request,
+                    "Demasiados intentos fallidos. Probá de nuevo en unos minutos.",
+                )
+                return render(request, "reservas/auth/login.html", {"form": form})
+
             try:
                 usuario = Usuario.objects.select_related("id_cargo").get(correo=correo)
             except Usuario.DoesNotExist:
+                registrar_intento_fallido(request, correo)
                 messages.error(request, "Correo o contraseña incorrectos.")
                 return render(request, "reservas/auth/login.html", {"form": form})
 
             if not usuario.check_password(contrasena):
+                registrar_intento_fallido(request, correo)
                 messages.error(request, "Correo o contraseña incorrectos.")
                 return render(request, "reservas/auth/login.html", {"form": form})
 

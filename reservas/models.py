@@ -602,6 +602,14 @@ class RecuperacionPassword(models.Model):
     Controla el proceso temporal de recuperación de contraseña de un usuario.
     """
 
+    # El código de 6 dígitos tiene 10**6 combinaciones posibles y el enlace
+    # mágico un UUID (2**128, infactible de adivinar). Sin límite de intentos,
+    # alguien con la sesión apuntando a este registro (ver
+    # utils/rate_limit.py y el comentario en verificar_recuperacion_por_codigo
+    # sobre cómo se consigue eso sin conocer el código real) podría probar el
+    # código las veces que quiera dentro de la ventana de 30 minutos.
+    MAX_INTENTOS_CODIGO = 5
+
     usuario = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name="recuperaciones_password"
     )
@@ -617,6 +625,11 @@ class RecuperacionPassword(models.Model):
     usado = models.BooleanField(
         default=False, help_text="True = código/token ya canjeado."
     )
+    intentos_fallidos = models.PositiveIntegerField(
+        default=0,
+        help_text="Intentos de código incorrecto. Al llegar a MAX_INTENTOS_CODIGO, "
+        "el código deja de ser válido aunque no haya expirado por tiempo.",
+    )
 
     class Meta:
         verbose_name = "Recuperación de contraseña"
@@ -627,13 +640,18 @@ class RecuperacionPassword(models.Model):
         return f"Recuperación de {self.usuario.correo} ({estado})"
 
     def esta_vigente(self):
-        """Determina si la solicitud no fue usada y está dentro de los 30 minutos."""
+        """
+        Determina si la solicitud sigue siendo válida: no fue usada, está
+        dentro de los 30 minutos y no agotó los intentos de código permitidos.
+        """
         from datetime import timedelta
 
         from django.utils import timezone
 
-        return not self.usado and timezone.now() < self.creado_en + timedelta(
-            minutes=30
+        return (
+            not self.usado
+            and self.intentos_fallidos < self.MAX_INTENTOS_CODIGO
+            and timezone.now() < self.creado_en + timedelta(minutes=30)
         )
 
 
@@ -788,3 +806,42 @@ class PermisoReservaExtraordinaria(models.Model):
         Retorna True si el permiso no fue usado y todavía no venció.
         """
         return not self.usado and self.valido_hasta >= timezone.localdate()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Rate limiting de login
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class IntentoLoginFallido(models.Model):
+    """
+    Registra cada intento de login fallido, para aplicar rate limiting
+    (ver reservas/utils/rate_limit.py).
+
+    Se guarda como fila individual (no como contador en Usuario) por dos
+    razones: también se registran intentos contra correos que no existen en
+    el sistema -no hay a qué Usuario asociarle un contador-, y una fila por
+    evento permite contar por ventana deslizante de tiempo sin tener que
+    resetear nada explícitamente (las filas viejas simplemente dejan de
+    contar solas al salir de la ventana).
+    """
+
+    ip = models.GenericIPAddressField(help_text="IP del request que falló al loguearse")
+    correo_intentado = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Correo con el que se intentó loguear (puede no existir en el sistema)",
+    )
+    creado_en = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Intento de Login Fallido"
+        verbose_name_plural = "Intentos de Login Fallidos"
+        ordering = ["-creado_en"]
+        indexes = [
+            models.Index(fields=["ip", "creado_en"]),
+            models.Index(fields=["correo_intentado", "creado_en"]),
+        ]
+
+    def __str__(self):
+        return f"Intento fallido: {self.correo_intentado or '(correo vacío)'} desde {self.ip} @ {self.creado_en.isoformat()}"
