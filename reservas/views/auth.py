@@ -165,13 +165,8 @@ def login_view(request):
 
             # Verificación de correo: bloquear login si el usuario
             # completó el registro pero todavía no verificó su email.
-            # Aplica solo si el campo correo_verificado existe en el modelo
-            # (requiere haber corrido la migración correspondiente) y si no es Admin.
-            if (
-                hasattr(usuario, "correo_verificado")
-                and not usuario.correo_verificado
-                and usuario.id_cargo.prioridad != 0
-            ):
+            # No aplica a Admin.
+            if not usuario.correo_verificado and usuario.id_cargo.prioridad != 0:
                 request.session["verificacion_uid"] = usuario.pk
                 messages.warning(
                     request,

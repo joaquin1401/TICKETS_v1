@@ -15,6 +15,7 @@ import uuid
 
 from django.contrib.auth.hashers import make_password
 from django.db import models
+from django.db.models import F, Q
 from django.utils import timezone
 
 
@@ -438,6 +439,18 @@ class Ticket(models.Model):
             models.Index(
                 fields=["id_vehiculo", "estado", "hora_inicio", "hora_fin"],
                 name="ticket_conflicto_idx",
+            ),
+        ]
+        constraints = [
+            # hora_fin es opcional (null=True), así que la constraint deja
+            # pasar NULL; cuando SÍ hay hora_fin, tiene que ser estrictamente
+            # posterior a hora_inicio. Antes esto solo se validaba en
+            # TicketForm.clean() - cualquier creación que bypaseara el form
+            # (admin, poblar_bd, un fixture, uso directo del ORM) podía dejar
+            # un ticket con el rango invertido sin que nada lo impidiera.
+            models.CheckConstraint(
+                check=Q(hora_fin__isnull=True) | Q(hora_fin__gt=F("hora_inicio")),
+                name="ticket_hora_fin_posterior_a_hora_inicio",
             ),
         ]
 

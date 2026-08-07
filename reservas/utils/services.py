@@ -184,7 +184,8 @@ def _get_horas_margen():
     combinando horas y minutos configurados.
 
     Returns:
-        float: Cantidad de horas de margen (default=1 si no hay configuración).
+        float: Cantidad de horas de margen (default=1 si no hay configuración
+            o si falló la consulta a ConfiguracionGlobal).
     """
     try:
         from ..models import ConfiguracionGlobal
@@ -194,6 +195,13 @@ def _get_horas_margen():
         minutos = max(0, config.minutos_margen_entre_reservas or 0)
         return horas + minutos / 60.0
     except Exception:
+        # Antes esto fallaba en silencio total: un error transitorio de BD
+        # cambiaba la regla de margen entre reservas (a 1h) sin dejar
+        # ningún rastro para poder investigarlo después.
+        logger.exception(
+            "No se pudo leer ConfiguracionGlobal.horas_margen_entre_reservas; "
+            "usando el default de 1 hora."
+        )
         return 1.0
 
 
