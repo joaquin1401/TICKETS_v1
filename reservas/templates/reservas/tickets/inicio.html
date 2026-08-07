@@ -550,9 +550,9 @@
             toggleTerceros(); // Llamada inicial
           }
 
-          // Scroll a calendario/timeline en mobile, pero SOLO la primera vez que
-          // aparecen (justo al elegir vehículo o hacer clic en un día del
-          // calendario), no en cada recarga de la página.
+          // Scroll a calendario/timeline, pero SOLO la primera vez que aparecen
+          // (justo al elegir vehículo o hacer clic en un día del calendario), no
+          // en cada recarga de la página.
           //
           // Antes esto miraba los parámetros ?dia=/?vehiculo= de la URL, pero esos
           // quedan pegados en la URL después de la navegación - cualquier recarga
@@ -561,17 +561,23 @@
           // listener de vehiculoSelect dejan un flag en sessionStorage justo antes
           // de navegar; acá se lee y se borra en el mismo golpe, así que solo
           // dispara en el load que sigue inmediatamente a esa navegación puntual.
+          //
+          // Solo scrollea si el target no está ya visible en el viewport (no
+          // asume nada por ancho de pantalla: timeline-section queda fuera de
+          // .inicio-grid y puede quedar fuera de vista en cualquier resolución).
           document.addEventListener("DOMContentLoaded", function () {
             const scrollTargetId = sessionStorage.getItem('ticket_scroll_target');
             if (scrollTargetId) {
               sessionStorage.removeItem('ticket_scroll_target');
-              if (window.innerWidth <= 768) {
-                const target = document.getElementById(scrollTargetId);
-                if (target) {
-                  setTimeout(() => {
+              const target = document.getElementById(scrollTargetId);
+              if (target) {
+                setTimeout(() => {
+                  const rect = target.getBoundingClientRect();
+                  const fullyVisible = rect.top >= 0 && rect.bottom <= window.innerHeight;
+                  if (!fullyVisible) {
                     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }, 200);
-                }
+                  }
+                }, 200);
               }
             }
           });

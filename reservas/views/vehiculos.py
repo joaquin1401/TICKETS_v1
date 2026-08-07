@@ -148,13 +148,31 @@ def edicion_vehiculo(request, vehiculo_id):
     Notas:
         - No hay "eliminación" física, solo cambiar activo=False.
         - Los tickets existentes permanecen (PROTECT en ForeignKey).
+        - Si el vehículo pasa de activo=True a activo=False (baja permanente),
+          se cancelan/reasignan automáticamente sus tickets APROBADOS futuros
+          vía services.dar_baja_permanente_vehiculo(), igual que hace la baja
+          temporal.
     """
     vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id)
     if request.method == "POST":
+        estaba_activo = vehiculo.activo
         form = VehiculoForm(request.POST, instance=vehiculo)
         if form.is_valid():
             form.save()
-            messages.success(request, "Vehículo actualizado.")
+            if estaba_activo and not vehiculo.activo:
+                from ..utils.services import dar_baja_permanente_vehiculo
+
+                usuario_admin = get_usuario_sesion(request)
+                resultado = dar_baja_permanente_vehiculo(vehiculo, usuario_admin)
+                msg = "Vehículo actualizado y dado de baja permanente. "
+                msg += f"Tickets afectados: {resultado['total_afectados']} "
+                msg += (
+                    f"({resultado['reasignados']} reasignados, "
+                    f"{resultado['cancelados']} cancelados)."
+                )
+                messages.success(request, msg)
+            else:
+                messages.success(request, "Vehículo actualizado.")
             return redirect("listado_vehiculos")
     else:
         form = VehiculoForm(instance=vehiculo)

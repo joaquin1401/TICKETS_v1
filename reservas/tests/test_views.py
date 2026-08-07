@@ -166,3 +166,53 @@ class TestReservasViews(TestCase):
         response2 = detalle_ticket(request2, ticket_id=ticket_cerca.id)
         self.assertEqual(response2.status_code, 200)
         self.assertNotIn(b"Cancelar Ticket", response2.content)
+
+    def test_timeline_top_px_usa_hora_local_no_utc(self):
+        """El posicionamiento del bloque del timeline (top_px/height_px) debe
+        calcularse con la hora LOCAL, igual que el texto "HH:MM → HH:MM" que
+        muestra el template."""
+        fecha = (self.ahora + timedelta(days=1)).date()
+        # 08:00 -> 10:00 hora LOCAL (Argentina); en UTC sería 11:00 -> 13:00.
+        hora_inicio_local = timezone.make_aware(
+            timezone.datetime.combine(fecha, timezone.datetime.min.time())
+            + timedelta(hours=8)
+        )
+        hora_fin_local = hora_inicio_local + timedelta(hours=2)
+
+        Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=hora_inicio_local,
+            hora_fin=hora_fin_local,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+        )
+
+        sesion = self.client.session
+        sesion["usuario_id"] = self.usuario.pk
+        sesion["es_admin"] = False
+        sesion.save()
+
+        response = self.client.get(
+            reverse("inicio"),
+            {
+                "vehiculo": self.vehiculo.pk,
+                "anio": fecha.year,
+                "mes": fecha.month,
+                "dia": fecha.day,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+
+        tickets_dia = response.context["tickets_dia"]
+        self.assertEqual(len(tickets_dia), 1)
+        ticket_ctx = tickets_dia[0]
+
+        # top: 0px == 06:00 (inicio de la grilla). 08:00 local -> top_px = 120.
+        self.assertEqual(ticket_ctx.top_px, 120)
+        # 2 horas de duración -> 120px de alto.
+        self.assertEqual(ticket_ctx.height_px, 120)
+
+        # El texto renderizado debe decir "08:00 → 10:00", coincidiendo con el bloque.
+        self.assertContains(response, "08:00 → 10:00")

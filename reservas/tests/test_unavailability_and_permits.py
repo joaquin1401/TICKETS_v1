@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from reservas.forms import TicketForm
@@ -15,9 +16,12 @@ from reservas.models import (
 from reservas.utils.services import (
     ResultadoCreacion,
     _reasignar_ticket,
-    dar_baja_temporal_vehiculo,
 )
 from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas
+from reservas.utils.services import (
+    dar_baja_permanente_vehiculo,
+    dar_baja_temporal_vehiculo,
+)
 
 
 def crear_ticket_con_reglas(*args, **kwargs):
@@ -1359,3 +1363,318 @@ class TestEdgeCasesBajaTemporal(TestCase):
         nuevo = _reasignar_ticket(ticket)
         self.assertIsNotNone(nuevo)
         self.assertEqual(nuevo.id_vehiculo, self.vehiculo2)
+
+
+class TestBajaPermanenteVehiculo(TestCase):
+    """Pruebas para dar_baja_permanente_vehiculo() (activo=False vía edición
+    de vehículo): cancela/reasigna los tickets APROBADOS futuros del vehículo."""
+
+    def setUp(self):
+        self.cargo_admin = get_cargo(Cargo.ADMIN_SEU, 0)
+        self.cargo_usuario = get_cargo(Cargo.USUARIO, 3)
+        self.cargo_chofer = get_cargo(Cargo.CHOFER, 4)
+
+        self.admin = Usuario.objects.create(
+            nombre="Admin",
+            apellido="SEU",
+            correo="admin@test.com",
+            id_cargo=self.cargo_admin,
+            valido=True,
+        )
+        self.usuario = Usuario.objects.create(
+            nombre="Usuario",
+            apellido="Normal",
+            correo="user@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
+        )
+
+        self.vehiculo1 = Vehiculo.objects.create(
+            marca="Toyota",
+            modelo="Hilux",
+            patente="CC111CC",
+            cant_pasajeros=4,
+            activo=True,
+        )
+        self.vehiculo2 = Vehiculo.objects.create(
+            marca="Ford",
+            modelo="Ranger",
+            patente="DD222DD",
+            cant_pasajeros=4,
+            activo=True,
+        )
+
+        self.ahora = timezone.now()
+
+    def test_baja_permanente_marca_vehiculo_inactivo(self):
+        dar_baja_permanente_vehiculo(self.vehiculo1, self.admin)
+        self.vehiculo1.refresh_from_db()
+        self.assertFalse(self.vehiculo1.activo)
+
+    def test_baja_permanente_cancela_tickets_futuros_aprobados(self):
+        inicio = self.ahora + timedelta(days=1, hours=8)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+        )
+        # Desactivamos el segundo vehículo para forzar que no haya reasignación.
+        self.vehiculo2.activo = False
+        self.vehiculo2.save()
+
+        resultado = dar_baja_permanente_vehiculo(self.vehiculo1, self.admin)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.estado, Ticket.ESTADO_CANCELADO)
+        self.assertEqual(resultado["total_afectados"], 1)
+        self.assertEqual(resultado["cancelados"], 1)
+        self.assertEqual(resultado["reasignados"], 0)
+
+    def test_baja_permanente_reasigna_tickets(self):
+        inicio = self.ahora + timedelta(days=1, hours=8)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+        )
+        resultado = dar_baja_permanente_vehiculo(self.vehiculo1, self.admin)
+        self.assertEqual(resultado["reasignados"], 1)
+        self.assertEqual(resultado["cancelados"], 0)
+
+        nuevo_ticket = (
+            Ticket.objects.filter(
+                id_usuario=self.usuario, estado=Ticket.ESTADO_APROBADO
+            )
+            .exclude(pk=ticket.pk)
+            .first()
+        )
+        self.assertIsNotNone(nuevo_ticket)
+        self.assertEqual(nuevo_ticket.id_vehiculo, self.vehiculo2)
+
+    def test_baja_permanente_ignora_tickets_ya_finalizados(self):
+        inicio = self.ahora - timedelta(days=1)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_FINALIZADO,
+            destino="Test",
+            cant_pasajeros=2,
+        )
+        resultado = dar_baja_permanente_vehiculo(self.vehiculo1, self.admin)
+        ticket.refresh_from_db()
+        self.assertEqual(ticket.estado, Ticket.ESTADO_FINALIZADO)
+        self.assertEqual(resultado["total_afectados"], 0)
+
+    def test_baja_permanente_crea_permiso_si_no_reasigna(self):
+        self.vehiculo2.activo = False
+        self.vehiculo2.save()
+
+        inicio = self.ahora + timedelta(hours=8)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+        )
+        dar_baja_permanente_vehiculo(self.vehiculo1, self.admin)
+        permiso = PermisoReservaExtraordinaria.objects.filter(
+            usuario=self.usuario, ticket_cancelado=ticket
+        ).first()
+        self.assertIsNotNone(permiso)
+        self.assertEqual(
+            permiso.motivo, PermisoReservaExtraordinaria.MOTIVO_BAJA_VEHICULO
+        )
+
+    def test_edicion_vehiculo_desactivar_dispara_cancelacion_y_reasignacion(self):
+        """La vista edicion_vehiculo debe disparar dar_baja_permanente_vehiculo
+        cuando activo pasa de True a False."""
+        inicio = self.ahora + timedelta(days=1, hours=8)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+        )
+        # Desactivamos el segundo vehículo para forzar la cancelación (sin reasignación).
+        self.vehiculo2.activo = False
+        self.vehiculo2.save()
+
+        sesion = self.client.session
+        sesion["usuario_id"] = self.admin.pk
+        sesion["es_admin"] = True
+        sesion.save()
+
+        resp = self.client.post(
+            reverse("edicion_vehiculo", args=[self.vehiculo1.pk]),
+            {
+                "marca": self.vehiculo1.marca,
+                "modelo": self.vehiculo1.modelo,
+                "patente": self.vehiculo1.patente,
+                "cant_pasajeros": self.vehiculo1.cant_pasajeros,
+                # "activo" ausente => checkbox desmarcado
+            },
+        )
+        self.assertEqual(resp.status_code, 302)
+
+        self.vehiculo1.refresh_from_db()
+        ticket.refresh_from_db()
+        self.assertFalse(self.vehiculo1.activo)
+        self.assertEqual(ticket.estado, Ticket.ESTADO_CANCELADO)
+
+    def test_edicion_vehiculo_sin_cambiar_activo_no_cancela_tickets(self):
+        """Editar otros campos sin tocar 'activo' no debe afectar tickets existentes."""
+        inicio = self.ahora + timedelta(days=1, hours=8)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+        )
+        sesion = self.client.session
+        sesion["usuario_id"] = self.admin.pk
+        sesion["es_admin"] = True
+        sesion.save()
+
+        resp = self.client.post(
+            reverse("edicion_vehiculo", args=[self.vehiculo1.pk]),
+            {
+                "marca": "Toyota",
+                "modelo": "Hilux Actualizada",
+                "patente": self.vehiculo1.patente,
+                "cant_pasajeros": self.vehiculo1.cant_pasajeros,
+                "activo": "on",
+            },
+        )
+        self.assertEqual(resp.status_code, 302)
+
+        self.vehiculo1.refresh_from_db()
+        ticket.refresh_from_db()
+        self.assertTrue(self.vehiculo1.activo)
+        self.assertEqual(ticket.estado, Ticket.ESTADO_APROBADO)
+
+
+class TestReasignacionChoferYConductor(TestCase):
+    """Pruebas para _reasignar_ticket(): re-derivación de requiere_chofer
+    según el vehículo candidato y copia del campo conductor."""
+
+    def setUp(self):
+        self.cargo_usuario = get_cargo(Cargo.USUARIO, 3)
+        self.cargo_chofer = get_cargo(Cargo.CHOFER, 4)
+
+        self.usuario = Usuario.objects.create(
+            nombre="Usuario",
+            apellido="Normal",
+            correo="user@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
+        )
+        self.chofer = Usuario.objects.create(
+            nombre="Chofer",
+            apellido="Test",
+            correo="chofer@test.com",
+            id_cargo=self.cargo_chofer,
+            valido=True,
+        )
+
+        self.vehiculo1 = Vehiculo.objects.create(
+            marca="Toyota",
+            modelo="Corolla",
+            patente="EE111EE",
+            cant_pasajeros=4,
+            activo=True,
+            requiere_chofer=False,
+        )
+        self.vehiculo2 = Vehiculo.objects.create(
+            marca="Ford",
+            modelo="Transit",
+            patente="FF222FF",
+            cant_pasajeros=4,
+            activo=True,
+            requiere_chofer=True,
+        )
+
+        self.ahora = timezone.now()
+
+    def test_reasignacion_deriva_requiere_chofer_del_vehiculo_candidato(self):
+        """Si el vehículo original NO exige chofer pero el candidato sí,
+        el ticket reasignado debe quedar con requiere_chofer=True."""
+        inicio = self.ahora + timedelta(days=1, hours=8)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+            requiere_chofer=False,
+        )
+        ticket.estado = Ticket.ESTADO_CANCELADO
+        ticket.save(update_fields=["estado"])
+
+        nuevo = _reasignar_ticket(ticket)
+        self.assertIsNotNone(nuevo)
+        self.assertEqual(nuevo.id_vehiculo, self.vehiculo2)
+        self.assertTrue(nuevo.requiere_chofer)
+
+    def test_reasignacion_respeta_falta_de_choferes_del_vehiculo_candidato(self):
+        """Si el candidato exige chofer y no hay choferes disponibles, no debe
+        reasignarse a ese vehículo."""
+        Usuario.objects.filter(pk=self.chofer.pk).update(valido=False)
+
+        inicio = self.ahora + timedelta(days=1, hours=8)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+            requiere_chofer=False,
+        )
+        ticket.estado = Ticket.ESTADO_CANCELADO
+        ticket.save(update_fields=["estado"])
+
+        nuevo = _reasignar_ticket(ticket)
+        self.assertIsNone(nuevo)
+
+    def test_reasignacion_copia_conductor(self):
+        """El conductor pre-asignado (p. ej. por un admin al crear el ticket
+        manualmente) debe conservarse en el ticket reasignado."""
+        inicio = self.ahora + timedelta(days=1, hours=8)
+        ticket = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            conductor=self.chofer,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+            requiere_chofer=False,
+        )
+        ticket.estado = Ticket.ESTADO_CANCELADO
+        ticket.save(update_fields=["estado"])
+
+        nuevo = _reasignar_ticket(ticket)
+        self.assertIsNotNone(nuevo)
+        self.assertEqual(nuevo.conductor, self.chofer)

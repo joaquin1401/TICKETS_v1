@@ -7,7 +7,7 @@
 
 <p>Hola <strong>{{ usuario.nombre_completo }}</strong>,</p>
 
-<p>Te informamos que tu reserva original (Ticket #{{ ticket_original.pk }}) para el vehículo <strong>{{ ticket_original.id_vehiculo.marca }} {{ ticket_original.id_vehiculo.modelo }}</strong> ha sido cancelada debido a que dicha unidad ha entrado en mantenimiento temporal.</p>
+<p>Te informamos que tu reserva original (Ticket #{{ ticket_original.pk }}) para el vehículo <strong>{{ ticket_original.id_vehiculo.marca }} {{ ticket_original.id_vehiculo.modelo }}</strong> ha sido cancelada debido a que dicha unidad {% if permanente %}fue dada de baja de forma permanente{% else %}ha entrado en mantenimiento temporal{% endif %}.</p>
 
 <p>Sin embargo, para no afectar tu viaje, el sistema <strong>ha reasignado tu reserva automáticamente</strong> a un nuevo vehículo que cumple con las características que solicitaste.</p>
 

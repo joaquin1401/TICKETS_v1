@@ -1,4 +1,5 @@
 from django.conf import settings
+
 from django_q.tasks import async_task
 
 from ..models import NotificationLog
@@ -89,15 +90,21 @@ def send_reminder(ticket, kind):
 
 
 def notify_vehicle_inactive_cancelled(
-    ticket, inactivo_hasta, tiene_permiso=False, dias_gracia=None
+    ticket, inactivo_hasta=None, tiene_permiso=False, dias_gracia=None, permanente=False
 ):
     """
-    Notifica cancelación por baja temporal sin reasignación.
+    Notifica cancelación por baja de vehículo (temporal o permanente) sin reasignación.
 
     Nota sobre `dias_gracia`: Se define como `None` por defecto en la firma
     (en lugar de un valor estático) para satisfacer las reglas sintácticas de
     Python respecto a parámetros con valor por defecto, ya que se espera que
     su valor real sea proveído siempre desde la lógica llamadora (services).
+
+    Args:
+        inactivo_hasta (date | None): Fecha límite de la baja temporal. None
+            si `permanente=True` (la baja permanente no tiene fecha de fin).
+        permanente (bool): True si la baja es permanente (activo=False) en
+            lugar de temporal (inactivo_hasta) — cambia el texto del correo.
     """
     if NotificationLog.objects.filter(
         ticket=ticket, notification_type=NotificationLog.TYPE_VEHICLE_INACTIVE
@@ -108,6 +115,7 @@ def notify_vehicle_inactive_cancelled(
         "ticket": ticket,
         "usuario": ticket.id_usuario,
         "inactivo_hasta": inactivo_hasta,
+        "permanente": permanente,
         "tiene_permiso": tiene_permiso,
         "dias_gracia": dias_gracia,
         "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
@@ -125,8 +133,9 @@ def notify_vehicle_inactive_cancelled(
     )
 
 
-def notify_vehicle_inactive_reassigned(ticket_original, nuevo_ticket):
-    """Notifica que el ticket fue cancelado por baja temporal pero reasignado automáticamente."""
+def notify_vehicle_inactive_reassigned(ticket_original, nuevo_ticket, permanente=False):
+    """Notifica que el ticket fue cancelado por baja de vehículo (temporal o
+    permanente) pero reasignado automáticamente."""
     if NotificationLog.objects.filter(
         ticket=ticket_original, notification_type=NotificationLog.TYPE_REASSIGNED
     ).exists():
@@ -136,6 +145,7 @@ def notify_vehicle_inactive_reassigned(ticket_original, nuevo_ticket):
         "ticket_original": ticket_original,
         "nuevo_ticket": nuevo_ticket,
         "usuario": ticket_original.id_usuario,
+        "permanente": permanente,
         "site_url": getattr(settings, "SITE_URL", "http://localhost:8000"),
     }
     subject = "Actualización de Reserva: Tu vehículo ha sido reasignado"

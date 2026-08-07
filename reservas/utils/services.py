@@ -15,10 +15,11 @@ Conceptos clave:
 import logging
 from datetime import timedelta
 
-import requests
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+
+import requests
 
 from ..models import Ticket, to_local_date
 
@@ -870,21 +871,24 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
 
     Args:
         ticket_original (Ticket): Ticket cancelado que se intenta reasignar.
-        contexto (str): "baja_temporal" o "prioridad" — usado en la observación del nuevo ticket.
+        contexto (str): "baja_temporal", "mantenimiento" o "prioridad" — usado en
+            la observación del nuevo ticket.
 
     Criterios de selección:
       - Activo y sin baja temporal en la franja del ticket.
       - No exclusivo_decanato, salvo que el usuario sea Decano.
       - cant_pasajeros >= ticket.cant_pasajeros.
       - Sin conflicto de horario en esa franja.
-      - Si requiere chofer: verifica disponibilidad.
+      - Si el ticket original o el vehículo candidato requieren chofer: verifica
+        disponibilidad.
       - Ordena por cant_pasajeros ASC (menor suficiente primero).
 
     Returns:
         Ticket | None: Nuevo ticket APROBADO si pudo reasignar, None si no.
     """
-    from ..models import Cargo, Vehiculo
+    from ..models import Cargo
     from ..models import Usuario as UsuarioModel
+    from ..models import Vehiculo
 
     hora_inicio = ticket_original.hora_inicio
     hora_fin = ticket_original.hora_fin or (hora_inicio + timedelta(hours=2))
@@ -922,7 +926,12 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
         if conflictos.exists():
             continue
 
-        if ticket_original.requiere_chofer:
+        # El vehículo candidato puede exigir chofer aunque el original no lo exija.
+        requiere_chofer_nuevo = (
+            ticket_original.requiere_chofer or vehiculo_cand.requiere_chofer
+        )
+
+        if requiere_chofer_nuevo:
             total_choferes = UsuarioModel.objects.filter(
                 id_cargo__nombre=Cargo.CHOFER, valido=True
             ).count()
@@ -935,21 +944,29 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
             if tickets_chofer.count() >= total_choferes:
                 continue
 
+        if contexto == "baja_temporal":
+            motivo_txt = "vehículo original en baja temporal"
+        elif contexto == "mantenimiento":
+            motivo_txt = "vehículo original dado de baja permanente"
+        else:
+            motivo_txt = "cancelado por prioridad de otro usuario"
+
         nuevo_ticket = Ticket(
             id_usuario=usuario,
             id_vehiculo=vehiculo_cand,
+            conductor=ticket_original.conductor,
             hora_inicio=hora_inicio,
             hora_fin=ticket_original.hora_fin,
             estado=Ticket.ESTADO_APROBADO,
             destino=ticket_original.destino,
             cant_pasajeros=ticket_original.cant_pasajeros,
             descripcion=ticket_original.descripcion,
-            requiere_chofer=ticket_original.requiere_chofer,
+            requiere_chofer=requiere_chofer_nuevo,
             para_tercero=ticket_original.para_tercero,
             distancia_est=ticket_original.distancia_est,
             observacion=(
                 f"Reasignado automáticamente desde ticket #{ticket_original.pk} "
-                f"({'vehículo original en baja temporal' if contexto == 'baja_temporal' else 'cancelado por prioridad de otro usuario'})."
+                f"({motivo_txt})."
             ),
         )
         nuevo_ticket._suppress_signals = True
@@ -1061,4 +1078,102 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
         "reasignados": reasignados,
         "total_afectados": cancelados + reasignados,
         "inactivo_hasta": inactivo_hasta,
+    }
+
+
+@transaction.atomic
+def dar_baja_permanente_vehiculo(vehiculo, admin_usuario):
+    """
+    Marca un vehículo como inactivo de forma permanente (activo=False) y
+    cancela/reasigna todos los tickets futuros APROBADOS de ese vehículo.
+
+    Equivalente de dar_baja_temporal_vehiculo() para la baja permanente (el
+    checkbox "activo" del formulario de edición), pero sin fecha de fin:
+    afecta a todos los tickets APROBADOS cuyo viaje todavía no terminó
+    (hora_fin en el futuro, o sin hora_fin y con salida hoy o después).
+
+    Args:
+        vehiculo (Vehiculo): Vehículo a dar de baja permanente.
+        admin_usuario (Usuario): Administrador que ejecuta la acción.
+
+    Returns:
+        dict: {cancelados, reasignados, total_afectados}
+    """
+    from ..models import ConfiguracionGlobal, PermisoReservaExtraordinaria
+    from ..utils.notifications import (
+        notify_vehicle_inactive_cancelled,
+        notify_vehicle_inactive_reassigned,
+    )
+
+    config_global = ConfiguracionGlobal.get_solo()
+    dias_cancelacion = config_global.dias_anticipacion_cancelacion
+
+    ahora = timezone.now()
+    hoy = timezone.localdate()
+
+    vehiculo.activo = False
+    vehiculo.save(update_fields=["activo"])
+
+    tickets_afectados = (
+        Ticket.objects.filter(
+            id_vehiculo=vehiculo,
+            estado=Ticket.ESTADO_APROBADO,
+        )
+        .filter(
+            Q(hora_fin__gte=ahora) | Q(hora_fin__isnull=True, hora_inicio__gte=ahora)
+        )
+        .select_related("id_usuario", "id_vehiculo")
+    )
+
+    cancelados = 0
+    reasignados = 0
+
+    for ticket in tickets_afectados:
+        motivo = (
+            f"Reserva cancelada automáticamente el {timezone.now().strftime('%d/%m/%Y %H:%M')} "
+            f"porque el vehículo {vehiculo} fue dado de baja permanente (mantenimiento) "
+            f"por el administrador {admin_usuario.nombre_completo}."
+        )
+        ticket.estado = Ticket.ESTADO_CANCELADO
+        ticket.observacion = motivo
+        ticket._suppress_signals = True
+        ticket.save(update_fields=["estado", "observacion"])
+
+        nuevo_ticket = _reasignar_ticket(ticket, contexto="mantenimiento")
+        if nuevo_ticket:
+            reasignados += 1
+            try:
+                notify_vehicle_inactive_reassigned(
+                    ticket, nuevo_ticket, permanente=True
+                )
+            except Exception:
+                pass
+        else:
+            cancelados += 1
+            # Solo si NO se pudo reasignar, otorgar permiso de emergencia (si aplica)
+            salida_date = to_local_date(ticket.hora_inicio)
+            tiene_permiso_excepcional = salida_date <= hoy + timedelta(
+                days=dias_cancelacion
+            )
+            if tiene_permiso_excepcional:
+                PermisoReservaExtraordinaria.objects.create(
+                    usuario=ticket.id_usuario,
+                    ticket_cancelado=ticket,
+                    motivo=PermisoReservaExtraordinaria.MOTIVO_BAJA_VEHICULO,
+                    valido_hasta=hoy + timedelta(days=dias_cancelacion),
+                )
+            try:
+                notify_vehicle_inactive_cancelled(
+                    ticket,
+                    tiene_permiso=tiene_permiso_excepcional,
+                    dias_gracia=dias_cancelacion,
+                    permanente=True,
+                )
+            except Exception:
+                pass
+
+    return {
+        "cancelados": cancelados,
+        "reasignados": reasignados,
+        "total_afectados": cancelados + reasignados,
     }

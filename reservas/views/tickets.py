@@ -173,12 +173,24 @@ def inicio(request):
                 margenes_dia = []
 
                 for _idx, t in enumerate(tickets_dia):
-                    effective_start = max(t.hora_inicio, day_start)
-
-                    if t.hora_fin:
-                        effective_end = min(t.hora_fin, day_end)
+                    # Localizar: con USE_TZ=True estos datetime vienen en UTC, y
+                    # top_px/height_px deben coincidir con la hora que muestra el
+                    # template (ya localizada por el filtro `date`).
+                    if is_tz_aware:
+                        hora_inicio_local = timezone.localtime(t.hora_inicio)
+                        hora_fin_local = (
+                            timezone.localtime(t.hora_fin) if t.hora_fin else None
+                        )
                     else:
-                        default_fin = t.hora_inicio + timedelta(hours=2)
+                        hora_inicio_local = t.hora_inicio
+                        hora_fin_local = t.hora_fin
+
+                    effective_start = max(hora_inicio_local, day_start)
+
+                    if hora_fin_local:
+                        effective_end = min(hora_fin_local, day_end)
+                    else:
+                        default_fin = hora_inicio_local + timedelta(hours=2)
                         effective_end = min(default_fin, day_end)
 
                     start_h = effective_start.hour

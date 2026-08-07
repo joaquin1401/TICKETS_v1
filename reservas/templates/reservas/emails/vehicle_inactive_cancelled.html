@@ -18,7 +18,11 @@
     </ul>
 </div>
 
+{% if permanente %}
+<p><strong>Motivo:</strong> El vehículo ha sido dado de baja de forma <strong>permanente</strong> (mantenimiento / fuera de servicio) por la Secretaría de Extensión Universitaria (SEU).</p>
+{% else %}
 <p><strong>Motivo:</strong> El vehículo ha sido reportado con una baja temporal por la Secretaría de Extensión Universitaria (SEU), lo que lo imposibilita para circular hasta el <strong>{{ inactivo_hasta|date:"d/m/Y" }}</strong>.</p>
+{% endif %}
 
 {% if tiene_permiso %}
 <div class="meta" style="border-color: #558bba; background: rgba(85, 139, 186, 0.1);">
