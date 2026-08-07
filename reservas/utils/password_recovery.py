@@ -10,7 +10,7 @@ Responsabilidades:
 """
 
 import logging
-import random
+import secrets
 import uuid
 
 from django.urls import reverse
@@ -33,7 +33,10 @@ def crear_recuperacion(usuario):
 
     recuperacion = RecuperacionPassword.objects.create(
         usuario=usuario,
-        codigo=f"{random.randint(0, 999999):06d}",
+        # secrets, no random: es un código de seguridad (recuperación de
+        # contraseña), no un sorteo. random.randint usa Mersenne Twister,
+        # no apto para nada security-sensitive; secrets sale de os.urandom().
+        codigo=f"{secrets.randbelow(1_000_000):06d}",
         token=uuid.uuid4(),
         usado=False,
     )

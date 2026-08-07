@@ -32,7 +32,7 @@ Integración con views.py:
 """
 
 import logging
-import random
+import secrets
 import uuid
 
 from django.urls import reverse
@@ -94,8 +94,11 @@ def _generar_codigo():
     Notes:
         El formato ":06d" garantiza que números bajos como 48 se
         representen como "000048" en vez de "48", siempre 6 caracteres.
+        Usa secrets (os.urandom), no random (Mersenne Twister, no apto
+        para códigos de seguridad) - ver mismo comentario en
+        password_recovery.crear_recuperacion().
     """
-    return f"{random.randint(0, 999999):06d}"
+    return f"{secrets.randbelow(1_000_000):06d}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
