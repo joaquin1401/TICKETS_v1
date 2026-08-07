@@ -156,6 +156,12 @@ Asegúrate de configurar correctamente las variables de entorno principales para
 - `SITE_URL`: URL base de tu dominio en producción (ej. `https://tu-dominio.onrender.com`). Es usada para construir enlaces en los correos electrónicos.
 - `CSRF_TRUSTED_ORIGINS`: URLs confiables para peticiones POST (ej. `https://tu-dominio.onrender.com`).
 
+Con `DJANGO_DEBUG=False`, la app activa por defecto `SECURE_SSL_REDIRECT=True` (redirige todo a HTTPS) y HSTS (`SECURE_HSTS_SECONDS=3600`, 1 hora). Si tu deploy está detrás de un proxy que termina el TLS (Render, Heroku, Nginx) y reenvía `X-Forwarded-Proto: https` — el caso normal — no hace falta tocar nada. Si tu proxy **no** manda ese header, seteá `SECURE_SSL_REDIRECT=False` hasta configurarlo, o vas a generar un loop infinito de redirects.
+
+- `SECURE_SSL_REDIRECT`: `True`/`False`. Default `True` con `DJANGO_DEBUG=False`.
+- `SECURE_HSTS_SECONDS`: Segundos de HSTS. Default `3600` (1 hora) — subilo gradualmente (ej. a `86400`, luego `2592000`) una vez que confirmes que HTTPS anda bien en todos los paths de la app. HSTS lo cachea el navegador y no se puede "deshacer" solo cambiando la config del servidor.
+- `SECURE_HSTS_INCLUDE_SUBDOMAINS` / `SECURE_HSTS_PRELOAD`: `False` por defecto a propósito (casi irreversibles, sobre todo preload). Activalos solo si sabés lo que implican.
+
 Además de la base de datos, debes configurar las credenciales de correo electrónico para que el sistema pueda enviar notificaciones y recuperar contraseñas:
 
 - `EMAIL_HOST`: Servidor SMTP (ej. `smtp.gmail.com`).

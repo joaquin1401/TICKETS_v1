@@ -178,6 +178,38 @@ CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split()
 # ── URL base para enlaces en emails ───────────────────────────────────────
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
 
+# ── HTTPS (redirect + HSTS) ──────────────────────────────────────────────────
+# Activo por defecto solo con DEBUG=False, siguiendo el mismo patrón que
+# CSRF_COOKIE_SECURE/SESSION_COOKIE_SECURE arriba.
+#
+# SECURE_PROXY_SSL_HEADER: Render, Heroku y un VPS con Nginx delante de
+# gunicorn terminan el TLS en el borde y reenvían la request a la app por
+# HTTP plano, marcando `X-Forwarded-Proto: https`. Sin decirle esto a Django,
+# CADA request le parece insegura: con SECURE_SSL_REDIRECT=True eso es un
+# loop infinito de redirects (el navegador ve https, gunicorn ve http, Django
+# redirige a https de nuevo). Si tu proxy NO manda ese header, poné
+# SECURE_SSL_REDIRECT=False hasta configurarlo o vas a tumbar el sitio.
+SECURE_SSL_REDIRECT = os.environ.get("SECURE_SSL_REDIRECT", str(not DEBUG)) == "True"
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# HSTS le dice al navegador "no vuelvas a intentar HTTP con este dominio por
+# los próximos N segundos", cacheado del lado del cliente y no revertible con
+# solo cambiar la config del servidor. Por eso arranca en un valor chico
+# (1 hora) en vez del típico 31536000 (1 año) que se ve en los ejemplos de
+# Django: subilo gradualmente una vez que confirmes que HTTPS anda bien en
+# todos los paths de la app.
+SECURE_HSTS_SECONDS = int(
+    os.environ.get("SECURE_HSTS_SECONDS", "0" if DEBUG else "3600")
+)
+# Subdominios y preload son casi irreversibles (preload se pide a los
+# navegadores y sacarlo de sus listas lleva meses): apagados por defecto,
+# habilitalos a mano cuando estés seguro.
+SECURE_HSTS_INCLUDE_SUBDOMAINS = (
+    os.environ.get("SECURE_HSTS_INCLUDE_SUBDOMAINS", "False") == "True"
+)
+SECURE_HSTS_PRELOAD = os.environ.get("SECURE_HSTS_PRELOAD", "False") == "True"
+
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 # Sin esta configuración, los logger.error()/warning() de la app no tienen
@@ -227,6 +259,15 @@ LOGGING = {
         },
     },
 }
+
+# ── Warnings de "manage.py check --deploy" declinados a propósito ────────────
+# No son un olvido: SECURE_HSTS_INCLUDE_SUBDOMAINS y SECURE_HSTS_PRELOAD son
+# casi irreversibles (preload en particular: sacar un dominio de las listas
+# de los navegadores lleva meses), así que quedan apagados por defecto (ver
+# el bloque HTTPS/HSTS más arriba). Silenciados acá para que
+# check --deploy quede realmente limpio y sea gateable en CI, en vez de
+# mostrar siempre 2 warnings que ya se evaluaron y no se van a resolver así.
+SILENCED_SYSTEM_CHECKS = ["security.W005", "security.W021"]
 
 
 # ── Django Q2 (Tareas Asíncronas) ────────────────────────────────────────────
