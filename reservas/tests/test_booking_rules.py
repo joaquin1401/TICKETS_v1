@@ -820,3 +820,83 @@ class TestAgregarDiasHabiles(TestCase):
         lunes = date(2026, 8, 10)
         self.assertEqual(lunes.strftime("%A"), "Monday")
         self.assertEqual(agregar_dias_habiles(lunes, 2), date(2026, 8, 12))
+
+
+class TestEstadoInicialAdminMargen(TestCase):
+    """
+    crear_ticket_con_reglas: un admin que crea un ticket con hora_inicio
+    apenas en el pasado (el margen normal entre completar el formulario y
+    que el servidor procese el request) no debe terminar como FINALIZADO
+    con kilometraje inventado - ver MARGEN_ADMIN_TICKET_PASADO en
+    services.py.
+    """
+
+    def setUp(self):
+        self.cargo_admin = get_cargo(Cargo.ADMIN_SEU, 0)
+        self.admin = Usuario.objects.create(
+            nombre="Admin",
+            apellido="Test",
+            correo="admin@test.com",
+            id_cargo=self.cargo_admin,
+            valido=True,
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            marca="Toyota", modelo="Hilux", patente="ZZ001ZZ", cant_pasajeros=4
+        )
+
+    def test_pocos_segundos_en_el_pasado_no_finaliza(self):
+        """El caso real reportado: hora_inicio "ahora" ya quedó unos segundos
+        atrás para cuando el server procesa el request."""
+        inicio = timezone.now() - timedelta(seconds=5)
+        res = crear_ticket_con_reglas(
+            self.admin,
+            self.vehiculo,
+            inicio,
+            inicio + timedelta(hours=2),
+            destino="X",
+            cant_pasajeros=1,
+            confirmado=True,
+        )
+        self.assertEqual(res.ticket.estado, Ticket.ESTADO_APROBADO)
+        self.assertIsNone(res.ticket.kilometraje_inicio)
+        self.assertIsNone(res.ticket.kilometraje_fin)
+
+    def test_justo_debajo_del_margen_no_finaliza(self):
+        inicio = timezone.now() - timedelta(minutes=4, seconds=59)
+        res = crear_ticket_con_reglas(
+            self.admin,
+            self.vehiculo,
+            inicio,
+            inicio + timedelta(hours=2),
+            destino="X",
+            cant_pasajeros=1,
+            confirmado=True,
+        )
+        self.assertEqual(res.ticket.estado, Ticket.ESTADO_APROBADO)
+
+    def test_claramente_en_el_pasado_si_finaliza(self):
+        """El backdating real (carga manual de un viaje que ya paso) sigue andando."""
+        inicio = timezone.now() - timedelta(minutes=10)
+        res = crear_ticket_con_reglas(
+            self.admin,
+            self.vehiculo,
+            inicio,
+            inicio + timedelta(hours=2),
+            destino="X",
+            cant_pasajeros=1,
+            confirmado=True,
+        )
+        self.assertEqual(res.ticket.estado, Ticket.ESTADO_FINALIZADO)
+
+    def test_futuro_nunca_finaliza(self):
+        inicio = timezone.now() + timedelta(minutes=40)
+        res = crear_ticket_con_reglas(
+            self.admin,
+            self.vehiculo,
+            inicio,
+            inicio + timedelta(hours=2),
+            destino="X",
+            cant_pasajeros=1,
+            confirmado=True,
+        )
+        self.assertEqual(res.ticket.estado, Ticket.ESTADO_APROBADO)

@@ -24,6 +24,15 @@ from ..models import Ticket, to_local_date
 
 logger = logging.getLogger(__name__)
 
+# Margen de tolerancia para crear_ticket_con_reglas(): un admin que crea un
+# ticket con hora_inicio "ahora" ve pasar unos segundos entre completar el
+# formulario y que el servidor procese el request. Sin este margen,
+# hora_inicio < ahora se cumplía por esos segundos y el ticket se guardaba
+# como FINALIZADO (con kilometraje inventado) en vez de APROBADO, sin ningún
+# aviso - el ticket "desaparecía" del monitor de activos aunque la creación
+# había sido exitosa.
+MARGEN_ADMIN_TICKET_PASADO = timedelta(minutes=5)
+
 
 def evaluar_ventana_anticipacion(usuario, hora_inicio, ahora=None):
     """
@@ -582,7 +591,7 @@ def crear_ticket_con_reglas(
     distancia_est, duracion_est = calcular_distancia_y_tiempo_osrm(destino)
 
     estado_inicial = Ticket.ESTADO_APROBADO
-    if es_admin and hora_inicio < ahora:
+    if es_admin and hora_inicio < ahora - MARGEN_ADMIN_TICKET_PASADO:
         estado_inicial = Ticket.ESTADO_FINALIZADO
         # Cargar variables de finalización para consistencia del reporte
         kwargs["hora_inicio_real"] = hora_inicio

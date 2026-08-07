@@ -8,11 +8,11 @@ Vistas administrativas de supervisión de tickets.
 """
 
 import csv
-from datetime import date
 
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.utils import timezone
 
 from ..forms import FiltroTicketsForm
 from ..models import Ticket
@@ -57,7 +57,7 @@ def monitor_tickets_activos(request):
     tickets_qs = (
         Ticket.objects.filter(
             estado__in=[Ticket.ESTADO_APROBADO, Ticket.ESTADO_EN_CURSO],
-            hora_inicio__gte=date.today(),
+            hora_inicio__gte=timezone.localdate(),
         )
         .select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo")
         .order_by("-fecha", "-id")
@@ -152,7 +152,7 @@ def historial_tickets(request):
     tickets_qs = (
         Ticket.objects.filter(
             Q(estado__in=[Ticket.ESTADO_CANCELADO, Ticket.ESTADO_FINALIZADO])
-            | Q(hora_inicio__lt=date.today())
+            | Q(hora_inicio__lt=timezone.localdate())
         )
         .select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo")
         .order_by("-fecha", "-id")
@@ -226,7 +226,14 @@ def descargar_historial_csv(request):
     form = FiltroTicketsForm(request.GET or None)
     tickets_qs = (
         Ticket.objects.filter(
-            Q(estado=Ticket.ESTADO_CANCELADO) | Q(hora_inicio__lt=date.today())
+            # Antes decía Q(estado=CANCELADO) | Q(hora_inicio__lt=...): un ticket
+            # FINALIZADO con hora_inicio de hoy (ver el bug de estado_inicial
+            # arreglado en services.py) no caía en ninguna de las dos condiciones
+            # y quedaba afuera del CSV, aunque sí aparecía en historial_tickets()
+            # - a pesar de que el docstring de esta función dice que aplica "los
+            # mismos filtros". Ahora sí son literalmente los mismos.
+            Q(estado__in=[Ticket.ESTADO_CANCELADO, Ticket.ESTADO_FINALIZADO])
+            | Q(hora_inicio__lt=timezone.localdate())
         )
         .select_related("id_usuario", "id_vehiculo", "id_usuario__id_cargo")
         .order_by("-fecha", "-id")
