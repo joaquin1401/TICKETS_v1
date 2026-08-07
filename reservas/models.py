@@ -415,6 +415,19 @@ class Ticket(models.Model):
         verbose_name = "Ticket"
         verbose_name_plural = "Tickets"
         ordering = ["-fecha"]
+        indexes = [
+            # Cubre obtener_tickets_en_conflicto() en services.py: la query que
+            # corre en cada intento de reserva para detectar solapamientos.
+            # Filtra por id_vehiculo + estado (igualdad) y hora_inicio/hora_fin
+            # (rango) - en ese orden, por eso el índice va en ese orden. Es la
+            # única tabla del sistema sin ningún índice propio hasta ahora:
+            # sin esto, cada intento de reserva hace un sequential scan sobre
+            # toda la tabla Ticket.
+            models.Index(
+                fields=["id_vehiculo", "estado", "hora_inicio", "hora_fin"],
+                name="ticket_conflicto_idx",
+            ),
+        ]
 
     def __str__(self):
         return f"Ticket #{self.pk} - {self.id_usuario} -> {self.destino} ({self.estado})"
