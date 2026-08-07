@@ -153,5 +153,82 @@
         </div>
     </div>
   </div>
+
+  <div class="card" style="margin-top:20px;">
+    <div class="card-header">
+      <span class="card-title">🏛️ Departamentos</span>
+    </div>
+    <div class="card-body">
+      <form method="post" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; align-items: flex-end;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_departamento">
+        <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 120px;">
+          <label class="form-label">Nombre</label>
+          <input type="text" name="nombre_departamento" class="form-control" placeholder="Ej: TUL" maxlength="20" required style="width: 100%;">
+        </div>
+        <div class="form-group" style="margin-bottom: 0; flex: 2; min-width: 200px;">
+          <label class="form-label">Descripción (Opcional)</label>
+          <input type="text" name="descripcion_departamento" class="form-control" placeholder="Ej: Tecnicatura Universitaria en Logística" maxlength="100" style="width: 100%;">
+        </div>
+        <button type="submit" class="btn btn-outline" style="height: 38px; flex-shrink: 0;">Añadir Departamento</button>
+      </form>
+
+      <div class="table-wrap">
+        <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th style="text-align: right;">Usuarios</th>
+            <th style="text-align: right;">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for depto in departamentos %}
+          <tr id="depto-vista-{{ depto.pk }}">
+            <td>{{ depto.nombre }}</td>
+            <td class="td-muted">{{ depto.descripcion|default:"-" }}</td>
+            <td style="text-align: right;">{{ depto.cantidad_usuarios }}</td>
+            <td style="text-align: right;">
+              <button type="button" class="btn btn-sm btn-outline"
+                onclick="document.getElementById('depto-vista-{{ depto.pk }}').style.display='none'; document.getElementById('depto-editar-{{ depto.pk }}').style.display='table-row';">Editar</button>
+              <form method="post" style="display:inline;" onsubmit="return confirm('¿Eliminar el departamento {{ depto.nombre }}?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_departamento">
+                <input type="hidden" name="departamento_id" value="{{ depto.pk }}">
+                <button type="submit" class="btn btn-sm btn-danger" {% if depto.cantidad_usuarios %}title="Hay {{ depto.cantidad_usuarios }} usuario(s) asignado(s) a este departamento"{% endif %}>Eliminar</button>
+              </form>
+            </td>
+          </tr>
+          <tr id="depto-editar-{{ depto.pk }}" style="display:none;">
+            <td colspan="4">
+              <form method="post" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_departamento">
+                <input type="hidden" name="departamento_id" value="{{ depto.pk }}">
+                <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 120px;">
+                  <label class="form-label">Nombre</label>
+                  <input type="text" name="nombre_departamento" class="form-control" value="{{ depto.nombre }}" maxlength="20" required style="width: 100%;">
+                </div>
+                <div class="form-group" style="margin-bottom: 0; flex: 2; min-width: 200px;">
+                  <label class="form-label">Descripción</label>
+                  <input type="text" name="descripcion_departamento" class="form-control" value="{{ depto.descripcion }}" maxlength="100" style="width: 100%;">
+                </div>
+                <button type="submit" class="btn btn-outline" style="height: 38px; flex-shrink: 0;">Guardar</button>
+                <button type="button" class="btn btn-sm" style="height: 38px; flex-shrink: 0;"
+                  onclick="document.getElementById('depto-editar-{{ depto.pk }}').style.display='none'; document.getElementById('depto-vista-{{ depto.pk }}').style.display='table-row';">Cancelar</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="text-center text-muted">No hay departamentos configurados.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

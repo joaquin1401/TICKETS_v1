@@ -90,6 +90,34 @@ class Cargo(models.Model):
         return self.nombre
 
 
+class Departamento(models.Model):
+    """
+    Departamento/carrera de la universidad.
+
+    Usado por Usuario.departamento cuando el cargo es "Usuario" (ver
+    RegistroForm.clean()), para poder filtrar y agrupar analíticas por
+    departamento. Antes era una lista fija (Usuario.DEPARTAMENTOS_CHOICES)
+    hardcodeada en el modelo; ahora es una tabla real para que el admin
+    pueda agregar/editar/eliminar departamentos desde el panel de
+    Configuración Global sin tocar código.
+
+    on_delete=PROTECT en Usuario.departamento: no se puede eliminar un
+    departamento mientras haya algún usuario asignado a él (la vista de
+    borrado atrapa esto y muestra un mensaje en vez de un 500).
+    """
+
+    nombre = models.CharField(max_length=20, unique=True)
+    descripcion = models.CharField(max_length=100, blank=True)
+
+    class Meta:
+        verbose_name = "Departamento"
+        verbose_name_plural = "Departamentos"
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class Usuario(models.Model):
     """
     Representa una cuenta de usuario en el sistema.
@@ -128,21 +156,12 @@ class Usuario(models.Model):
     contrasena = models.CharField(max_length=255)
     correo = models.EmailField(unique=True)
 
-    DEPARTAMENTOS_CHOICES = [
-        ("TUL", "TUL"),
-        ("TUM", "TUM"),
-        ("TUP", "TUP"),
-        ("TOUMRE", "TOUMRE"),
-        ("IEM", "IEM"),
-        ("IQ", "IQ"),
-        ("ISI", "ISI"),
-        ("LAR", "LAR"),
-    ]
-    departamento = models.CharField(
-        max_length=20,
-        choices=DEPARTAMENTOS_CHOICES,
+    departamento = models.ForeignKey(
+        Departamento,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
+        related_name="usuarios",
         help_text="Requerido si el cargo es Usuario",
     )
     valido = models.BooleanField(

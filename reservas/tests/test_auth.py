@@ -11,7 +11,7 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.urls import reverse
 
-from reservas.models import Cargo, Usuario
+from reservas.models import Cargo, Departamento, Usuario
 
 PASSWORD_VALIDA = "Trayecto-Vehiculo-91"
 
@@ -297,6 +297,10 @@ class TestEmailsUsanTemplates(TestCase):
 
     def setUp(self):
         self.cargo = Cargo.objects.create(nombre=Cargo.USUARIO, prioridad=3)
+        # get_or_create, no create: la migración 0037 ya siembra los 8
+        # departamentos originales (TUL entre ellos), mismo motivo que
+        # get_cargo() usa get_or_create para Cargo en el resto de la suite.
+        self.departamento, _ = Departamento.objects.get_or_create(nombre="TUL")
 
     def test_registro_encola_email_verification(self):
         with patch("reservas.utils.email_verification.async_task") as mock_async:
@@ -307,7 +311,7 @@ class TestEmailsUsanTemplates(TestCase):
                     "apellido": "Gomez",
                     "correo": "ana@test.com",
                     "id_cargo": self.cargo.pk,
-                    "departamento": "TUL",
+                    "departamento": self.departamento.pk,
                     "contrasena": PASSWORD_VALIDA,
                     "confirmar_contrasena": PASSWORD_VALIDA,
                 },

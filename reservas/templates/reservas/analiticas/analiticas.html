@@ -14,16 +14,16 @@
     <h1>Analíticas de uso</h1>
     <p class="report-period">Período: <strong>{{ rango_label }}</strong>
       {% if filtro_cargo %} · Cargo: <strong>{{ filtro_cargo.nombre }}</strong>{% endif %}
-      {% if filtro_departamento %} · Depto: <strong>{{ filtro_departamento }}</strong>{% endif %}
+      {% if filtro_departamento %} · Depto: <strong>{{ filtro_departamento.nombre }}</strong>{% endif %}
     </p>
   </div>
   <div class="report-header-actions no-print">
     <!-- Filtro de rango -->
     <div class="range-filter">
-      <a href="?rango=30d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="range-btn {% if rango == '30d' %}active{% endif %}">30 días</a>
-      <a href="?rango=90d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="range-btn {% if rango == '90d' %}active{% endif %}">90 días</a>
-      <a href="?rango=anio{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
-      <a href="?rango=todo{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
+      <a href="?rango=30d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if departamento_id %}&departamento={{ departamento_id }}{% endif %}" class="range-btn {% if rango == '30d' %}active{% endif %}">30 días</a>
+      <a href="?rango=90d{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if departamento_id %}&departamento={{ departamento_id }}{% endif %}" class="range-btn {% if rango == '90d' %}active{% endif %}">90 días</a>
+      <a href="?rango=anio{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if departamento_id %}&departamento={{ departamento_id }}{% endif %}" class="range-btn {% if rango == 'anio' %}active{% endif %}">Este año</a>
+      <a href="?rango=todo{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if departamento_id %}&departamento={{ departamento_id }}{% endif %}" class="range-btn {% if rango == 'todo' %}active{% endif %}">Todo</a>
     </div>
 
     <!-- Filtros -->
@@ -37,8 +37,8 @@
       </select>
       <select name="departamento" id="sel-departamento" class="filter-select" onchange="this.form.submit()">
         <option value="">Todos los departamentos</option>
-        {% for c_id, c_name in departamentos_lista %}
-        <option value="{{ c_id }}" {% if filtro_departamento == c_id|stringformat:"s" %}selected{% endif %}>{{ c_name }}</option>
+        {% for d in departamentos_lista %}
+        <option value="{{ d.pk }}" {% if departamento_id == d.pk|stringformat:"s" %}selected{% endif %}>{{ d.nombre }}</option>
         {% endfor %}
       </select>
     </form>
@@ -53,7 +53,7 @@
       {% endfor %}
     </select>
 
-    <a href="{% url 'reporte_analiticas_pdf' %}?rango={{ rango }}{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if filtro_departamento %}&departamento={{ filtro_departamento }}{% endif %}" class="btn btn-outline pdf-btn" id="btn-pdf">
+    <a href="{% url 'reporte_analiticas_pdf' %}?rango={{ rango }}{% if cargo_id %}&cargo={{ cargo_id }}{% endif %}{% if departamento_id %}&departamento={{ departamento_id }}{% endif %}" class="btn btn-outline pdf-btn" id="btn-pdf">
       <span>↓</span> Descargar PDF
     </a>
   </div>

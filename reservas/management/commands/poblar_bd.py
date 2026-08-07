@@ -39,7 +39,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.utils import timezone
 
-from reservas.models import Cargo, Ticket, Usuario, Vehiculo
+from reservas.models import Cargo, Departamento, Ticket, Usuario, Vehiculo
 from reservas.utils.services import crear_ticket_con_reglas
 
 
@@ -142,9 +142,9 @@ class Command(BaseCommand):
 
         Estrategia:
         - Elimina Ticket (depende de Usuario y Vehiculo)
-        - Elimina Usuario (depende de Cargo)
+        - Elimina Usuario (depende de Cargo y Departamento)
         - Elimina Vehiculo (independiente)
-        - Mantiene Cargo (datos maestros)
+        - Mantiene Cargo y Departamento (datos maestros)
 
         Nota: En producción, usarías datos de backup. Aquí es seguro porque
         es desarrollo/testing.
@@ -163,8 +163,8 @@ class Command(BaseCommand):
         count_vehiculos = Vehiculo.objects.all().delete()[0]
         self.stdout.write(f"  - {count_vehiculos} vehículos eliminados")
 
-        # Cargo: mantener estructura (no eliminar)
-        self.stdout.write("  - Cargos preservados (datos maestros)\n")
+        # Cargo y Departamento: mantener estructura (no eliminar)
+        self.stdout.write("  - Cargos y Departamentos preservados (datos maestros)\n")
 
     def _crear_cargos(self):
         """
@@ -399,8 +399,14 @@ class Command(BaseCommand):
 
             departamento = None
             if cargo_nombre == Cargo.USUARIO:
-                departamento = random.choice(
-                    [c[0] for c in Usuario.DEPARTAMENTOS_CHOICES]
+                # Departamento ahora es una tabla (antes, choices hardcodeadas
+                # en el modelo). La siembra de datos vive en la migración
+                # 0037, no acá - si por algún motivo corre sobre una BD sin
+                # departamentos, mejor dejar el campo en None que reventar.
+                departamento = (
+                    random.choice(list(Departamento.objects.all()))
+                    if Departamento.objects.exists()
+                    else None
                 )
 
             usuario, creado = Usuario.objects.get_or_create(

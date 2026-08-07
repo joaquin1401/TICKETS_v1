@@ -2,7 +2,8 @@
 Vistas misceláneas y de configuración global.
 
 Contiene:
-    - configuracion_global() — panel de configuración (días de anticipación, feriados).
+    - configuracion_global() — panel de configuración (días de anticipación,
+      feriados, departamentos).
     - api_calcular_distancia() — endpoint JSON para OSRM.
     - preview_email() — utilidad de desarrollo para plantillas de email.
 """
@@ -11,12 +12,13 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib import messages
+from django.db.models import Count, ProtectedError
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from ..forms import ConfiguracionGlobalForm
-from ..models import ConfiguracionGlobal, Feriado
+from ..models import ConfiguracionGlobal, Departamento, Feriado
 from ._base import admin_requerido, get_usuario_sesion, login_requerido
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -29,7 +31,8 @@ from ._base import admin_requerido, get_usuario_sesion, login_requerido
 def configuracion_global(request):
     """
     Vista para administrar las configuraciones globales del sistema.
-    Permite modificar días de anticipación y gestionar los feriados.
+    Permite modificar días de anticipación, gestionar los feriados y
+    gestionar los departamentos (alta, edición y baja).
     """
     usuario = get_usuario_sesion(request)
     config = ConfiguracionGlobal.get_solo()
@@ -173,6 +176,65 @@ def configuracion_global(request):
                 messages.error(request, f"Error al sincronizar feriados: {str(e)}")
             return redirect("configuracion_global")
 
+        elif action == "add_departamento":
+            nombre = request.POST.get("nombre_departamento", "").strip()
+            descripcion = request.POST.get("descripcion_departamento", "").strip()
+            if not nombre:
+                messages.error(request, "El nombre del departamento es requerido.")
+            elif Departamento.objects.filter(nombre__iexact=nombre).exists():
+                messages.error(request, f"Ya existe un departamento '{nombre}'.")
+            else:
+                Departamento.objects.create(nombre=nombre, descripcion=descripcion)
+                messages.success(
+                    request, f"Departamento '{nombre}' agregado correctamente."
+                )
+            return redirect("configuracion_global")
+
+        elif action == "edit_departamento":
+            depto_id = request.POST.get("departamento_id")
+            nombre = request.POST.get("nombre_departamento", "").strip()
+            descripcion = request.POST.get("descripcion_departamento", "").strip()
+            if not nombre:
+                messages.error(request, "El nombre del departamento es requerido.")
+            elif (
+                Departamento.objects.filter(nombre__iexact=nombre)
+                .exclude(pk=depto_id)
+                .exists()
+            ):
+                messages.error(request, f"Ya existe un departamento '{nombre}'.")
+            else:
+                depto = Departamento.objects.filter(pk=depto_id).first()
+                if depto:
+                    depto.nombre = nombre
+                    depto.descripcion = descripcion
+                    depto.save(update_fields=["nombre", "descripcion"])
+                    messages.success(
+                        request, f"Departamento '{nombre}' actualizado correctamente."
+                    )
+                else:
+                    messages.error(request, "El departamento no existe.")
+            return redirect("configuracion_global")
+
+        elif action == "delete_departamento":
+            depto_id = request.POST.get("departamento_id")
+            depto = Departamento.objects.filter(pk=depto_id).first()
+            if depto:
+                nombre = depto.nombre
+                try:
+                    depto.delete()
+                    messages.success(
+                        request, f"Departamento '{nombre}' eliminado correctamente."
+                    )
+                except ProtectedError:
+                    cantidad = depto.usuarios.count()
+                    messages.error(
+                        request,
+                        f"No se puede eliminar '{nombre}': hay {cantidad} usuario"
+                        f"{'s' if cantidad != 1 else ''} asignado{'s' if cantidad != 1 else ''} "
+                        "a ese departamento. Reasignalos primero.",
+                    )
+            return redirect("configuracion_global")
+
         else:
             form = ConfiguracionGlobalForm(request.POST, instance=config)
             if form.is_valid():
@@ -188,6 +250,10 @@ def configuracion_global(request):
         fecha__year__gte=timezone.localdate().year
     ).order_by("fecha")
 
+    departamentos = Departamento.objects.annotate(
+        cantidad_usuarios=Count("usuarios")
+    ).order_by("nombre")
+
     return render(
         request,
         "reservas/admin/configuracion.html",
@@ -195,6 +261,7 @@ def configuracion_global(request):
             "form": form,
             "usuario": usuario,
             "feriados": feriados,
+            "departamentos": departamentos,
         },
     )
 

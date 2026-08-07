@@ -14,17 +14,23 @@ if __package__ in (None, ""):
 
 from django.core.management.base import BaseCommand
 
-from reservas.models import Cargo, Ticket, Usuario, Vehiculo
+from reservas.models import Cargo, Departamento, Ticket, Usuario, Vehiculo
 
 
 class Command(BaseCommand):
-    help = "Limpia los datos de la base de datos (Tickets, Usuarios, Vehículos) manteniendo la estructura de Cargos."
+    help = (
+        "Limpia los datos de la base de datos (Tickets, Usuarios, Vehículos) "
+        "manteniendo la estructura de Cargos y Departamentos."
+    )
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--all",
             action="store_true",
-            help="Elimina también los Cargos maestros y todo el contenido de las tablas",
+            help=(
+                "Elimina también los Cargos y Departamentos maestros y todo "
+                "el contenido de las tablas"
+            ),
         )
 
     def handle(self, *args, **options):
@@ -45,17 +51,23 @@ class Command(BaseCommand):
         self.stdout.write(f"  - {count_vehiculos} vehículos eliminados")
 
         if options["all"]:
-            # Eliminar Cargos
+            # Eliminar Cargos y Departamentos (Usuarios ya se borraron arriba,
+            # así que Departamento.on_delete=PROTECT no bloquea nada acá)
             count_cargos = Cargo.objects.all().delete()[0]
             self.stdout.write(f"  - {count_cargos} cargos eliminados")
-            self.stdout.write(
-                self.style.SUCCESS("\nLimpieza TOTAL completada (incluyendo cargos).")
-            )
-        else:
-            self.stdout.write("  - Cargos preservados (datos maestros)")
+            count_departamentos = Departamento.objects.all().delete()[0]
+            self.stdout.write(f"  - {count_departamentos} departamentos eliminados")
             self.stdout.write(
                 self.style.SUCCESS(
-                    "\nLimpieza completada exitosamente. La base de datos está vacía (excepto por los Cargos)."
+                    "\nLimpieza TOTAL completada (incluyendo cargos y departamentos)."
+                )
+            )
+        else:
+            self.stdout.write("  - Cargos y Departamentos preservados (datos maestros)")
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "\nLimpieza completada exitosamente. La base de datos está vacía "
+                    "(excepto por los Cargos y Departamentos)."
                 )
             )
 

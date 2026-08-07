@@ -18,7 +18,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from xhtml2pdf import pisa
 
-from ..models import Cargo, Ticket, Usuario, Vehiculo
+from ..models import Cargo, Departamento, Ticket, Usuario, Vehiculo
 from ..utils.chart_utils import generar_grafico_barras_horizontal, generar_grafico_torta
 from ._base import admin_requerido, get_usuario_sesion, login_requerido
 
@@ -114,7 +114,13 @@ def reporte_analiticas(request):
         except (Cargo.DoesNotExist, ValueError):
             filtro_cargo = None
 
-    filtro_departamento = request.GET.get("departamento", "")
+    departamento_id = request.GET.get("departamento", "")
+    filtro_departamento = None
+    if departamento_id:
+        try:
+            filtro_departamento = Departamento.objects.get(pk=int(departamento_id))
+        except (Departamento.DoesNotExist, ValueError):
+            filtro_departamento = None
 
     # ── Calcular fecha de corte ──────────────────────────────────────────────
     desde, rango, rango_label = calcular_rango_fechas(rango)
@@ -276,8 +282,7 @@ def reporte_analiticas(request):
 
     solicitudes_departamento = (
         tickets_periodo.exclude(id_usuario__departamento__isnull=True)
-        .exclude(id_usuario__departamento="")
-        .values("id_usuario__departamento")
+        .values("id_usuario__departamento__nombre")
         .annotate(total=Count("id"))
         .order_by("-total")
     )
@@ -304,7 +309,7 @@ def reporte_analiticas(request):
     )
 
     # Gráficos con Matplotlib
-    l_dept = [u["id_usuario__departamento"] for u in solicitudes_departamento]
+    l_dept = [u["id_usuario__departamento__nombre"] for u in solicitudes_departamento]
     d_dept = [u["total"] for u in solicitudes_departamento]
     chart_departamentos = generar_grafico_barras_horizontal(l_dept, d_dept)
 
@@ -363,7 +368,8 @@ def reporte_analiticas(request):
             "filtro_cargo": filtro_cargo,
             "filtro_departamento": filtro_departamento,
             "cargo_id": cargo_id,
-            "departamentos_lista": Usuario.DEPARTAMENTOS_CHOICES,
+            "departamento_id": departamento_id,
+            "departamentos_lista": Departamento.objects.all(),
         },
     )
 
@@ -510,7 +516,13 @@ def reporte_analiticas_pdf(request):
         except (Cargo.DoesNotExist, ValueError):
             filtro_cargo = None
 
-    filtro_departamento = request.GET.get("departamento", "")
+    departamento_id = request.GET.get("departamento", "")
+    filtro_departamento = None
+    if departamento_id:
+        try:
+            filtro_departamento = Departamento.objects.get(pk=int(departamento_id))
+        except (Departamento.DoesNotExist, ValueError):
+            filtro_departamento = None
 
     desde, rango, rango_label = calcular_rango_fechas(rango)
     # hoy también se usa más abajo para "fecha_generacion" y el nombre del
@@ -604,8 +616,7 @@ def reporte_analiticas_pdf(request):
     # ── Comportamiento de Usuarios ───────────────────────────────────────────
     solicitudes_departamento = (
         tickets_periodo.exclude(id_usuario__departamento__isnull=True)
-        .exclude(id_usuario__departamento="")
-        .values("id_usuario__departamento")
+        .values("id_usuario__departamento__nombre")
         .annotate(total=Count("id"))
         .order_by("-total")
     )
@@ -632,7 +643,7 @@ def reporte_analiticas_pdf(request):
     )
 
     # Gráficos con Matplotlib
-    l_dept = [u["id_usuario__departamento"] for u in solicitudes_departamento]
+    l_dept = [u["id_usuario__departamento__nombre"] for u in solicitudes_departamento]
     d_dept = [u["total"] for u in solicitudes_departamento]
     chart_departamentos = generar_grafico_barras_horizontal(l_dept, d_dept)
 

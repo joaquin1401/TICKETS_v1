@@ -9,7 +9,7 @@ formularios especiales y campos calculados para facilitar la gestión.
 from django import forms
 from django.contrib import admin
 
-from .models import Cargo, Ticket, Usuario, Vehiculo
+from .models import Cargo, Departamento, Ticket, Usuario, Vehiculo
 
 # ══════════════════════════════════════════════
 # Cargo — Administración simple
@@ -28,6 +28,26 @@ class CargoAdmin(admin.ModelAdmin):
 
     list_display = ("nombre", "prioridad")
     ordering = ("prioridad",)
+
+
+# ══════════════════════════════════════════════
+# Departamento — Administración simple
+# ══════════════════════════════════════════════
+
+
+@admin.register(Departamento)
+class DepartamentoAdmin(admin.ModelAdmin):
+    """
+    Interfaz de administración para los departamentos.
+
+    Gestión principal desde el panel de Configuración Global
+    (reservas/views/misc.py:configuracion_global), esto es un respaldo
+    vía /admin/ para el mismo dato.
+    """
+
+    list_display = ("nombre", "descripcion")
+    search_fields = ("nombre",)
+    ordering = ("nombre",)
 
 
 # ══════════════════════════════════════════════
