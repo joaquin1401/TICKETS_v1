@@ -15,7 +15,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Q
 
-from ..models import Vehiculo, Ticket, Cargo, ConfiguracionGlobal, Feriado
+from ..models import Vehiculo, Ticket, Cargo, ConfiguracionGlobal, Feriado, to_local_date
 from ..forms import TicketForm, FiltroTicketsForm
 from ..utils.services import crear_ticket_con_reglas, ResultadoCreacion, get_tickets_del_mes, get_tickets_del_dia
 from ._base import get_usuario_sesion, paginate_queryset, login_requerido, sin_chofer_requerido
@@ -101,8 +101,8 @@ def inicio(request):
             tickets_mes = get_tickets_del_mes(vehiculo_cal, anio, mes)
             dias_con_reservas = set()
             for t in tickets_mes:
-                start_date = t.hora_inicio.date()
-                end_date = t.hora_fin.date() if t.hora_fin else start_date
+                start_date = to_local_date(t.hora_inicio)
+                end_date = to_local_date(t.hora_fin) if t.hora_fin else start_date
                 curr = start_date
                 while curr <= end_date:
                     if curr.month == mes and curr.year == anio:
@@ -239,7 +239,7 @@ def inicio(request):
     dias_cancelacion = config.dias_anticipacion_cancelacion
     dias_maximos = config.dias_maximo_anticipacion_reservas
     from django.utils import timezone
-    fecha_minima = timezone.now().date() + timedelta(days=dias_anticipacion)
+    fecha_minima = timezone.localdate() + timedelta(days=dias_anticipacion)
     fecha_minima_str = (timezone.now() + timedelta(days=dias_anticipacion)).strftime("%Y-%m-%dT%H:%M")
 
     dias_inhabilitados = []
@@ -406,7 +406,7 @@ def detalle_ticket(request, ticket_id):
     puede_cancelar = False
     
     hoy = timezone.localdate()
-    fecha_inicio = ticket.hora_inicio.date() if hasattr(ticket.hora_inicio, 'date') else ticket.hora_inicio
+    fecha_inicio = to_local_date(ticket.hora_inicio)
     
     if ticket.estado == Ticket.ESTADO_APROBADO and fecha_inicio >= hoy + datetime.timedelta(days=dias_cancelacion):
         puede_cancelar = True

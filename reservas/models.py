@@ -17,6 +17,29 @@ import uuid
 from django.utils import timezone
 
 
+def to_local_date(value):
+    """
+    Devuelve la fecha calendario de `value` en la zona local (TIME_ZONE),
+    no en UTC.
+
+    Con USE_TZ=True los DateTimeField quedan en UTC internamente. Llamar
+    `.date()` directo sobre un datetime aware da la fecha en UTC, que
+    difiere de la fecha en Argentina (UTC-3) para horarios entre las 21:00
+    y las 23:59 locales — exactamente el rango en que un ticket "hoy a la
+    noche" se contaba como "mañana" en las reglas de anticipación,
+    cancelación y feriados.
+
+    Acepta también valores ya de tipo date (o None): los devuelve tal cual,
+    para no romper los call sites que antes chequeaban `hasattr(x, 'date')`
+    por si les llegaba un date en vez de un datetime.
+    """
+    if value is None or not hasattr(value, "date"):
+        return value
+    if timezone.is_aware(value):
+        value = timezone.localtime(value)
+    return value.date()
+
+
 class Cargo(models.Model):
     """
     Representa los roles jerárquicos en la organización.

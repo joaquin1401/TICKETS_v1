@@ -18,7 +18,7 @@ from django.utils import timezone
 import math
 import requests
 import logging
-from ..models import Ticket
+from ..models import Ticket, to_local_date
 
 logger = logging.getLogger(__name__)
 
@@ -317,9 +317,9 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
 
     # ── Regla: Vehículo en baja temporal (inactivo_hasta) ───────────────────────────
     from datetime import timedelta as _td
-    _fecha_inicio_date = hora_inicio.date() if hasattr(hora_inicio, 'date') else hora_inicio
+    _fecha_inicio_date = to_local_date(hora_inicio)
     _hora_fin_tmp = hora_fin or (hora_inicio + _td(hours=2))
-    _fecha_fin_date = _hora_fin_tmp.date() if hasattr(_hora_fin_tmp, 'date') else _hora_fin_tmp
+    _fecha_fin_date = to_local_date(_hora_fin_tmp)
     if vehiculo.esta_inactivo_en_rango(_fecha_inicio_date, _fecha_fin_date):
         return ResultadoCreacion(
             estado=ResultadoCreacion.BLOQUEADO,
@@ -530,7 +530,7 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
         # Permiso de emergencia solo si NO hubo reasignación
         # y la salida era en los próximos dias_cancelacion días
         hoy_local = timezone.localdate()
-        salida_date = t_existente.hora_inicio.date() if hasattr(t_existente.hora_inicio, 'date') else t_existente.hora_inicio
+        salida_date = to_local_date(t_existente.hora_inicio)
         tiene_permiso_excepcional = (
             nuevo_ticket_prioridad is None
             and salida_date <= hoy_local + timedelta(days=dias_cancelacion)
@@ -610,8 +610,8 @@ def cancelar_ticket_usuario(ticket, usuario):
     from ..models import ConfiguracionGlobal
     dias_cancelacion = ConfiguracionGlobal.get_solo().dias_anticipacion_cancelacion
     
-    fecha_inicio = ticket.hora_inicio.date() if hasattr(ticket.hora_inicio, 'date') else ticket.hora_inicio
-    
+    fecha_inicio = to_local_date(ticket.hora_inicio)
+
     if fecha_inicio < hoy + timedelta(days=dias_cancelacion):
         return False, f"No se puede cancelar la reserva con menos de {dias_cancelacion} días de anticipación."
         
@@ -746,8 +746,8 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
         # solapamiento. Ambos call sites de esta función corren dentro de @transaction.atomic.
         vehiculo_cand = Vehiculo.objects.select_for_update().get(pk=vehiculo_cand.pk)
 
-        fecha_inicio_date = hora_inicio.date()
-        fecha_fin_date = hora_fin.date()
+        fecha_inicio_date = to_local_date(hora_inicio)
+        fecha_fin_date = to_local_date(hora_fin)
         if vehiculo_cand.esta_inactivo_en_rango(fecha_inicio_date, fecha_fin_date):
             continue
 
@@ -870,7 +870,7 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
         else:
             cancelados += 1
             # Solo si NO se pudo reasignar, otorgar permiso de emergencia (si aplica)
-            salida_date = ticket.hora_inicio.date() if hasattr(ticket.hora_inicio, 'date') else ticket.hora_inicio
+            salida_date = to_local_date(ticket.hora_inicio)
             tiene_permiso_excepcional = salida_date <= hoy + timedelta(days=dias_cancelacion)
             if tiene_permiso_excepcional:
                 PermisoReservaExtraordinaria.objects.create(

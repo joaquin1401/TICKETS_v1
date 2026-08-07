@@ -15,7 +15,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado
+from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado, to_local_date
 
 
 def validar_fortaleza_password(form, password, campo, datos_usuario=None):
@@ -361,10 +361,10 @@ class TicketForm(forms.ModelForm):
 
         if hora_inicio:
             # Validación de días feriados
-            if Feriado.objects.filter(fecha=hora_inicio.date()).exists():
+            if Feriado.objects.filter(fecha=to_local_date(hora_inicio)).exists():
                 self.add_error("hora_inicio", "No se pueden realizar reservas que inicien en días feriados.")
-            
-            if hora_fin and Feriado.objects.filter(fecha=hora_fin.date()).exists():
+
+            if hora_fin and Feriado.objects.filter(fecha=to_local_date(hora_fin)).exists():
                 self.add_error("hora_fin", "No se pueden realizar reservas que finalicen en días feriados.")
 
             if not self.es_admin:
@@ -387,7 +387,7 @@ class TicketForm(forms.ModelForm):
                     )
                     if _permiso_qs.exists():
                         _limite_permitido = timezone.localdate() + timedelta(days=dias_anticipacion)
-                        _fecha_inicio_date = hora_inicio.date() if hasattr(hora_inicio, 'date') else hora_inicio
+                        _fecha_inicio_date = to_local_date(hora_inicio)
                         if _fecha_inicio_date <= _limite_permitido:
                             _tiene_permiso_emergencia = True
 

@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 
-from ..models import Ticket
+from ..models import Ticket, to_local_date
 from ._base import get_usuario_sesion, paginate_queryset, login_requerido, chofer_requerido
 
 
@@ -169,9 +169,9 @@ def finalizar_ticket(request, ticket_id):
 
                 # Combine with the estimated dates
                 if ticket.hora_fin:
-                    fecha_fin = localtime(ticket.hora_fin).date() if is_aware(ticket.hora_fin) else ticket.hora_fin.date()
+                    fecha_fin = to_local_date(ticket.hora_fin)
                 else:
-                    fecha_fin = localtime(ticket.hora_inicio).date() if is_aware(ticket.hora_inicio) else ticket.hora_inicio.date()
+                    fecha_fin = to_local_date(ticket.hora_inicio)
 
                 dt_fin = datetime.combine(fecha_fin, t_fin)
 
