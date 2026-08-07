@@ -284,6 +284,20 @@ def descargar_historial_csv(request):
         if fecha_fin:
             tickets_qs = tickets_qs.filter(hora_inicio__date__lte=fecha_fin)
 
+    def _csv_safe(valor):
+        """
+        Neutraliza CSV/formula injection: si una celda con texto de usuario
+        (destino, nombre del solicitante, observación) empieza con
+        = + - @ o un tab/CR, Excel/LibreOffice/Sheets pueden interpretarla
+        como fórmula al abrir el archivo exportado (ej. alguien reserva con
+        destino=`=cmd|'/c calc'!A0`). Anteponer una comilla simple la deja
+        como texto literal sin cambiar lo que ve un humano en la celda.
+        """
+        texto = str(valor) if valor is not None else ""
+        if texto and texto[0] in ("=", "+", "-", "@", "\t", "\r"):
+            return "'" + texto
+        return texto
+
     # localtime, no datetime.now(): esta última usa la hora del sistema
     # operativo (típicamente UTC en el server), no la de Argentina.
     timestamp = timezone.localtime(timezone.now()).strftime("%Y-%m-%d_%H-%M-%S")
@@ -324,15 +338,15 @@ def descargar_historial_csv(request):
         writer.writerow(
             [
                 t.pk,
-                t.id_usuario.nombre_completo,
+                _csv_safe(t.id_usuario.nombre_completo),
                 t.id_usuario.id_cargo.nombre,
                 f"{t.id_vehiculo.marca} {t.id_vehiculo.modelo}",
-                t.destino,
+                _csv_safe(t.destino),
                 salida,
                 regreso,
                 t.distancia_real if t.distancia_real is not None else "",
                 t.estado,
-                t.observacion,
+                _csv_safe(t.observacion),
             ]
         )
 
