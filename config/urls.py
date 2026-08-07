@@ -1,9 +1,9 @@
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import include, path
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
     # Esta línea deriva todo el tráfico hacia tu app "reservas"
-    path('', include('reservas.urls')), 
+    path("", include("reservas.urls")),
 ]
-handler404 = 'reservas.views.custom_404'
+handler404 = "reservas.views.custom_404"

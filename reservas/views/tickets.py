@@ -9,17 +9,33 @@ Vistas de tickets para el usuario normal.
 """
 
 import calendar
-from datetime import date, timedelta, datetime, time
+from datetime import date, datetime, time, timedelta
 
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db.models import Q
+from django.shortcuts import get_object_or_404, redirect, render
 
-from ..models import Vehiculo, Ticket, Cargo, ConfiguracionGlobal, Feriado, to_local_date
-from ..forms import TicketForm, FiltroTicketsForm
-from ..utils.services import crear_ticket_con_reglas, ResultadoCreacion, get_tickets_del_mes, get_tickets_del_dia
-from ._base import get_usuario_sesion, paginate_queryset, login_requerido, sin_chofer_requerido
-
+from ..forms import FiltroTicketsForm, TicketForm
+from ..models import (
+    Cargo,
+    ConfiguracionGlobal,
+    Feriado,
+    Ticket,
+    Vehiculo,
+    to_local_date,
+)
+from ..utils.services import (
+    ResultadoCreacion,
+    crear_ticket_con_reglas,
+    get_tickets_del_dia,
+    get_tickets_del_mes,
+)
+from ._base import (
+    get_usuario_sesion,
+    login_requerido,
+    paginate_queryset,
+    sin_chofer_requerido,
+)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ÉPICA 2: INICIO Y TICKETS (USUARIO NORMAL)
@@ -39,13 +55,20 @@ def inicio(request):
     usuario = get_usuario_sesion(request)
     es_admin = usuario.id_cargo.prioridad == 0
     es_usuario_general = usuario.id_cargo.nombre == Cargo.USUARIO
-    form = TicketForm(es_admin=es_admin, es_usuario_general=es_usuario_general, usuario=usuario)
-    
+    form = TicketForm(
+        es_admin=es_admin, es_usuario_general=es_usuario_general, usuario=usuario
+    )
+
     mostrar_confirmacion_prioridad = False
     mensaje_confirmacion = ""
 
     if request.method == "POST":
-        form = TicketForm(request.POST, es_admin=es_admin, es_usuario_general=es_usuario_general, usuario=usuario)
+        form = TicketForm(
+            request.POST,
+            es_admin=es_admin,
+            es_usuario_general=es_usuario_general,
+            usuario=usuario,
+        )
         if form.is_valid():
             cd = form.cleaned_data
             hora_fin = cd.get("hora_fin") or (cd["hora_inicio"] + timedelta(hours=2))
@@ -66,9 +89,13 @@ def inicio(request):
 
             if resultado.exito:
                 if resultado.estado == ResultadoCreacion.SOBRESCRITO:
-                    messages.warning(request, resultado.mensaje, extra_tags="clear_draft")
+                    messages.warning(
+                        request, resultado.mensaje, extra_tags="clear_draft"
+                    )
                 else:
-                    messages.success(request, resultado.mensaje, extra_tags="clear_draft")
+                    messages.success(
+                        request, resultado.mensaje, extra_tags="clear_draft"
+                    )
                 return redirect("historial")
             elif resultado.estado == ResultadoCreacion.REQUIERE_CONFIRMACION:
                 mostrar_confirmacion_prioridad = True
@@ -96,7 +123,11 @@ def inicio(request):
         try:
             vehiculo_cal = Vehiculo.objects.get(pk=vehiculo_id, activo=True)
             if request.method == "GET":
-                form = TicketForm(initial={"id_vehiculo": vehiculo_cal}, es_admin=es_admin, es_usuario_general=es_usuario_general)
+                form = TicketForm(
+                    initial={"id_vehiculo": vehiculo_cal},
+                    es_admin=es_admin,
+                    es_usuario_general=es_usuario_general,
+                )
 
             tickets_mes = get_tickets_del_mes(vehiculo_cal, anio, mes)
             dias_con_reservas = set()
@@ -120,9 +151,13 @@ def inicio(request):
                 # 1 hour = 60px. Timeline starts at 06:00 (which is top: 0)
                 # Max visual grid ends at 23:00, which is 17 hours * 60px = 1020px height
                 from django.utils import timezone
+
                 is_tz_aware = timezone.is_aware(timezone.now())
                 config_margin = ConfiguracionGlobal.get_solo()
-                margen = timedelta(hours=config_margin.horas_margen_entre_reservas, minutes=config_margin.minutos_margen_entre_reservas)
+                margen = timedelta(
+                    hours=config_margin.horas_margen_entre_reservas,
+                    minutes=config_margin.minutos_margen_entre_reservas,
+                )
                 margen_minutes = int(margen.total_seconds() / 60)
 
                 naive_start = datetime.combine(fecha_timeline, time.min)
@@ -149,7 +184,9 @@ def inicio(request):
                     start_h = effective_start.hour
                     start_m = effective_start.minute
 
-                    duration_mins = int((effective_end - effective_start).total_seconds() / 60)
+                    duration_mins = int(
+                        (effective_end - effective_start).total_seconds() / 60
+                    )
 
                     # Cap start time to 06:00 minimum
                     if start_h < 6:
@@ -165,7 +202,11 @@ def inicio(request):
                         t.height_px = 0
                     else:
                         max_allowed_height = 1020 - t.top_px
-                        t.height_px = min(duration_mins, max_allowed_height) if max_allowed_height > 0 else 0
+                        t.height_px = (
+                            min(duration_mins, max_allowed_height)
+                            if max_allowed_height > 0
+                            else 0
+                        )
 
                     # Calculate margin blocks (gray areas before and after ticket)
                     if margen_minutes > 0:
@@ -192,10 +233,12 @@ def inicio(request):
                             if m_duration > 0 and m_top_px >= 0:
                                 max_margin_height = 1020 - m_top_px
                                 m_duration = min(m_duration, max_margin_height)
-                                margenes_dia.append({
-                                    "top_px": m_top_px,
-                                    "height_px": m_duration,
-                                })
+                                margenes_dia.append(
+                                    {
+                                        "top_px": m_top_px,
+                                        "height_px": m_duration,
+                                    }
+                                )
 
                         # 2. Margin AFTER ticket
                         if t.hora_fin:
@@ -221,12 +264,32 @@ def inicio(request):
                                 if m_duration > 0 and m_top_px >= 0:
                                     max_margin_height = 1020 - m_top_px
                                     m_duration = min(m_duration, max_margin_height)
-                                    margenes_dia.append({
-                                        "top_px": m_top_px,
-                                        "height_px": m_duration,
-                                    })
+                                    margenes_dia.append(
+                                        {
+                                            "top_px": m_top_px,
+                                            "height_px": m_duration,
+                                        }
+                                    )
 
-                horas = ["06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"]
+                horas = [
+                    "06",
+                    "07",
+                    "08",
+                    "09",
+                    "10",
+                    "11",
+                    "12",
+                    "13",
+                    "14",
+                    "15",
+                    "16",
+                    "17",
+                    "18",
+                    "19",
+                    "20",
+                    "21",
+                    "22",
+                ]
                 total_tickets = page_obj.paginator.count
         except (Vehiculo.DoesNotExist, ValueError):
             pass
@@ -239,12 +302,17 @@ def inicio(request):
     dias_cancelacion = config.dias_anticipacion_cancelacion
     dias_maximos = config.dias_maximo_anticipacion_reservas
     from django.utils import timezone
+
     fecha_minima = timezone.localdate() + timedelta(days=dias_anticipacion)
-    fecha_minima_str = (timezone.now() + timedelta(days=dias_anticipacion)).strftime("%Y-%m-%dT%H:%M")
+    fecha_minima_str = (timezone.now() + timedelta(days=dias_anticipacion)).strftime(
+        "%Y-%m-%dT%H:%M"
+    )
 
     dias_inhabilitados = []
 
-    feriados_del_mes = Feriado.objects.filter(fecha__year=anio, fecha__month=mes).values_list('fecha__day', flat=True)
+    feriados_del_mes = Feriado.objects.filter(
+        fecha__year=anio, fecha__month=mes
+    ).values_list("fecha__day", flat=True)
     dias_feriados = list(feriados_del_mes)
 
     for d in range(1, 32):
@@ -264,35 +332,43 @@ def inicio(request):
     else:
         mes_siguiente = (anio, mes + 1)
 
-    return render(request, "reservas/tickets/inicio.html", {
-        "form": form,
-        "usuario": usuario,
-        "vehiculo_cal": vehiculo_cal,
-        "cal": cal,
-        "nombre_mes": nombre_mes,
-        "anio": anio,
-        "mes": mes,
-        "dias_con_reservas": dias_con_reservas,
-        "mes_anterior": mes_anterior,
-        "mes_siguiente": mes_siguiente,
-        "tickets_dia": tickets_dia,
-        "margenes_dia": margenes_dia,
-        "fecha_timeline": fecha_timeline,
-        "horas": horas,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "total_tickets": total_tickets,
-        "dia_seleccionado": int(dia_str) if dia_str and dia_str.isdigit() else None,
-        "exclusivos_ids": list(Vehiculo.objects.filter(exclusivo_decanato=True).values_list('id', flat=True)),
-        "dias_inhabilitados": dias_inhabilitados,
-        "dias_feriados": dias_feriados,
-        "fecha_minima_str": fecha_minima_str,
-        "dias_anticipacion": dias_anticipacion,
-        "dias_maximos": dias_maximos,
-        "dias_cancelacion": dias_cancelacion,
-        "mostrar_confirmacion_prioridad": mostrar_confirmacion_prioridad,
-        "mensaje_confirmacion": mensaje_confirmacion,
-    })
+    return render(
+        request,
+        "reservas/tickets/inicio.html",
+        {
+            "form": form,
+            "usuario": usuario,
+            "vehiculo_cal": vehiculo_cal,
+            "cal": cal,
+            "nombre_mes": nombre_mes,
+            "anio": anio,
+            "mes": mes,
+            "dias_con_reservas": dias_con_reservas,
+            "mes_anterior": mes_anterior,
+            "mes_siguiente": mes_siguiente,
+            "tickets_dia": tickets_dia,
+            "margenes_dia": margenes_dia,
+            "fecha_timeline": fecha_timeline,
+            "horas": horas,
+            "page_obj": page_obj,
+            "pagination_query": pagination_query,
+            "total_tickets": total_tickets,
+            "dia_seleccionado": int(dia_str) if dia_str and dia_str.isdigit() else None,
+            "exclusivos_ids": list(
+                Vehiculo.objects.filter(exclusivo_decanato=True).values_list(
+                    "id", flat=True
+                )
+            ),
+            "dias_inhabilitados": dias_inhabilitados,
+            "dias_feriados": dias_feriados,
+            "fecha_minima_str": fecha_minima_str,
+            "dias_anticipacion": dias_anticipacion,
+            "dias_maximos": dias_maximos,
+            "dias_cancelacion": dias_cancelacion,
+            "mostrar_confirmacion_prioridad": mostrar_confirmacion_prioridad,
+            "mensaje_confirmacion": mensaje_confirmacion,
+        },
+    )
 
 
 @login_requerido
@@ -314,9 +390,11 @@ def historial(request):
     """
     usuario = get_usuario_sesion(request)
     form = FiltroTicketsForm(request.GET or None)
-    tickets_qs = Ticket.objects.filter(
-        id_usuario=usuario
-    ).select_related("id_vehiculo").order_by("-fecha", "-id")
+    tickets_qs = (
+        Ticket.objects.filter(id_usuario=usuario)
+        .select_related("id_vehiculo")
+        .order_by("-fecha", "-id")
+    )
 
     if form.is_valid():
         from django.db.models.functions import Lower
@@ -328,11 +406,11 @@ def historial(request):
         fecha_fin = form.cleaned_data.get("fecha_fin")
 
         tickets_qs = tickets_qs.annotate(
-            busq_nombre=Lower('id_usuario__nombre'),
-            busq_apellido=Lower('id_usuario__apellido'),
-            busq_destino=Lower('destino'),
-            cond_nombre=Lower('conductor__nombre'),
-            cond_apellido=Lower('conductor__apellido')
+            busq_nombre=Lower("id_usuario__nombre"),
+            busq_apellido=Lower("id_usuario__apellido"),
+            busq_destino=Lower("destino"),
+            cond_nombre=Lower("conductor__nombre"),
+            cond_apellido=Lower("conductor__apellido"),
         )
 
         if busqueda:
@@ -359,14 +437,18 @@ def historial(request):
 
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
 
-    return render(request, "reservas/tickets/historial.html", {
-        "form": form,
-        "tickets": page_obj.object_list,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "total_tickets": page_obj.paginator.count,
-        "usuario": usuario,
-    })
+    return render(
+        request,
+        "reservas/tickets/historial.html",
+        {
+            "form": form,
+            "tickets": page_obj.object_list,
+            "page_obj": page_obj,
+            "pagination_query": pagination_query,
+            "total_tickets": page_obj.paginator.count,
+            "usuario": usuario,
+        },
+    )
 
 
 @login_requerido
@@ -399,23 +481,33 @@ def detalle_ticket(request, ticket_id):
     else:
         ticket = get_object_or_404(Ticket, pk=ticket_id, id_usuario=usuario)
 
-    from django.utils import timezone
-    from ..models import ConfiguracionGlobal
     import datetime
+
+    from django.utils import timezone
+
+    from ..models import ConfiguracionGlobal
+
     dias_cancelacion = ConfiguracionGlobal.get_solo().dias_anticipacion_cancelacion
     puede_cancelar = False
-    
+
     hoy = timezone.localdate()
     fecha_inicio = to_local_date(ticket.hora_inicio)
-    
-    if ticket.estado == Ticket.ESTADO_APROBADO and fecha_inicio >= hoy + datetime.timedelta(days=dias_cancelacion):
+
+    if (
+        ticket.estado == Ticket.ESTADO_APROBADO
+        and fecha_inicio >= hoy + datetime.timedelta(days=dias_cancelacion)
+    ):
         puede_cancelar = True
 
-    return render(request, "reservas/tickets/detalle_ticket.html", {
-        "ticket": ticket,
-        "usuario": usuario,
-        "puede_cancelar": puede_cancelar,
-    })
+    return render(
+        request,
+        "reservas/tickets/detalle_ticket.html",
+        {
+            "ticket": ticket,
+            "usuario": usuario,
+            "puede_cancelar": puede_cancelar,
+        },
+    )
 
 
 @login_requerido

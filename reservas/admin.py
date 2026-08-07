@@ -6,14 +6,15 @@ los modelos Cargo, Usuario, Vehículo y Ticket. Incluye filtros, búsquedas,
 formularios especiales y campos calculados para facilitar la gestión.
 """
 
-from django.contrib import admin
 from django import forms
-from .models import Cargo, Usuario, Vehiculo, Ticket
+from django.contrib import admin
 
+from .models import Cargo, Ticket, Usuario, Vehiculo
 
 # ══════════════════════════════════════════════
 # Cargo — Administración simple
 # ══════════════════════════════════════════════
+
 
 @admin.register(Cargo)
 class CargoAdmin(admin.ModelAdmin):
@@ -24,6 +25,7 @@ class CargoAdmin(admin.ModelAdmin):
         list_display (tuple): Columnas visibles en listado (nombre, prioridad).
         ordering (tuple): Orden predeterminado por prioridad ascendente.
     """
+
     list_display = ("nombre", "prioridad")
     ordering = ("prioridad",)
 
@@ -31,6 +33,7 @@ class CargoAdmin(admin.ModelAdmin):
 # ══════════════════════════════════════════════
 # Usuario — Formulario y administración personalizados
 # ══════════════════════════════════════════════
+
 
 class UsuarioForm(forms.ModelForm):
     """
@@ -44,11 +47,12 @@ class UsuarioForm(forms.ModelForm):
         contrasena (CharField): Campo de contraseña opcional.
             Si está vacío, se mantiene la anterior.
     """
+
     contrasena = forms.CharField(
         widget=forms.PasswordInput,
         required=False,
         label="Contraseña",
-        help_text="Dejar en blanco para mantener la contraseña actual."
+        help_text="Dejar en blanco para mantener la contraseña actual.",
     )
 
     class Meta:
@@ -93,6 +97,7 @@ class UsuarioAdmin(admin.ModelAdmin):
         list_filter (tuple): Filtros disponibles en sidebar (validación, cargo).
         search_fields (tuple): Campos permisos para búsqueda.
     """
+
     form = UsuarioForm
     list_display = ("nombre_completo", "correo", "id_cargo", "valido", "rechazado")
     list_filter = ("valido", "rechazado", "id_cargo")
@@ -112,12 +117,14 @@ class UsuarioAdmin(admin.ModelAdmin):
             Accesible en list_display como campo personalizado.
         """
         return obj.nombre_completo
+
     nombre_completo.short_description = "Nombre"
 
 
 # ══════════════════════════════════════════════
 # Vehículo — Administración con filtros
 # ══════════════════════════════════════════════
+
 
 @admin.register(Vehiculo)
 class VehiculoAdmin(admin.ModelAdmin):
@@ -132,6 +139,7 @@ class VehiculoAdmin(admin.ModelAdmin):
         list_filter (tuple): Filtros disponibles (activo, marca).
         search_fields (tuple): Campos permisos para búsqueda (marca, modelo).
     """
+
     list_display = ("marca", "modelo", "cant_pasajeros", "activo")
     list_filter = ("activo", "marca")
     search_fields = ("marca", "modelo")
@@ -140,6 +148,7 @@ class VehiculoAdmin(admin.ModelAdmin):
 # ══════════════════════════════════════════════
 # Ticket — Administración con auditoría
 # ══════════════════════════════════════════════
+
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
@@ -160,7 +169,16 @@ class TicketAdmin(admin.ModelAdmin):
         ordering (tuple): Orden predeterminado descendente por hora_inicio
             (más recientes primero).
     """
-    list_display = ("id", "id_usuario", "id_vehiculo", "destino", "hora_inicio", "hora_fin", "estado")
+
+    list_display = (
+        "id",
+        "id_usuario",
+        "id_vehiculo",
+        "destino",
+        "hora_inicio",
+        "hora_fin",
+        "estado",
+    )
     list_filter = ("estado", "id_vehiculo")
     search_fields = ("destino", "id_usuario__nombre", "id_usuario__apellido")
     readonly_fields = ("fecha", "observacion")

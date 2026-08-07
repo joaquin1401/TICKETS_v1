@@ -7,13 +7,12 @@ Vistas de autenticación: registro, login y logout.
     - Logout (logout_view)
 """
 
-from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.shortcuts import redirect, render
 
-from ..models import Usuario, Cargo
-from ..forms import RegistroForm, LoginForm
+from ..forms import LoginForm, RegistroForm
+from ..models import Cargo, Usuario
 from ..utils.email_verification import crear_verificacion, enviar_correo_verificacion
-from ._base import get_usuario_sesion
 
 
 def registro(request):
@@ -50,13 +49,18 @@ def registro(request):
     if request.method == "POST":
         form = RegistroForm(request.POST)
         if form.is_valid():
-            usuario = form.save()  # correo_verificado=False ya está en RegistroForm.save()
+            usuario = (
+                form.save()
+            )  # correo_verificado=False ya está en RegistroForm.save()
 
             # Si el usuario es Administrador (prioridad 0), no requerir verificación
             if usuario.id_cargo.prioridad == 0:
                 usuario.correo_verificado = True
-                usuario.save(update_fields=['correo_verificado'])
-                messages.success(request, "Cuenta de administrador creada exitosamente. Tu cuenta ya está validada, podés iniciar sesión.")
+                usuario.save(update_fields=["correo_verificado"])
+                messages.success(
+                    request,
+                    "Cuenta de administrador creada exitosamente. Tu cuenta ya está validada, podés iniciar sesión.",
+                )
                 return redirect("login")
 
             # Generar código de 6 dígitos y token UUID simultáneamente
@@ -145,7 +149,11 @@ def login_view(request):
             # completó el registro pero todavía no verificó su email.
             # Aplica solo si el campo correo_verificado existe en el modelo
             # (requiere haber corrido la migración correspondiente) y si no es Admin.
-            if hasattr(usuario, 'correo_verificado') and not usuario.correo_verificado and usuario.id_cargo.prioridad != 0:
+            if (
+                hasattr(usuario, "correo_verificado")
+                and not usuario.correo_verificado
+                and usuario.id_cargo.prioridad != 0
+            ):
                 request.session["verificacion_uid"] = usuario.pk
                 messages.warning(
                     request,
@@ -155,11 +163,17 @@ def login_view(request):
                 return redirect("verificar_correo")
 
             if usuario.rechazado:
-                messages.error(request, "Tu solicitud de acceso fue rechazada. Contactá al administrador.")
+                messages.error(
+                    request,
+                    "Tu solicitud de acceso fue rechazada. Contactá al administrador.",
+                )
                 return render(request, "reservas/auth/login.html", {"form": form})
 
             if not usuario.valido:
-                messages.warning(request, "Tu cuenta está pendiente de aprobación por un administrador.")
+                messages.warning(
+                    request,
+                    "Tu cuenta está pendiente de aprobación por un administrador.",
+                )
                 return render(request, "reservas/auth/login.html", {"form": form})
 
             # Establecer sesión.
@@ -169,7 +183,7 @@ def login_view(request):
             # Django lo hace solo en django.contrib.auth.login(), que no usamos.
             request.session.cycle_key()
             request.session["usuario_id"] = usuario.pk
-            request.session["es_admin"] = (usuario.id_cargo.prioridad == 0)
+            request.session["es_admin"] = usuario.id_cargo.prioridad == 0
             if usuario.id_cargo.nombre == Cargo.CHOFER:
                 return redirect("chofer_dashboard")
             return redirect("inicio")

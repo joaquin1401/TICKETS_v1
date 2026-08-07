@@ -6,12 +6,12 @@ sin necesidad de refactorizar el enrutamiento existente.
 """
 
 from ._base import *
-from .auth import *
-from .email_auth import *
-from .tickets import *
-from .choferes import *
-from .admin_usuarios import *
 from .admin_tickets import *
-from .vehiculos import *
+from .admin_usuarios import *
 from .analiticas import *
+from .auth import *
+from .choferes import *
+from .email_auth import *
 from .misc import *
+from .tickets import *
+from .vehiculos import *

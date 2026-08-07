@@ -10,12 +10,11 @@ Centraliza:
     - custom_404(): manejador de error 404.
 """
 
-from django.core.paginator import Paginator
-from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.core.paginator import Paginator
+from django.shortcuts import redirect, render
 
-from ..models import Usuario, Cargo
-
+from ..models import Cargo, Usuario
 
 ITEMS_PER_PAGE = 20
 
@@ -23,6 +22,7 @@ ITEMS_PER_PAGE = 20
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def get_usuario_sesion(request):
     """
@@ -71,6 +71,7 @@ def paginate_queryset(request, queryset, per_page=ITEMS_PER_PAGE):
 # DECORADORES DE AUTORIZACIÓN
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def login_requerido(view_func):
     """
     Decorador que redirige a login si no hay sesión activa o el usuario fue eliminado.
@@ -78,6 +79,7 @@ def login_requerido(view_func):
     Valida que request.session["usuario_id"] exista y que el usuario siga en la BD.
     Si no, limpia la sesión y redirige a la ruta 'login'.
     """
+
     def wrapper(request, *args, **kwargs):
         if not request.session.get("usuario_id"):
             return redirect("login")
@@ -86,6 +88,7 @@ def login_requerido(view_func):
             request.session.flush()
             return redirect("login")
         return view_func(request, *args, **kwargs)
+
     wrapper.__name__ = view_func.__name__
     return wrapper
 
@@ -107,11 +110,13 @@ def admin_requerido(view_func):
         Usa messages.error() de Django para notificar al usuario.
         Debe aplicarse DESPUÉS de @login_requerido en pilas de decoradores.
     """
+
     def wrapper(request, *args, **kwargs):
         if not request.session.get("es_admin"):
             messages.error(request, "No tenés permisos para acceder a esa sección.")
             return redirect("inicio")
         return view_func(request, *args, **kwargs)
+
     wrapper.__name__ = view_func.__name__
     return wrapper
 
@@ -120,12 +125,20 @@ def chofer_requerido(view_func):
     """
     Decorador que redirige si el usuario no es Chofer.
     """
+
     def wrapper(request, *args, **kwargs):
         usuario = get_usuario_sesion(request)
-        if not usuario or (usuario.id_cargo.nombre != Cargo.CHOFER and not request.session.get("es_admin")):
-            messages.error(request, "No tenés permisos para acceder a esta sección exclusiva para choferes.")
+        if not usuario or (
+            usuario.id_cargo.nombre != Cargo.CHOFER
+            and not request.session.get("es_admin")
+        ):
+            messages.error(
+                request,
+                "No tenés permisos para acceder a esta sección exclusiva para choferes.",
+            )
             return redirect("inicio")
         return view_func(request, *args, **kwargs)
+
     wrapper.__name__ = view_func.__name__
     return wrapper
 
@@ -135,11 +148,13 @@ def sin_chofer_requerido(view_func):
     Decorador que evita que los Choferes accedan a vistas de usuarios normales.
     Si es chofer, lo redirige a su dashboard.
     """
+
     def wrapper(request, *args, **kwargs):
         usuario = get_usuario_sesion(request)
         if usuario and usuario.id_cargo.nombre == Cargo.CHOFER:
             return redirect("chofer_dashboard")
         return view_func(request, *args, **kwargs)
+
     wrapper.__name__ = view_func.__name__
     return wrapper
 
@@ -147,6 +162,7 @@ def sin_chofer_requerido(view_func):
 # ══════════════════════════════════════════════════════════════════════════════
 # MANEJADORES DE ERROR
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def custom_404(request, exception=None):
     """

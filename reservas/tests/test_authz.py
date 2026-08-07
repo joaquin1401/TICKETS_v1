@@ -19,7 +19,9 @@ from reservas.models import Cargo, Usuario
 
 
 def get_cargo(nombre, prioridad):
-    cargo, created = Cargo.objects.get_or_create(nombre=nombre, defaults={"prioridad": prioridad})
+    cargo, created = Cargo.objects.get_or_create(
+        nombre=nombre, defaults={"prioridad": prioridad}
+    )
     if not created and cargo.prioridad != prioridad:
         cargo.prioridad = prioridad
         cargo.save()
@@ -33,16 +35,28 @@ class TestAutorizacion(TestCase):
         self.cargo_chofer = get_cargo(Cargo.CHOFER, 4)
 
         self.admin = Usuario.objects.create(
-            nombre="Admin", apellido="SEU", correo="admin_authz@test.com",
-            id_cargo=self.cargo_admin, valido=True, correo_verificado=True,
+            nombre="Admin",
+            apellido="SEU",
+            correo="admin_authz@test.com",
+            id_cargo=self.cargo_admin,
+            valido=True,
+            correo_verificado=True,
         )
         self.usuario = Usuario.objects.create(
-            nombre="Juan", apellido="Perez", correo="usuario_authz@test.com",
-            id_cargo=self.cargo_usuario, valido=True, correo_verificado=True,
+            nombre="Juan",
+            apellido="Perez",
+            correo="usuario_authz@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
+            correo_verificado=True,
         )
         self.chofer = Usuario.objects.create(
-            nombre="Carlos", apellido="Chofer", correo="chofer_authz@test.com",
-            id_cargo=self.cargo_chofer, valido=True, correo_verificado=True,
+            nombre="Carlos",
+            apellido="Chofer",
+            correo="chofer_authz@test.com",
+            id_cargo=self.cargo_chofer,
+            valido=True,
+            correo_verificado=True,
         )
 
     def _loguear_como(self, usuario, es_admin=None):
@@ -170,7 +184,8 @@ class TestAutorizacion(TestCase):
 
         resp = self.client.get(reverse("listado_vehiculos"))
         self.assertEqual(
-            resp.status_code, 200,
+            resp.status_code,
+            200,
             "Comportamiento actual: la sesión vieja sigue pasando @admin_requerido "
             "aunque el usuario ya no sea admin en la BD.",
         )

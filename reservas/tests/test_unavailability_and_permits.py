@@ -1,20 +1,41 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.utils import timezone
-from datetime import timedelta
-from reservas.models import Cargo, Usuario, Vehiculo, Ticket, PermisoReservaExtraordinaria, ConfiguracionGlobal
-from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas, ResultadoCreacion, dar_baja_temporal_vehiculo, _reasignar_ticket
+
+from reservas.models import (
+    Cargo,
+    ConfiguracionGlobal,
+    PermisoReservaExtraordinaria,
+    Ticket,
+    Usuario,
+    Vehiculo,
+)
+from reservas.utils.services import (
+    ResultadoCreacion,
+    _reasignar_ticket,
+    dar_baja_temporal_vehiculo,
+)
+from reservas.utils.services import crear_ticket_con_reglas as _crear_ticket_con_reglas
+
 
 def crear_ticket_con_reglas(*args, **kwargs):
     kwargs.setdefault("confirmado", True)
     return _crear_ticket_con_reglas(*args, **kwargs)
+
+
 from reservas.forms import TicketForm
 
+
 def get_cargo(nombre, prioridad):
-    cargo, created = Cargo.objects.get_or_create(nombre=nombre, defaults={'prioridad': prioridad})
+    cargo, created = Cargo.objects.get_or_create(
+        nombre=nombre, defaults={"prioridad": prioridad}
+    )
     if not created and cargo.prioridad != prioridad:
         cargo.prioridad = prioridad
         cargo.save()
     return cargo
+
 
 class TestBajaTemporalVehiculo(TestCase):
     """Pruebas para baja temporal de vehículos (inactivo_hasta, reasignación, etc.)."""
@@ -27,22 +48,34 @@ class TestBajaTemporalVehiculo(TestCase):
 
         # Usuarios
         self.admin = Usuario.objects.create(
-            nombre="Admin", apellido="SEU", correo="admin@test.com",
-            id_cargo=self.cargo_admin, valido=True
+            nombre="Admin",
+            apellido="SEU",
+            correo="admin@test.com",
+            id_cargo=self.cargo_admin,
+            valido=True,
         )
         self.usuario = Usuario.objects.create(
-            nombre="Usuario", apellido="Normal", correo="user@test.com",
-            id_cargo=self.cargo_usuario, valido=True
+            nombre="Usuario",
+            apellido="Normal",
+            correo="user@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
         )
 
         # Vehículos
         self.vehiculo1 = Vehiculo.objects.create(
-            marca="Toyota", modelo="Hilux", patente="AA111AA",
-            cant_pasajeros=4, activo=True
+            marca="Toyota",
+            modelo="Hilux",
+            patente="AA111AA",
+            cant_pasajeros=4,
+            activo=True,
         )
         self.vehiculo2 = Vehiculo.objects.create(
-            marca="Ford", modelo="Ranger", patente="BB222BB",
-            cant_pasajeros=4, activo=True
+            marca="Ford",
+            modelo="Ranger",
+            patente="BB222BB",
+            cant_pasajeros=4,
+            activo=True,
         )
 
         self.ahora = timezone.now()
@@ -83,16 +116,28 @@ class TestBajaTemporalVehiculo(TestCase):
         self.vehiculo1.save()
         self.assertTrue(self.vehiculo1.esta_inactivo_en_rango(hoy, manana))
         self.assertTrue(self.vehiculo1.esta_inactivo_en_rango(manana, pasado_manana))
-        self.assertFalse(self.vehiculo1.esta_inactivo_en_rango(hoy - timedelta(days=5), hoy - timedelta(days=3)))
-        self.assertFalse(self.vehiculo1.esta_inactivo_en_rango(pasado_manana + timedelta(days=1), pasado_manana + timedelta(days=3)))
+        self.assertFalse(
+            self.vehiculo1.esta_inactivo_en_rango(
+                hoy - timedelta(days=5), hoy - timedelta(days=3)
+            )
+        )
+        self.assertFalse(
+            self.vehiculo1.esta_inactivo_en_rango(
+                pasado_manana + timedelta(days=1), pasado_manana + timedelta(days=3)
+            )
+        )
 
     def test_dar_baja_temporal_cancela_tickets_futuros(self):
         inicio = self.ahora + timedelta(days=1, hours=8)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 3, self.admin)
         ticket.refresh_from_db()
@@ -103,9 +148,13 @@ class TestBajaTemporalVehiculo(TestCase):
         inicio = self.ahora + timedelta(days=10, hours=8)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 3, self.admin)
         ticket.refresh_from_db()
@@ -119,24 +168,36 @@ class TestBajaTemporalVehiculo(TestCase):
         inicio = self.ahora + timedelta(hours=8)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         dar_baja_temporal_vehiculo(self.vehiculo1, 3, self.admin)
-        permiso = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario, ticket_cancelado=ticket).first()
+        permiso = PermisoReservaExtraordinaria.objects.filter(
+            usuario=self.usuario, ticket_cancelado=ticket
+        ).first()
         self.assertIsNotNone(permiso)
         self.assertFalse(permiso.usado)
-        self.assertEqual(permiso.motivo, PermisoReservaExtraordinaria.MOTIVO_BAJA_VEHICULO)
+        self.assertEqual(
+            permiso.motivo, PermisoReservaExtraordinaria.MOTIVO_BAJA_VEHICULO
+        )
         self.assertEqual(permiso.valido_hasta, timezone.localdate() + timedelta(days=5))
 
     def test_dar_baja_temporal_ignora_tickets_no_aprobados(self):
         inicio = self.ahora + timedelta(days=1, hours=8)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_PENDIENTE, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_PENDIENTE,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 3, self.admin)
         ticket.refresh_from_db()
@@ -147,9 +208,13 @@ class TestBajaTemporalVehiculo(TestCase):
         inicio = self.ahora + timedelta(days=1, hours=8)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         nuevo = _reasignar_ticket(ticket)
         self.assertIsNotNone(nuevo)
@@ -163,9 +228,13 @@ class TestBajaTemporalVehiculo(TestCase):
         inicio = self.ahora + timedelta(days=1, hours=8)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         nuevo = _reasignar_ticket(ticket)
         self.assertIsNone(nuevo)
@@ -176,21 +245,31 @@ class TestBajaTemporalVehiculo(TestCase):
         inicio = self.ahora + timedelta(days=1, hours=8)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         nuevo = _reasignar_ticket(ticket)
         self.assertIsNone(nuevo)
 
     def test_baja_con_reasignacion_no_crea_permiso(self):
         """dar_baja_temporal NO debe crear PermisoReservaExtraordinaria si el ticket se reasignó."""
-        inicio = self.ahora + timedelta(hours=8)  # Hoy mismo (dentro de los días de gracia)
+        inicio = self.ahora + timedelta(
+            hours=8
+        )  # Hoy mismo (dentro de los días de gracia)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         # Hay un segundo vehículo disponible → habrá reasignación
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 3, self.admin)
@@ -205,12 +284,18 @@ class TestBajaTemporalVehiculo(TestCase):
         # vehiculo2 no disponible → no habrá reasignación
         self.vehiculo2.activo = False
         self.vehiculo2.save()
-        inicio = self.ahora + timedelta(hours=8)  # Hoy mismo (dentro de los días de gracia)
+        inicio = self.ahora + timedelta(
+            hours=8
+        )  # Hoy mismo (dentro de los días de gracia)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 3, self.admin)
         self.assertEqual(resultado["cancelados"], 1)
@@ -227,12 +312,18 @@ class TestBajaTemporalVehiculo(TestCase):
         self.vehiculo2.save()
         config = ConfiguracionGlobal.get_solo()
         dias_gracia = config.dias_anticipacion_cancelacion
-        inicio = self.ahora + timedelta(days=dias_gracia + 1)  # Fuera de los días de gracia
+        inicio = self.ahora + timedelta(
+            days=dias_gracia + 1
+        )  # Fuera de los días de gracia
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 10, self.admin)
         self.assertEqual(resultado["cancelados"], 1)
@@ -248,12 +339,18 @@ class TestPermisoReservaExtraordinaria(TestCase):
     def setUp(self):
         self.cargo_usuario = get_cargo(Cargo.USUARIO, 3)
         self.usuario = Usuario.objects.create(
-            nombre="Usuario", apellido="Test", correo="user@test.com",
-            id_cargo=self.cargo_usuario, valido=True
+            nombre="Usuario",
+            apellido="Test",
+            correo="user@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
         )
         self.vehiculo = Vehiculo.objects.create(
-            marca="Toyota", modelo="Corolla", patente="AAA111",
-            cant_pasajeros=4, activo=True
+            marca="Toyota",
+            modelo="Corolla",
+            patente="AAA111",
+            cant_pasajeros=4,
+            activo=True,
         )
         self.ahora = timezone.now()
 
@@ -261,9 +358,13 @@ class TestPermisoReservaExtraordinaria(TestCase):
         inicio = self.ahora + timedelta(days=1)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_CANCELADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_CANCELADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         permiso = PermisoReservaExtraordinaria.objects.create(
             usuario=self.usuario,
@@ -279,9 +380,13 @@ class TestPermisoReservaExtraordinaria(TestCase):
         inicio = self.ahora + timedelta(days=1)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_CANCELADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_CANCELADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         permiso = PermisoReservaExtraordinaria.objects.create(
             usuario=self.usuario,
@@ -296,9 +401,13 @@ class TestPermisoReservaExtraordinaria(TestCase):
         inicio = self.ahora + timedelta(days=1)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_CANCELADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_CANCELADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         permiso = PermisoReservaExtraordinaria.objects.create(
             usuario=self.usuario,
@@ -318,21 +427,33 @@ class TestCancelacionPorPrioridad(TestCase):
         self.cargo_chofer = get_cargo(Cargo.CHOFER, 4)
 
         self.decano = Usuario.objects.create(
-            nombre="Decano", apellido="1", correo="decano@test.com",
-            id_cargo=self.cargo_decano, valido=True
+            nombre="Decano",
+            apellido="1",
+            correo="decano@test.com",
+            id_cargo=self.cargo_decano,
+            valido=True,
         )
         self.usuario_comun = Usuario.objects.create(
-            nombre="Usuario", apellido="1", correo="user@test.com",
-            id_cargo=self.cargo_usuario, valido=True
+            nombre="Usuario",
+            apellido="1",
+            correo="user@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
         )
 
         self.vehiculo1 = Vehiculo.objects.create(
-            marca="Toyota", modelo="Hilux", patente="AA111AA",
-            cant_pasajeros=4, activo=True
+            marca="Toyota",
+            modelo="Hilux",
+            patente="AA111AA",
+            cant_pasajeros=4,
+            activo=True,
         )
         self.vehiculo2 = Vehiculo.objects.create(
-            marca="Ford", modelo="Ranger", patente="BB222BB",
-            cant_pasajeros=4, activo=True
+            marca="Ford",
+            modelo="Ranger",
+            patente="BB222BB",
+            cant_pasajeros=4,
+            activo=True,
         )
 
         self.ahora = timezone.now()
@@ -346,21 +467,28 @@ class TestCancelacionPorPrioridad(TestCase):
         self.vehiculo2.save()
 
         res1 = crear_ticket_con_reglas(
-            self.usuario_comun, self.vehiculo1, inicio, fin,
-            destino="Test", cant_pasajeros=2
+            self.usuario_comun,
+            self.vehiculo1,
+            inicio,
+            fin,
+            destino="Test",
+            cant_pasajeros=2,
         )
         self.assertEqual(res1.estado, ResultadoCreacion.OK)
 
         resultado = crear_ticket_con_reglas(
-            self.decano, self.vehiculo1, inicio, fin,
-            destino="Decano", cant_pasajeros=2
+            self.decano, self.vehiculo1, inicio, fin, destino="Decano", cant_pasajeros=2
         )
         self.assertEqual(resultado.estado, ResultadoCreacion.SOBRESCRITO)
         self.assertEqual(len(resultado.tickets_cancelados), 1)
 
-        permisos = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario_comun)
+        permisos = PermisoReservaExtraordinaria.objects.filter(
+            usuario=self.usuario_comun
+        )
         self.assertEqual(permisos.count(), 1)
-        self.assertEqual(permisos.first().motivo, PermisoReservaExtraordinaria.MOTIVO_PRIORIDAD)
+        self.assertEqual(
+            permisos.first().motivo, PermisoReservaExtraordinaria.MOTIVO_PRIORIDAD
+        )
 
     def test_prioridad_sin_permiso_si_fuera_de_5dias(self):
         inicio = self.ahora + timedelta(days=10, hours=8)
@@ -371,18 +499,23 @@ class TestCancelacionPorPrioridad(TestCase):
         self.vehiculo2.save()
 
         res1 = crear_ticket_con_reglas(
-            self.usuario_comun, self.vehiculo1, inicio, fin,
-            destino="Test", cant_pasajeros=2
+            self.usuario_comun,
+            self.vehiculo1,
+            inicio,
+            fin,
+            destino="Test",
+            cant_pasajeros=2,
         )
         self.assertEqual(res1.estado, ResultadoCreacion.OK)
 
         resultado = crear_ticket_con_reglas(
-            self.decano, self.vehiculo1, inicio, fin,
-            destino="Decano", cant_pasajeros=2
+            self.decano, self.vehiculo1, inicio, fin, destino="Decano", cant_pasajeros=2
         )
         self.assertEqual(resultado.estado, ResultadoCreacion.SOBRESCRITO)
 
-        permisos = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario_comun)
+        permisos = PermisoReservaExtraordinaria.objects.filter(
+            usuario=self.usuario_comun
+        )
         self.assertEqual(permisos.count(), 0)
 
     def test_prioridad_con_reasignacion(self):
@@ -390,14 +523,17 @@ class TestCancelacionPorPrioridad(TestCase):
         fin = inicio + timedelta(hours=2)
 
         res1 = crear_ticket_con_reglas(
-            self.usuario_comun, self.vehiculo1, inicio, fin,
-            destino="Test", cant_pasajeros=2
+            self.usuario_comun,
+            self.vehiculo1,
+            inicio,
+            fin,
+            destino="Test",
+            cant_pasajeros=2,
         )
         self.assertEqual(res1.estado, ResultadoCreacion.OK)
 
         resultado = crear_ticket_con_reglas(
-            self.decano, self.vehiculo1, inicio, fin,
-            destino="Decano", cant_pasajeros=2
+            self.decano, self.vehiculo1, inicio, fin, destino="Decano", cant_pasajeros=2
         )
         self.assertEqual(resultado.estado, ResultadoCreacion.SOBRESCRITO)
 
@@ -417,14 +553,17 @@ class TestCancelacionPorPrioridad(TestCase):
         fin = inicio + timedelta(hours=2)
 
         res1 = crear_ticket_con_reglas(
-            self.usuario_comun, self.vehiculo1, inicio, fin,
-            destino="Test", cant_pasajeros=2
+            self.usuario_comun,
+            self.vehiculo1,
+            inicio,
+            fin,
+            destino="Test",
+            cant_pasajeros=2,
         )
         self.assertEqual(res1.estado, ResultadoCreacion.OK)
 
         resultado = crear_ticket_con_reglas(
-            self.decano, self.vehiculo1, inicio, fin,
-            destino="Decano", cant_pasajeros=2
+            self.decano, self.vehiculo1, inicio, fin, destino="Decano", cant_pasajeros=2
         )
         self.assertEqual(resultado.estado, ResultadoCreacion.SOBRESCRITO)
         self.assertEqual(len(resultado.tickets_cancelados), 1)
@@ -441,20 +580,30 @@ class TestFormularioPermisoEmergencia(TestCase):
 
     def setUp(self):
         from reservas.models import ConfiguracionGlobal
+
         self.cargo_usuario = get_cargo(Cargo.USUARIO, 3)
         self.cargo_admin = get_cargo(Cargo.ADMIN_SEU, 0)
 
         self.usuario = Usuario.objects.create(
-            nombre="Usuario", apellido="Test", correo="user@test.com",
-            id_cargo=self.cargo_usuario, valido=True
+            nombre="Usuario",
+            apellido="Test",
+            correo="user@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
         )
         self.admin = Usuario.objects.create(
-            nombre="Admin", apellido="SEU", correo="admin@test.com",
-            id_cargo=self.cargo_admin, valido=True
+            nombre="Admin",
+            apellido="SEU",
+            correo="admin@test.com",
+            id_cargo=self.cargo_admin,
+            valido=True,
         )
         self.vehiculo = Vehiculo.objects.create(
-            marca="Toyota", modelo="Corolla", patente="AAA111",
-            cant_pasajeros=4, activo=True
+            marca="Toyota",
+            modelo="Corolla",
+            patente="AAA111",
+            cant_pasajeros=4,
+            activo=True,
         )
         config = ConfiguracionGlobal.get_solo()
         config.dias_anticipacion_reservas = 3
@@ -464,9 +613,13 @@ class TestFormularioPermisoEmergencia(TestCase):
         inicio = timezone.now() + timedelta(days=1)
         fin = inicio + timedelta(hours=2)
         ticket = Ticket.objects.create(
-            id_usuario=usuario, id_vehiculo=self.vehiculo,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_CANCELADO, destino="Test", cant_pasajeros=2
+            id_usuario=usuario,
+            id_vehiculo=self.vehiculo,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_CANCELADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         return PermisoReservaExtraordinaria.objects.create(
             usuario=usuario,
@@ -485,7 +638,9 @@ class TestFormularioPermisoEmergencia(TestCase):
             "hora_inicio": manana,
             "hora_fin": manana + timedelta(hours=2),
         }
-        form = TicketForm(data, es_admin=False, es_usuario_general=False, usuario=self.usuario)
+        form = TicketForm(
+            data, es_admin=False, es_usuario_general=False, usuario=self.usuario
+        )
         self.assertFalse(form.is_valid())
         self.assertIn("hora_inicio", form.errors)
 
@@ -500,8 +655,12 @@ class TestFormularioPermisoEmergencia(TestCase):
             "hora_inicio": manana,
             "hora_fin": manana + timedelta(hours=2),
         }
-        form = TicketForm(data, es_admin=False, es_usuario_general=False, usuario=self.usuario)
-        self.assertTrue(form.is_valid(), msg="Errores del formulario: {}".format(form.errors))
+        form = TicketForm(
+            data, es_admin=False, es_usuario_general=False, usuario=self.usuario
+        )
+        self.assertTrue(
+            form.is_valid(), msg="Errores del formulario: {}".format(form.errors)
+        )
 
     def test_formulario_rechaza_con_permiso_usado(self):
         permiso = self._crear_permiso_emergencia(self.usuario)
@@ -516,7 +675,9 @@ class TestFormularioPermisoEmergencia(TestCase):
             "hora_inicio": manana,
             "hora_fin": manana + timedelta(hours=2),
         }
-        form = TicketForm(data, es_admin=False, es_usuario_general=False, usuario=self.usuario)
+        form = TicketForm(
+            data, es_admin=False, es_usuario_general=False, usuario=self.usuario
+        )
         self.assertFalse(form.is_valid())
         self.assertIn("hora_inicio", form.errors)
 
@@ -525,38 +686,55 @@ class TestLimitesConfigurables(TestCase):
     """Pruebas para verificar que los límites se adapten dinámicamente a la configuración global."""
 
     def setUp(self):
-        from reservas.models import Cargo, Usuario, Vehiculo, ConfiguracionGlobal
+        from reservas.models import Cargo, Usuario, Vehiculo
+
         self.cargo_usuario = get_cargo(Cargo.USUARIO, 3)
         self.cargo_admin = get_cargo(Cargo.ADMIN_SEU, 0)
         self.cargo_decano = get_cargo(Cargo.DECANO, 1)
 
         self.usuario = Usuario.objects.create(
-            nombre="Usuario", apellido="Test", correo="user@test.com",
-            id_cargo=self.cargo_usuario, valido=True
+            nombre="Usuario",
+            apellido="Test",
+            correo="user@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
         )
         self.admin = Usuario.objects.create(
-            nombre="Admin", apellido="SEU", correo="admin@test.com",
-            id_cargo=self.cargo_admin, valido=True
+            nombre="Admin",
+            apellido="SEU",
+            correo="admin@test.com",
+            id_cargo=self.cargo_admin,
+            valido=True,
         )
         self.decano = Usuario.objects.create(
-            nombre="Decano", apellido="1", correo="decano@test.com",
-            id_cargo=self.cargo_decano, valido=True
+            nombre="Decano",
+            apellido="1",
+            correo="decano@test.com",
+            id_cargo=self.cargo_decano,
+            valido=True,
         )
         self.vehiculo1 = Vehiculo.objects.create(
-            marca="Toyota", modelo="Corolla", patente="AAA111",
-            cant_pasajeros=4, activo=True
+            marca="Toyota",
+            modelo="Corolla",
+            patente="AAA111",
+            cant_pasajeros=4,
+            activo=True,
         )
         self.vehiculo2 = Vehiculo.objects.create(
-            marca="Ford", modelo="Ranger", patente="BBB222",
-            cant_pasajeros=4, activo=True
+            marca="Ford",
+            modelo="Ranger",
+            patente="BBB222",
+            cant_pasajeros=4,
+            activo=True,
         )
         self.ahora = timezone.now()
 
     def test_anticipacion_reservas_configurable(self):
         """La anticipación mínima requerida debe adaptarse a dias_anticipacion_reservas."""
         from reservas.models import ConfiguracionGlobal
+
         config = ConfiguracionGlobal.get_solo()
-        
+
         # 1. Configurar a 7 días
         config.dias_anticipacion_reservas = 7
         config.save()
@@ -564,8 +742,12 @@ class TestLimitesConfigurables(TestCase):
         # Una reserva a los 5 días debe fallar
         inicio_5_dias = self.ahora + timedelta(days=5)
         res = crear_ticket_con_reglas(
-            self.usuario, self.vehiculo1, inicio_5_dias, inicio_5_dias + timedelta(hours=2),
-            destino="Test", cant_pasajeros=2
+            self.usuario,
+            self.vehiculo1,
+            inicio_5_dias,
+            inicio_5_dias + timedelta(hours=2),
+            destino="Test",
+            cant_pasajeros=2,
         )
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
         self.assertIn("al menos 7 días", res.mensaje)
@@ -573,23 +755,32 @@ class TestLimitesConfigurables(TestCase):
         # Una reserva a los 8 días debe pasar
         inicio_8_dias = self.ahora + timedelta(days=8)
         res2 = crear_ticket_con_reglas(
-            self.usuario, self.vehiculo1, inicio_8_dias, inicio_8_dias + timedelta(hours=2),
-            destino="Test", cant_pasajeros=2
+            self.usuario,
+            self.vehiculo1,
+            inicio_8_dias,
+            inicio_8_dias + timedelta(hours=2),
+            destino="Test",
+            cant_pasajeros=2,
         )
         self.assertEqual(res2.estado, ResultadoCreacion.OK)
 
     def test_permiso_emergencia_limite_dinamico_con_config(self):
         """La ventana de reserva con permiso de emergencia debe adaptarse a dias_anticipacion_reservas."""
         from reservas.models import ConfiguracionGlobal
+
         config = ConfiguracionGlobal.get_solo()
         config.dias_anticipacion_reservas = 7
         config.save()
 
         # Crear permiso de emergencia
         ticket_cancelado = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=self.ahora + timedelta(days=1), hora_fin=self.ahora + timedelta(days=1, hours=2),
-            estado=Ticket.ESTADO_CANCELADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=self.ahora + timedelta(days=1),
+            hora_fin=self.ahora + timedelta(days=1, hours=2),
+            estado=Ticket.ESTADO_CANCELADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         permiso = PermisoReservaExtraordinaria.objects.create(
             usuario=self.usuario,
@@ -608,14 +799,17 @@ class TestLimitesConfigurables(TestCase):
             "hora_inicio": manana_6_dias,
             "hora_fin": manana_6_dias + timedelta(hours=2),
         }
-        form = TicketForm(data, es_admin=False, es_usuario_general=False, usuario=self.usuario)
+        form = TicketForm(
+            data, es_admin=False, es_usuario_general=False, usuario=self.usuario
+        )
         self.assertTrue(form.is_valid(), msg="Errores: {}".format(form.errors))
 
     def test_dias_anticipacion_cancelacion_crea_permiso_dinamico(self):
         """El otorgamiento y la vigencia del permiso deben adaptarse a dias_anticipacion_cancelacion."""
         from reservas.models import ConfiguracionGlobal
+
         config = ConfiguracionGlobal.get_solo()
-        
+
         # Configurar a 10 días
         config.dias_anticipacion_cancelacion = 10
         config.save()
@@ -627,22 +821,32 @@ class TestLimitesConfigurables(TestCase):
         # Ticket aprobado a los 8 días de hoy
         inicio_8_dias = self.ahora + timedelta(days=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio_8_dias, hora_fin=inicio_8_dias + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio_8_dias,
+            hora_fin=inicio_8_dias + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
 
         # Dar de baja el vehículo. Al ser la salida a los 8 días (menor a los 10 días de la config),
         # debe crearse el permiso de emergencia y ser válido por 10 días.
         dar_baja_temporal_vehiculo(self.vehiculo1, 10, self.admin)
 
-        permiso = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario, ticket_cancelado=ticket).first()
+        permiso = PermisoReservaExtraordinaria.objects.filter(
+            usuario=self.usuario, ticket_cancelado=ticket
+        ).first()
         self.assertIsNotNone(permiso)
-        self.assertEqual(permiso.valido_hasta, timezone.localdate() + timedelta(days=10))
+        self.assertEqual(
+            permiso.valido_hasta, timezone.localdate() + timedelta(days=10)
+        )
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TESTS EXHAUSTIVOS — Edge Cases de Baja Temporal con Reasignación
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class TestEdgeCasesBajaTemporal(TestCase):
     """Edge cases exhaustivos para dar_baja_temporal_vehiculo y _reasignar_ticket."""
@@ -653,33 +857,50 @@ class TestEdgeCasesBajaTemporal(TestCase):
         self.cargo_chofer = get_cargo(Cargo.CHOFER, 4)
 
         self.admin = Usuario.objects.create(
-            nombre="Admin", apellido="SEU", correo="admin@test.com",
-            id_cargo=self.cargo_admin, valido=True
+            nombre="Admin",
+            apellido="SEU",
+            correo="admin@test.com",
+            id_cargo=self.cargo_admin,
+            valido=True,
         )
         self.usuario = Usuario.objects.create(
-            nombre="Usuario", apellido="Normal", correo="user@test.com",
-            id_cargo=self.cargo_usuario, valido=True
+            nombre="Usuario",
+            apellido="Normal",
+            correo="user@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
         )
         self.usuario2 = Usuario.objects.create(
-            nombre="Otro", apellido="User", correo="user2@test.com",
-            id_cargo=self.cargo_usuario, valido=True
+            nombre="Otro",
+            apellido="User",
+            correo="user2@test.com",
+            id_cargo=self.cargo_usuario,
+            valido=True,
         )
 
         self.vehiculo1 = Vehiculo.objects.create(
-            marca="Toyota", modelo="Hilux", patente="AA111AA",
-            cant_pasajeros=4, activo=True
+            marca="Toyota",
+            modelo="Hilux",
+            patente="AA111AA",
+            cant_pasajeros=4,
+            activo=True,
         )
         self.vehiculo2 = Vehiculo.objects.create(
-            marca="Ford", modelo="Ranger", patente="BB222BB",
-            cant_pasajeros=4, activo=True
+            marca="Ford",
+            modelo="Ranger",
+            patente="BB222BB",
+            cant_pasajeros=4,
+            activo=True,
         )
         self.vehiculo3 = Vehiculo.objects.create(
-            marca="Chevrolet", modelo="S10", patente="CC333CC",
-            cant_pasajeros=6, activo=True
+            marca="Chevrolet",
+            modelo="S10",
+            patente="CC333CC",
+            cant_pasajeros=6,
+            activo=True,
         )
 
         self.ahora = timezone.now()
-
 
     def test_solapamiento_parcial_ticket_iniciado_antes(self):
         """
@@ -689,15 +910,20 @@ class TestEdgeCasesBajaTemporal(TestCase):
         ayer = self.ahora - timedelta(days=1)
         manana = self.ahora + timedelta(days=1)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=ayer, hora_fin=manana,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=ayer,
+            hora_fin=manana,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 7, self.admin)
         ticket.refresh_from_db()
         self.assertEqual(
-            ticket.estado, Ticket.ESTADO_CANCELADO,
-            "Ticket que termina durante la baja debe cancelarse aunque haya empezado antes."
+            ticket.estado,
+            Ticket.ESTADO_CANCELADO,
+            "Ticket que termina durante la baja debe cancelarse aunque haya empezado antes.",
         )
         self.assertGreaterEqual(resultado["total_afectados"], 1)
 
@@ -709,9 +935,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
         inicio = self.ahora + timedelta(days=1, hours=8)
         fin = inicio + timedelta(days=5)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=fin,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=fin,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 3, self.admin)
         ticket.refresh_from_db()
@@ -724,16 +954,18 @@ class TestEdgeCasesBajaTemporal(TestCase):
         """
         hoy_10am = self.ahora.replace(hour=10, minute=0, second=0, microsecond=0)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=hoy_10am, hora_fin=None,
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=hoy_10am,
+            hora_fin=None,
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 3, self.admin)
         ticket.refresh_from_db()
         self.assertEqual(ticket.estado, Ticket.ESTADO_CANCELADO)
         self.assertEqual(resultado["total_afectados"], 1)
-
-
 
     # ── TEST BUG 2: Idempotencia ──────────────────────────────────────────
 
@@ -749,9 +981,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         inicio = self.ahora + timedelta(days=1, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
 
         r1 = dar_baja_temporal_vehiculo(self.vehiculo1, 5, self.admin)
@@ -759,8 +995,9 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         r2 = dar_baja_temporal_vehiculo(self.vehiculo1, 5, self.admin)
         self.assertEqual(
-            r2["total_afectados"], 0,
-            "Segunda llamada no debe procesar tickets ya cancelados."
+            r2["total_afectados"],
+            0,
+            "Segunda llamada no debe procesar tickets ya cancelados.",
         )
 
         permisos = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario)
@@ -777,9 +1014,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
         dias_gracia = config.dias_anticipacion_cancelacion
         inicio = self.ahora + timedelta(days=dias_gracia + 5, hours=8)
         Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
 
         dar_baja_temporal_vehiculo(self.vehiculo1, 10, self.admin)
@@ -799,8 +1040,7 @@ class TestEdgeCasesBajaTemporal(TestCase):
         inicio = self.ahora + timedelta(days=2, hours=10)
         fin = inicio + timedelta(hours=3)
         res = crear_ticket_con_reglas(
-            self.usuario, self.vehiculo1, inicio, fin,
-            destino="Test", cant_pasajeros=2
+            self.usuario, self.vehiculo1, inicio, fin, destino="Test", cant_pasajeros=2
         )
         self.assertEqual(res.estado, ResultadoCreacion.BLOQUEADO)
         self.assertIn("temporalmente inactivo", res.mensaje.lower())
@@ -814,8 +1054,7 @@ class TestEdgeCasesBajaTemporal(TestCase):
         inicio = self.ahora + timedelta(days=10, hours=10)
         fin = inicio + timedelta(hours=3)
         res = crear_ticket_con_reglas(
-            self.usuario, self.vehiculo1, inicio, fin,
-            destino="Test", cant_pasajeros=2
+            self.usuario, self.vehiculo1, inicio, fin, destino="Test", cant_pasajeros=2
         )
         self.assertEqual(res.estado, ResultadoCreacion.OK)
 
@@ -835,15 +1074,18 @@ class TestEdgeCasesBajaTemporal(TestCase):
         """Un número grande de días debe funcionar (sin tope actual)."""
         inicio = self.ahora + timedelta(days=30, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 365, self.admin)
         ticket.refresh_from_db()
         self.assertEqual(ticket.estado, Ticket.ESTADO_CANCELADO)
         self.assertEqual(resultado["total_afectados"], 1)
-
 
     # ─── TEST Vehículo ya inactivo permanentemente ───────────────────────
 
@@ -854,9 +1096,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         inicio = self.ahora + timedelta(days=1, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 5, self.admin)
         ticket.refresh_from_db()
@@ -870,8 +1116,11 @@ class TestEdgeCasesBajaTemporal(TestCase):
         """Prioridad cancela, hay reasignación → NO debe crearse permiso de emergencia."""
         cargo_decano = get_cargo(Cargo.DECANO, 1)
         decano = Usuario.objects.create(
-            nombre="Decano", apellido="Test", correo="decano@test.com",
-            id_cargo=cargo_decano, valido=True
+            nombre="Decano",
+            apellido="Test",
+            correo="decano@test.com",
+            id_cargo=cargo_decano,
+            valido=True,
         )
 
         inicio = self.ahora + timedelta(days=4, hours=8)
@@ -879,15 +1128,18 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         # Usuario normal crea un ticket APROBADO (anticipación suficiente)
         res1 = crear_ticket_con_reglas(
-            self.usuario, self.vehiculo1, inicio, fin,
-            destino="Test", cant_pasajeros=2
+            self.usuario, self.vehiculo1, inicio, fin, destino="Test", cant_pasajeros=2
         )
         self.assertEqual(res1.estado, ResultadoCreacion.OK)
 
         # Decano (mayor prioridad) crea ticket en mismo horario → sobrescribe
         res2 = crear_ticket_con_reglas(
-            decano, self.vehiculo1, inicio, fin,
-            destino="Decano priority", cant_pasajeros=2
+            decano,
+            self.vehiculo1,
+            inicio,
+            fin,
+            destino="Decano priority",
+            cant_pasajeros=2,
         )
         self.assertEqual(res2.estado, ResultadoCreacion.SOBRESCRITO)
 
@@ -902,13 +1154,19 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         if tickets_nuevos.exists():
             permisos = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario)
-            self.assertEqual(permisos.count(), 0,
-                             "Con reasignación no debe crearse permiso de emergencia.")
+            self.assertEqual(
+                permisos.count(),
+                0,
+                "Con reasignación no debe crearse permiso de emergencia.",
+            )
         else:
             # Si no hay reasignación (caso borde), debería haber permiso
             permisos = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario)
-            self.assertGreater(permisos.count(), 0,
-                               "Sin reasignación debe haber permiso de emergencia.")
+            self.assertGreater(
+                permisos.count(),
+                0,
+                "Sin reasignación debe haber permiso de emergencia.",
+            )
 
     # ─── TEST Múltiples tickets mismo usuario → múltiples permisos ────────
 
@@ -922,9 +1180,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
         for i in range(3):
             inicio = self.ahora + timedelta(days=i, hours=10)
             Ticket.objects.create(
-                id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-                hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-                estado=Ticket.ESTADO_APROBADO, destino=f"Test {i}", cant_pasajeros=2
+                id_usuario=self.usuario,
+                id_vehiculo=self.vehiculo1,
+                hora_inicio=inicio,
+                hora_fin=inicio + timedelta(hours=2),
+                estado=Ticket.ESTADO_APROBADO,
+                destino=f"Test {i}",
+                cant_pasajeros=2,
             )
 
         resultado = dar_baja_temporal_vehiculo(self.vehiculo1, 10, self.admin)
@@ -932,9 +1194,11 @@ class TestEdgeCasesBajaTemporal(TestCase):
         self.assertEqual(resultado["reasignados"], 0)
 
         permisos = PermisoReservaExtraordinaria.objects.filter(usuario=self.usuario)
-        self.assertEqual(permisos.count(), 3,
-                         "Debe haber un permiso por cada ticket cancelado sin reasignación.")
-
+        self.assertEqual(
+            permisos.count(),
+            3,
+            "Debe haber un permiso por cada ticket cancelado sin reasignación.",
+        )
 
     # ─── TEST Reasignación con capacidad exacta ───────────────────────────
 
@@ -942,9 +1206,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
         """_reasignar_ticket debe asignar vehículo con capacidad >= solicitada (ascendente)."""
         inicio = self.ahora + timedelta(days=1, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=4
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=4,
         )
         nuevo = _reasignar_ticket(ticket)
         self.assertIsNotNone(nuevo)
@@ -960,9 +1228,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         inicio = self.ahora + timedelta(days=1, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         nuevo = _reasignar_ticket(ticket)
         self.assertIsNotNone(nuevo)
@@ -978,9 +1250,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         inicio = self.ahora + timedelta(days=1, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         nuevo = _reasignar_ticket(ticket)
         self.assertIsNotNone(nuevo)
@@ -994,9 +1270,13 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         inicio = self.ahora + timedelta(days=1, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
 
         dar_baja_temporal_vehiculo(self.vehiculo1, 5, self.admin)
@@ -1005,9 +1285,11 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         dar_baja_temporal_vehiculo(self.vehiculo1, 5, self.admin)
         logs_segunda = NotificationLog.objects.filter(ticket=ticket).count()
-        self.assertEqual(logs_primera, logs_segunda,
-                         "La segunda llamada no debe duplicar NotificationLogs.")
-
+        self.assertEqual(
+            logs_primera,
+            logs_segunda,
+            "La segunda llamada no debe duplicar NotificationLogs.",
+        )
 
     # ─── TEST Baja expirada (levantar_baja) ──────────────────────────────
 
@@ -1025,16 +1307,23 @@ class TestEdgeCasesBajaTemporal(TestCase):
     def test_reasignacion_con_chofer_requerido(self):
         """_reasignar_ticket debe funcionar con requiere_chofer=True."""
         Usuario.objects.create(
-            nombre="Chofer", apellido="Test", correo="chofer@test.com",
-            id_cargo=self.cargo_chofer, valido=True
+            nombre="Chofer",
+            apellido="Test",
+            correo="chofer@test.com",
+            id_cargo=self.cargo_chofer,
+            valido=True,
         )
 
         inicio = self.ahora + timedelta(days=1, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=self.usuario, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test",
-            cant_pasajeros=2, requiere_chofer=True
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
+            requiere_chofer=True,
         )
         # Cancelar primero para que _reasignar_ticket no cuente este ticket en su query de choferes
         ticket.estado = Ticket.ESTADO_CANCELADO
@@ -1049,8 +1338,11 @@ class TestEdgeCasesBajaTemporal(TestCase):
         """_reasignar_ticket debe asignar exclusive_decanato si usuario es Decano."""
         cargo_decano = get_cargo(Cargo.DECANO, 1)
         decano = Usuario.objects.create(
-            nombre="Decano", apellido="Test", correo="decano@test.com",
-            id_cargo=cargo_decano, valido=True
+            nombre="Decano",
+            apellido="Test",
+            correo="decano@test.com",
+            id_cargo=cargo_decano,
+            valido=True,
         )
 
         self.vehiculo2.exclusivo_decanato = True
@@ -1058,12 +1350,14 @@ class TestEdgeCasesBajaTemporal(TestCase):
 
         inicio = self.ahora + timedelta(days=1, hours=8)
         ticket = Ticket.objects.create(
-            id_usuario=decano, id_vehiculo=self.vehiculo1,
-            hora_inicio=inicio, hora_fin=inicio + timedelta(hours=2),
-            estado=Ticket.ESTADO_APROBADO, destino="Test", cant_pasajeros=2
+            id_usuario=decano,
+            id_vehiculo=self.vehiculo1,
+            hora_inicio=inicio,
+            hora_fin=inicio + timedelta(hours=2),
+            estado=Ticket.ESTADO_APROBADO,
+            destino="Test",
+            cant_pasajeros=2,
         )
         nuevo = _reasignar_ticket(ticket)
         self.assertIsNotNone(nuevo)
         self.assertEqual(nuevo.id_vehiculo, self.vehiculo2)
-
-

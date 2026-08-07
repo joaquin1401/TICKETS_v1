@@ -11,9 +11,10 @@ Este módulo integra con la lógica de negocio en services.py para resolver
 conflictos de disponibilidad según la prioridad del cargo del solicitante.
 """
 
-from django.db import models
-from django.contrib.auth.hashers import make_password
 import uuid
+
+from django.contrib.auth.hashers import make_password
+from django.db import models
 from django.utils import timezone
 
 
@@ -88,7 +89,6 @@ class Cargo(models.Model):
         return self.nombre
 
 
-
 class Usuario(models.Model):
     """
     Representa una cuenta de usuario en el sistema.
@@ -128,33 +128,31 @@ class Usuario(models.Model):
     correo = models.EmailField(unique=True)
 
     DEPARTAMENTOS_CHOICES = [
-        ('TUL', 'TUL'),
-        ('TUM', 'TUM'),
-        ('TUP', 'TUP'),
-        ('TOUMRE', 'TOUMRE'),
-        ('IEM', 'IEM'),
-        ('IQ', 'IQ'),
-        ('ISI', 'ISI'),
-        ('LAR', 'LAR'),
+        ("TUL", "TUL"),
+        ("TUM", "TUM"),
+        ("TUP", "TUP"),
+        ("TOUMRE", "TOUMRE"),
+        ("IEM", "IEM"),
+        ("IQ", "IQ"),
+        ("ISI", "ISI"),
+        ("LAR", "LAR"),
     ]
     departamento = models.CharField(
-        max_length=20, 
-        choices=DEPARTAMENTOS_CHOICES, 
-        null=True, 
+        max_length=20,
+        choices=DEPARTAMENTOS_CHOICES,
+        null=True,
         blank=True,
-        help_text="Requerido si el cargo es Usuario"
+        help_text="Requerido si el cargo es Usuario",
     )
     valido = models.BooleanField(
         default=False,
-        help_text="True = aprobado por admin, False = pendiente o rechazado"
+        help_text="True = aprobado por admin, False = pendiente o rechazado",
     )
     rechazado = models.BooleanField(
-        default=False,
-        help_text="True = fue explícitamente rechazado por el admin"
+        default=False, help_text="True = fue explícitamente rechazado por el admin"
     )
     correo_verificado = models.BooleanField(
-        default=False,
-        help_text="True = el usuario verificó su correo electrónico"
+        default=False, help_text="True = el usuario verificó su correo electrónico"
     )
 
     class Meta:
@@ -192,6 +190,7 @@ class Usuario(models.Model):
             contra ataques de timing.
         """
         from django.contrib.auth.hashers import check_password
+
         return check_password(raw_password, self.contrasena)
 
     @property
@@ -240,20 +239,19 @@ class Vehiculo(models.Model):
     cant_pasajeros = models.PositiveIntegerField()
     activo = models.BooleanField(
         default=True,
-        help_text="False = dado de baja permanente (ej: fue al taller o fue descartado)"
+        help_text="False = dado de baja permanente (ej: fue al taller o fue descartado)",
     )
     inactivo_hasta = models.DateField(
         null=True,
         blank=True,
-        help_text="Fecha hasta la que el vehículo estará inactivo por baja temporal (ej: rotura). Null = sin baja temporal activa."
+        help_text="Fecha hasta la que el vehículo estará inactivo por baja temporal (ej: rotura). Null = sin baja temporal activa.",
     )
     exclusivo_decanato = models.BooleanField(
-        default=False,
-        help_text="True = solo puede ser reservado por el Decano"
+        default=False, help_text="True = solo puede ser reservado por el Decano"
     )
     requiere_chofer = models.BooleanField(
         default=False,
-        help_text="True = es obligatorio que se asigne un chofer para su reserva"
+        help_text="True = es obligatorio que se asigne un chofer para su reserva",
     )
 
     class Meta:
@@ -265,7 +263,10 @@ class Vehiculo(models.Model):
 
     def save(self, *args, **kwargs):
         """Limpia `inactivo_hasta` automáticamente si ya expiró."""
-        if self.inactivo_hasta is not None and self.inactivo_hasta < timezone.localdate():
+        if (
+            self.inactivo_hasta is not None
+            and self.inactivo_hasta < timezone.localdate()
+        ):
             self.inactivo_hasta = None
         super().save(*args, **kwargs)
 
@@ -360,55 +361,66 @@ class Ticket(models.Model):
         Vehiculo, on_delete=models.PROTECT, related_name="tickets"
     )
     conductor = models.ForeignKey(
-        Usuario, on_delete=models.SET_NULL, null=True, blank=True, related_name="tickets_conducidos",
-        help_text="Chofer asignado al viaje"
+        Usuario,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tickets_conducidos",
+        help_text="Chofer asignado al viaje",
     )
     requiere_chofer = models.BooleanField(
-        default=False,
-        help_text="True = la reserva requiere de un chofer"
+        default=False, help_text="True = la reserva requiere de un chofer"
     )
     para_tercero = models.BooleanField(
         default=False,
-        help_text="True = el vehículo será usado por alguien distinto al solicitante"
+        help_text="True = el vehículo será usado por alguien distinto al solicitante",
     )
     destino = models.CharField(max_length=255)
     distancia_est = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0.0,
-        help_text="Distancia estimada por el sistema (incluye ida y vuelta, calculada automáticamente x2)"
+        max_digits=10,
+        decimal_places=2,
+        default=0.0,
+        help_text="Distancia estimada por el sistema (incluye ida y vuelta, calculada automáticamente x2)",
     )
     distancia_real = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        help_text="Distancia real recorrida (calculada automáticamente)"
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Distancia real recorrida (calculada automáticamente)",
     )
     kilometraje_inicio = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        help_text="Kilometraje (odómetro) del vehículo al comenzar el viaje"
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Kilometraje (odómetro) del vehículo al comenzar el viaje",
     )
     kilometraje_fin = models.DecimalField(
-        max_digits=10, decimal_places=2, null=True, blank=True,
-        help_text="Kilometraje (odómetro) del vehículo al finalizar el viaje"
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Kilometraje (odómetro) del vehículo al finalizar el viaje",
     )
     cant_pasajeros = models.PositiveIntegerField()
     descripcion = models.TextField(blank=True)
     hora_inicio = models.DateTimeField()
     hora_inicio_real = models.DateTimeField(null=True, blank=True)
     hora_fin = models.DateTimeField(
-        null=True, blank=True,
-        help_text="Opcional: hora estimada de regreso"
+        null=True, blank=True, help_text="Opcional: hora estimada de regreso"
     )
     hora_fin_real = models.DateTimeField(null=True, blank=True)
-    estado = models.CharField(
-        max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE
-    )
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=ESTADO_PENDIENTE)
     fecha = models.DateTimeField(auto_now_add=True)
     observacion = models.TextField(
         blank=True,
-        help_text="Se completa automáticamente si el ticket es cancelado por jerarquía"
+        help_text="Se completa automáticamente si el ticket es cancelado por jerarquía",
     )
     justificacion_retraso = models.TextField(
         blank=True,
         null=True,
-        help_text="Justificación obligatoria si el viaje finaliza más de 2h después de la hora estimada de regreso"
+        help_text="Justificación obligatoria si el viaje finaliza más de 2h después de la hora estimada de regreso",
     )
 
     class Meta:
@@ -430,7 +442,9 @@ class Ticket(models.Model):
         ]
 
     def __str__(self):
-        return f"Ticket #{self.pk} - {self.id_usuario} -> {self.destino} ({self.estado})"
+        return (
+            f"Ticket #{self.pk} - {self.id_usuario} -> {self.destino} ({self.estado})"
+        )
 
     def save(self, *args, **kwargs):
         if self.kilometraje_inicio is not None and self.kilometraje_fin is not None:
@@ -453,9 +467,13 @@ class NotificationLog(models.Model):
     TYPE_REMINDER_3_DAYS = "reminder_3_days"
     TYPE_REMINDER_SAME_DAY = "reminder_same_day"
     TYPE_REMINDER_RETURN_LATE = "reminder_return_late"
-    TYPE_VEHICLE_INACTIVE = "vehicle_inactive"        # Cancelado por baja temporal de vehículo
-    TYPE_PRIORITY_CANCELLED = "priority_cancelled"    # Cancelado por prioridad de otro usuario
-    TYPE_REASSIGNED = "reassigned"                    # Reasignado automáticamente a otro vehículo
+    TYPE_VEHICLE_INACTIVE = (
+        "vehicle_inactive"  # Cancelado por baja temporal de vehículo
+    )
+    TYPE_PRIORITY_CANCELLED = (
+        "priority_cancelled"  # Cancelado por prioridad de otro usuario
+    )
+    TYPE_REASSIGNED = "reassigned"  # Reasignado automáticamente a otro vehículo
 
     TYPES = [
         (TYPE_CREATED, "Creación"),
@@ -468,7 +486,9 @@ class NotificationLog(models.Model):
         (TYPE_REASSIGNED, "Reasignado automáticamente"),
     ]
 
-    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="notification_logs")
+    ticket = models.ForeignKey(
+        Ticket, on_delete=models.CASCADE, related_name="notification_logs"
+    )
     notification_type = models.CharField(max_length=50, choices=TYPES)
     sent_at = models.DateTimeField(auto_now_add=True)
 
@@ -478,13 +498,15 @@ class NotificationLog(models.Model):
         indexes = [models.Index(fields=["notification_type", "sent_at"])]
 
     def __str__(self):
-        return f"{self.notification_type} @ {self.ticket_id} -> {self.sent_at.isoformat()}"
-
+        return (
+            f"{self.notification_type} @ {self.ticket_id} -> {self.sent_at.isoformat()}"
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # NUEVO: Verificación de correo electrónico
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class VerificacionCorreo(models.Model):
     """
@@ -526,23 +548,21 @@ class VerificacionCorreo(models.Model):
         Usuario,
         on_delete=models.CASCADE,
         related_name="verificacion",
-        help_text="Usuario propietario de esta verificación"
+        help_text="Usuario propietario de esta verificación",
     )
     codigo = models.CharField(
-        max_length=6,
-        help_text="Código numérico de 6 dígitos enviado por correo"
+        max_length=6, help_text="Código numérico de 6 dígitos enviado por correo"
     )
     token = models.UUIDField(
-        unique=True,
-        help_text="Token UUID v4 para el enlace mágico del correo"
+        unique=True, help_text="Token UUID v4 para el enlace mágico del correo"
     )
     creado_en = models.DateTimeField(
         auto_now_add=True,
-        help_text="Momento de generación. El registro expira a los 30 minutos."
+        help_text="Momento de generación. El registro expira a los 30 minutos.",
     )
     usado = models.BooleanField(
         default=False,
-        help_text="True = ya verificado. Invalida tanto el código como el token."
+        help_text="True = ya verificado. Invalida tanto el código como el token.",
     )
 
     class Meta:
@@ -568,11 +588,12 @@ class VerificacionCorreo(models.Model):
             Usa timezone.now() para ser compatible con USE_TZ=True
             configurado en settings.py.
         """
-        from django.utils import timezone
         from datetime import timedelta
-        return (
-            not self.usado
-            and timezone.now() < self.creado_en + timedelta(minutes=30)
+
+        from django.utils import timezone
+
+        return not self.usado and timezone.now() < self.creado_en + timedelta(
+            minutes=30
         )
 
 
@@ -580,25 +601,21 @@ class RecuperacionPassword(models.Model):
     """
     Controla el proceso temporal de recuperación de contraseña de un usuario.
     """
+
     usuario = models.ForeignKey(
         Usuario, on_delete=models.CASCADE, related_name="recuperaciones_password"
     )
-    codigo = models.CharField(
-        max_length=6,
-        help_text="Código numérico de 6 dígitos"
-    )
+    codigo = models.CharField(max_length=6, help_text="Código numérico de 6 dígitos")
     token = models.UUIDField(
         default=uuid.uuid4,
         editable=False,
-        help_text="Token UUID v4 para el enlace de recuperación rápida"
+        help_text="Token UUID v4 para el enlace de recuperación rápida",
     )
     creado_en = models.DateTimeField(
-        auto_now_add=True,
-        help_text="Momento de generación. Expira a los 30 minutos."
+        auto_now_add=True, help_text="Momento de generación. Expira a los 30 minutos."
     )
     usado = models.BooleanField(
-        default=False,
-        help_text="True = código/token ya canjeado."
+        default=False, help_text="True = código/token ya canjeado."
     )
 
     class Meta:
@@ -611,11 +628,12 @@ class RecuperacionPassword(models.Model):
 
     def esta_vigente(self):
         """Determina si la solicitud no fue usada y está dentro de los 30 minutos."""
-        from django.utils import timezone
         from datetime import timedelta
-        return (
-            not self.usado
-            and timezone.now() < self.creado_en + timedelta(minutes=30)
+
+        from django.utils import timezone
+
+        return not self.usado and timezone.now() < self.creado_en + timedelta(
+            minutes=30
         )
 
 
@@ -623,44 +641,46 @@ class RecuperacionPassword(models.Model):
 # Configuración Global
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ConfiguracionGlobal(models.Model):
     """
     Modelo Singleton para almacenar configuraciones globales del sistema.
     Solo existirá un registro activo.
     """
+
     dias_anticipacion_reservas = models.PositiveIntegerField(
         default=3,
-        help_text="Días mínimos de anticipación requeridos para hacer una reserva (usuarios normales)"
+        help_text="Días mínimos de anticipación requeridos para hacer una reserva (usuarios normales)",
     )
     dias_maximo_anticipacion_reservas = models.PositiveIntegerField(
         default=60,
-        help_text="Días máximos de anticipación permitidos para hacer una reserva"
+        help_text="Días máximos de anticipación permitidos para hacer una reserva",
     )
     dias_anticipacion_cancelacion = models.PositiveIntegerField(
         default=5,
-        help_text="Días mínimos de anticipación requeridos para cancelar una reserva (usuarios normales)"
+        help_text="Días mínimos de anticipación requeridos para cancelar una reserva (usuarios normales)",
     )
     horas_margen_entre_reservas = models.PositiveIntegerField(
         default=1,
-        help_text="Horas de margen obligatorio entre la finalización de un ticket y el inicio del próximo para el mismo vehículo"
+        help_text="Horas de margen obligatorio entre la finalización de un ticket y el inicio del próximo para el mismo vehículo",
     )
     minutos_margen_entre_reservas = models.PositiveIntegerField(
         default=0,
-        help_text="Minutos adicionales de margen entre la finalización de un ticket y el inicio del próximo para el mismo vehículo"
+        help_text="Minutos adicionales de margen entre la finalización de un ticket y el inicio del próximo para el mismo vehículo",
     )
-    
+
     class Meta:
         verbose_name = "Configuración Global"
         verbose_name_plural = "Configuraciones Globales"
-        
+
     def __str__(self):
         return "Configuración del Sistema"
-        
+
     def save(self, *args, **kwargs):
         # Aseguramos que solo haya un registro con pk=1
         self.pk = 1
         super().save(*args, **kwargs)
-        
+
     @classmethod
     def get_solo(cls):
         """
@@ -669,12 +689,16 @@ class ConfiguracionGlobal(models.Model):
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
 
+
 class Feriado(models.Model):
     """
     Representa un día feriado o no laborable donde no se permiten reservas de vehículos.
     """
+
     fecha = models.DateField(unique=True)
-    descripcion = models.CharField(max_length=255, blank=True, help_text="Descripción opcional del feriado")
+    descripcion = models.CharField(
+        max_length=255, blank=True, help_text="Descripción opcional del feriado"
+    )
 
     class Meta:
         verbose_name = "Feriado"
@@ -689,6 +713,7 @@ class Feriado(models.Model):
 # ══════════════════════════════════════════════════════════════════════════════
 # Permiso de reserva de emergencia tras cancelación forzada
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class PermisoReservaExtraordinaria(models.Model):
     """
@@ -726,26 +751,26 @@ class PermisoReservaExtraordinaria(models.Model):
         Usuario,
         on_delete=models.CASCADE,
         related_name="permisos_emergencia",
-        help_text="Usuario que puede usar este permiso."
+        help_text="Usuario que puede usar este permiso.",
     )
     ticket_cancelado = models.ForeignKey(
         "Ticket",
         on_delete=models.CASCADE,
         related_name="permisos_generados",
-        help_text="Ticket cancelado que originó este permiso."
+        help_text="Ticket cancelado que originó este permiso.",
     )
     motivo = models.CharField(
         max_length=20,
         choices=MOTIVOS,
         default=MOTIVO_BAJA_VEHICULO,
-        help_text="Razón por la que se generó el permiso excepcional."
+        help_text="Razón por la que se generó el permiso excepcional.",
     )
     valido_hasta = models.DateField(
         help_text="Último día en el que el permiso puede usarse (calculado en base a la configuración global)."
     )
     usado = models.BooleanField(
         default=False,
-        help_text="True = el permiso ya fue utilizado para crear una reserva."
+        help_text="True = el permiso ya fue utilizado para crear una reserva.",
     )
     creado_en = models.DateTimeField(auto_now_add=True)
 

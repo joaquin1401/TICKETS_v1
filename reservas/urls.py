@@ -22,6 +22,7 @@ Decoradores de vista:
 """
 
 from django.urls import path
+
 from . import views
 
 urlpatterns = [
@@ -31,44 +32,50 @@ urlpatterns = [
     # HU 1.1: Registro de cuenta
     # HU 1.2: Inicio de sesión
     # HU 1.3 / 1.4: Panel de validación (dentro de admin-panel)
-    
     path("", views.login_view, name="login"),
     path("registro/", views.registro, name="registro"),
     path("logout/", views.logout_view, name="logout"),
-
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 2: Inicio y Tickets (Usuario normal)
     # ═══════════════════════════════════════════════════════════════════════════════
     # HU 2.1: Inicio con formulario rápido de reserva
     # HU 2.2: Historial de tickets
     # HU 2.3: Detalle de ticket específico
-    
     path("inicio/", views.inicio, name="inicio"),
     path("historial/", views.historial, name="historial"),
     path("tickets/<int:ticket_id>/", views.detalle_ticket, name="detalle_ticket"),
-    path("tickets/<int:ticket_id>/cancelar/", views.cancelar_ticket, name="cancelar_ticket"),
-
+    path(
+        "tickets/<int:ticket_id>/cancelar/",
+        views.cancelar_ticket,
+        name="cancelar_ticket",
+    ),
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 8: Gestión de Choferes
     # ═══════════════════════════════════════════════════════════════════════════════
     path("chofer/dashboard/", views.chofer_dashboard, name="chofer_dashboard"),
-    path("tickets/<int:ticket_id>/aceptar/", views.aceptar_ticket, name="aceptar_ticket"),
-    path("tickets/<int:ticket_id>/finalizar/", views.finalizar_ticket, name="finalizar_ticket"),
-
+    path(
+        "tickets/<int:ticket_id>/aceptar/", views.aceptar_ticket, name="aceptar_ticket"
+    ),
+    path(
+        "tickets/<int:ticket_id>/finalizar/",
+        views.finalizar_ticket,
+        name="finalizar_ticket",
+    ),
     # API auxiliar
-    path("api/calcular-distancia/", views.api_calcular_distancia, name="api_calcular_distancia"),
-
+    path(
+        "api/calcular-distancia/",
+        views.api_calcular_distancia,
+        name="api_calcular_distancia",
+    ),
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 3: Calendario e Interactividad
     # ═══════════════════════════════════════════════════════════════════════════════
     # HU 3.1: Selector de vehículo
     # HU 3.2: Vista mensual del calendario
     # HU 3.3: Línea de tiempo horaria de un día
-    
     # HU 3.1: Selector de vehículo
     # HU 3.2: Vista mensual del calendario
     # HU 3.3: Línea de tiempo horaria de un día
-
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 5: Supervisión y Administración
     # ═══════════════════════════════════════════════════════════════════════════════
@@ -77,34 +84,79 @@ urlpatterns = [
     # HU 5.2: Vista de usuarios rechazados
     # HU 5.3: Monitor de tickets activos de la empresa
     # HU 5.4: Historial de tickets históricos y cancelados
-    
     path("admin-panel/validacion/", views.panel_validacion, name="panel_validacion"),
     path("admin-panel/usuarios/", views.usuarios, name="usuarios"),
-    path("admin-panel/usuarios/<int:usuario_id>/", views.detalle_usuario, name="detalle_usuario"),
-    path("admin-panel/usuarios/crear/", views.admin_crear_usuario, name="admin_crear_usuario"),
-    path("admin-panel/usuarios/rechazados/", views.usuarios_rechazados, name="usuarios_rechazados"),
-    path("admin-panel/tickets/activos/", views.monitor_tickets_activos, name="monitor_tickets_activos"),
-    path("admin-panel/tickets/historial/", views.historial_tickets, name="historial_tickets"),
-    path("admin-panel/tickets/historial/descargar/", views.descargar_historial_csv, name="descargar_historial_csv"),
-
+    path(
+        "admin-panel/usuarios/<int:usuario_id>/",
+        views.detalle_usuario,
+        name="detalle_usuario",
+    ),
+    path(
+        "admin-panel/usuarios/crear/",
+        views.admin_crear_usuario,
+        name="admin_crear_usuario",
+    ),
+    path(
+        "admin-panel/usuarios/rechazados/",
+        views.usuarios_rechazados,
+        name="usuarios_rechazados",
+    ),
+    path(
+        "admin-panel/tickets/activos/",
+        views.monitor_tickets_activos,
+        name="monitor_tickets_activos",
+    ),
+    path(
+        "admin-panel/tickets/historial/",
+        views.historial_tickets,
+        name="historial_tickets",
+    ),
+    path(
+        "admin-panel/tickets/historial/descargar/",
+        views.descargar_historial_csv,
+        name="descargar_historial_csv",
+    ),
     # ═══════════════════════════════════════════════════════════════════════════════
     # Épica 6: ABM (Alta, Baja, Modificación) de Vehículos
     # ═══════════════════════════════════════════════════════════════════════════════
     # HU 6.1: Listado de vehículos
     # HU 6.2: Alta de vehículo
     # HU 6.3: Edición / baja de vehículo
-    
-    path("admin-panel/analiticas/", views.reporte_analiticas, name="reporte_analiticas"),
-    path("admin-panel/analiticas/vehiculo/<int:vehiculo_id>/", views.analiticas_vehiculo, name="analiticas_vehiculo"),
-    path("admin-panel/analiticas/pdf/", views.reporte_analiticas_pdf, name="reporte_analiticas_pdf"),
+    path(
+        "admin-panel/analiticas/", views.reporte_analiticas, name="reporte_analiticas"
+    ),
+    path(
+        "admin-panel/analiticas/vehiculo/<int:vehiculo_id>/",
+        views.analiticas_vehiculo,
+        name="analiticas_vehiculo",
+    ),
+    path(
+        "admin-panel/analiticas/pdf/",
+        views.reporte_analiticas_pdf,
+        name="reporte_analiticas_pdf",
+    ),
     path("admin-panel/vehiculos/", views.listado_vehiculos, name="listado_vehiculos"),
     path("admin-panel/vehiculos/nueva/", views.alta_vehiculo, name="alta_vehiculo"),
-    path("admin-panel/vehiculos/<int:vehiculo_id>/editar/", views.edicion_vehiculo, name="edicion_vehiculo"),
-    path("admin-panel/vehiculos/<int:vehiculo_id>/baja-temporal/", views.baja_temporal_vehiculo, name="baja_temporal_vehiculo"),
-    path("admin-panel/vehiculos/<int:vehiculo_id>/levantar-baja/", views.levantar_baja_vehiculo, name="levantar_baja_vehiculo"),
-    path("admin-panel/configuracion/", views.configuracion_global, name="configuracion_global"),
-
-
+    path(
+        "admin-panel/vehiculos/<int:vehiculo_id>/editar/",
+        views.edicion_vehiculo,
+        name="edicion_vehiculo",
+    ),
+    path(
+        "admin-panel/vehiculos/<int:vehiculo_id>/baja-temporal/",
+        views.baja_temporal_vehiculo,
+        name="baja_temporal_vehiculo",
+    ),
+    path(
+        "admin-panel/vehiculos/<int:vehiculo_id>/levantar-baja/",
+        views.levantar_baja_vehiculo,
+        name="levantar_baja_vehiculo",
+    ),
+    path(
+        "admin-panel/configuracion/",
+        views.configuracion_global,
+        name="configuracion_global",
+    ),
     # NUEVO — Verificación de correo electrónico (extensión de HU 1.1)
     #
     # Flujo post-registro:
@@ -126,14 +178,30 @@ urlpatterns = [
     #   evitando procesar strings malformados. Si el token es válido y vigente,
     #   marca correo_verificado=True y redirige al login con mensaje de éxito.
     path("verificar-correo/", views.verificar_correo, name="verificar_correo"),
-    path("verificar-correo/<uuid:token>/", views.verificar_correo_enlace, name="verificar_correo_enlace"),
-
+    path(
+        "verificar-correo/<uuid:token>/",
+        views.verificar_correo_enlace,
+        name="verificar_correo_enlace",
+    ),
     # Recuperación de contraseña
-    path("recuperar-password/", views.solicitar_recuperacion, name="solicitar_recuperacion"),
-    path("recuperar-password/verificar/", views.verificar_recuperacion, name="verificar_recuperacion"),
-    path("recuperar-password/verificar/<uuid:token>/", views.verificar_recuperacion_enlace, name="verificar_recuperacion_enlace"),
+    path(
+        "recuperar-password/",
+        views.solicitar_recuperacion,
+        name="solicitar_recuperacion",
+    ),
+    path(
+        "recuperar-password/verificar/",
+        views.verificar_recuperacion,
+        name="verificar_recuperacion",
+    ),
+    path(
+        "recuperar-password/verificar/<uuid:token>/",
+        views.verificar_recuperacion_enlace,
+        name="verificar_recuperacion_enlace",
+    ),
     path("recuperar-password/nueva/", views.nueva_contrasena, name="nueva_contrasena"),
-
     # Utilidad de desarrollo para previsualizar emails
-    path("preview-email/<str:template_name>/", views.preview_email, name="preview_email"),
+    path(
+        "preview-email/<str:template_name>/", views.preview_email, name="preview_email"
+    ),
 ]

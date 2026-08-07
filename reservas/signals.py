@@ -1,10 +1,13 @@
-from django.db.models.signals import pre_save, post_save
-from django.dispatch import receiver
-from django.utils import timezone
 import logging
 
+from django.db.models.signals import post_save, pre_save
+from django.dispatch import receiver
+
 from .models import Ticket
-from .utils.notifications import notify_reservation_created, notify_reservation_cancelled
+from .utils.notifications import (
+    notify_reservation_cancelled,
+    notify_reservation_created,
+)
 
 logger = logging.getLogger(__name__)
 

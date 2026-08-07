@@ -3,9 +3,10 @@ settings.py — Configuración del proyecto Django con PostgreSQL.
 Copiá este archivo como base y ajustá las variables de entorno.
 """
 
-from pathlib import Path
 import os
 import sys
+from pathlib import Path
+
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -29,8 +30,8 @@ if not DEBUG and SECRET_KEY == SECRET_KEY_INSEGURA:
     raise ImproperlyConfigured(
         "DJANGO_SECRET_KEY no está configurada (o quedó con el valor de ejemplo) "
         "y DEBUG=False. Generá una con:\n"
-        "  python -c \"from django.core.management.utils import get_random_secret_key; "
-        "print(get_random_secret_key())\""
+        '  python -c "from django.core.management.utils import get_random_secret_key; '
+        'print(get_random_secret_key())"'
     )
 
 # ── Apps ─────────────────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_q",
-    "reservas",                      # ← tu app
+    "reservas",  # ← tu app
 ]
 
 MIDDLEWARE = [
@@ -59,7 +60,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "config.urls"          # ajustá al nombre de tu carpeta de proyecto
+ROOT_URLCONF = "config.urls"  # ajustá al nombre de tu carpeta de proyecto
 
 # ── Templates ────────────────────────────────────────────────────────────────
 TEMPLATES = [
@@ -85,11 +86,11 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME":     os.environ.get("DB_NAME"),
-        "USER":     os.environ.get("DB_USER"),
+        "NAME": os.environ.get("DB_NAME"),
+        "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
-        "HOST":     os.environ.get("DB_HOST"),
-        "PORT":     os.environ.get("DB_PORT"),
+        "HOST": os.environ.get("DB_HOST"),
+        "PORT": os.environ.get("DB_PORT"),
     }
 }
 # ── Internacionalización ─────────────────────────────────────────────────────
@@ -145,21 +146,22 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # ── Sesiones ─────────────────────────────────────────────────────────────────
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
-SESSION_COOKIE_AGE = 60 * 60 * 8     # 8 horas
+SESSION_COOKIE_AGE = 60 * 60 * 8  # 8 horas
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 # ── Mensajes ─────────────────────────────────────────────────────────────────
 from django.contrib.messages import constants as messages_constants
+
 MESSAGE_TAGS = {
-    messages_constants.DEBUG:   "secondary",
-    messages_constants.INFO:    "info",
+    messages_constants.DEBUG: "secondary",
+    messages_constants.INFO: "info",
     messages_constants.SUCCESS: "success",
     messages_constants.WARNING: "warning",
-    messages_constants.ERROR:   "danger",
+    messages_constants.ERROR: "danger",
 }
 # ── Email ─────────────────────────────────────────────────────────────────
-#Es la dirección que le aparecerá al usuario como "Remitente" cuando reciba el correo de verificación.
-DEFAULT_FROM_EMAIL  = os.environ.get("EMAIL_HOST_USER", "")
+# Es la dirección que le aparecerá al usuario como "Remitente" cuando reciba el correo de verificación.
+DEFAULT_FROM_EMAIL = os.environ.get("EMAIL_HOST_USER", "")
 # Es la URL base que se usará para construir los enlaces de verificación en los correos electrónicos. Asegúrate de ajustar esto según tu entorno (desarrollo, producción, etc.).
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.environ.get("EMAIL_HOST", "smtp.gmail.com")
@@ -170,7 +172,9 @@ EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 
 CSRF_COOKIE_SECURE = os.environ.get("CSRF_COOKIE_SECURE", str(not DEBUG)) == "True"
-SESSION_COOKIE_SECURE = os.environ.get("SESSION_COOKIE_SECURE", str(not DEBUG)) == "True"
+SESSION_COOKIE_SECURE = (
+    os.environ.get("SESSION_COOKIE_SECURE", str(not DEBUG)) == "True"
+)
 CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "").split()
 # ── URL base para enlaces en emails ───────────────────────────────────────
 SITE_URL = os.environ.get("SITE_URL", "http://localhost:8000")
@@ -228,11 +232,11 @@ LOGGING = {
 
 # ── Django Q2 (Tareas Asíncronas) ────────────────────────────────────────────
 Q_CLUSTER = {
-    'name': 'DjangORM',
-    'workers': 4,
-    'timeout': 90,
-    'retry': 120,
-    'queue_limit': 50,
-    'bulk': 10,
-    'orm': 'default'
+    "name": "DjangORM",
+    "workers": 4,
+    "timeout": 90,
+    "retry": 120,
+    "queue_limit": 50,
+    "bulk": 10,
+    "orm": "default",
 }

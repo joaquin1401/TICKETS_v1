@@ -7,14 +7,13 @@ Responsabilidades:
     3. Validar el código ingresado o el enlace rápido.
 """
 
-import uuid
-import random
 import logging
+import random
+import uuid
 
-from django_q.tasks import async_task
 from django.conf import settings
-from django.utils import timezone
 from django.urls import reverse
+from django_q.tasks import async_task
 
 from ..models import RecuperacionPassword
 
@@ -23,6 +22,7 @@ logger = logging.getLogger(__name__)
 # ══════════════════════════════════════════════════════════════════════════════
 # Creación del registro
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def crear_recuperacion(usuario):
     """
@@ -38,9 +38,11 @@ def crear_recuperacion(usuario):
     )
     return recuperacion
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Envío de correo
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def enviar_correo_recuperacion(usuario, recuperacion, request):
     """
@@ -65,9 +67,11 @@ def enviar_correo_recuperacion(usuario, recuperacion, request):
         logger.error("Error al enviar recuperación a %s: %s", usuario.correo, exc)
         return False
 
+
 def _construir_enlace_recuperacion(token, request):
     path = reverse("verificar_recuperacion_enlace", kwargs={"token": str(token)})
     return request.build_absolute_uri(path)
+
 
 def _cuerpo_texto(usuario, codigo, enlace):
     return f"""Hola {usuario.nombre},
@@ -84,6 +88,7 @@ Si no solicitaste recuperar tu contraseña, podés ignorar este correo de forma 
 
 — Sistema de Reserva de Vehículos
 """
+
 
 def _cuerpo_html(usuario, codigo, enlace):
     return f"""<!DOCTYPE html>
@@ -130,25 +135,27 @@ def _cuerpo_html(usuario, codigo, enlace):
   </table>
 </body></html>"""
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # Validación
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ResultadoRecuperacion:
-    OK         = "ok"
-    EXPIRADO   = "expirado"
+    OK = "ok"
+    EXPIRADO = "expirado"
     INCORRECTO = "incorrecto"
-    YA_USADO   = "ya_usado"
+    YA_USADO = "ya_usado"
 
     MENSAJES = {
-        OK:         "Validado correctamente.",
-        EXPIRADO:   "El código/enlace expiró (30 minutos). Solicitá uno nuevo.",
+        OK: "Validado correctamente.",
+        EXPIRADO: "El código/enlace expiró (30 minutos). Solicitá uno nuevo.",
         INCORRECTO: "Código incorrecto.",
-        YA_USADO:   "Este código ya fue utilizado.",
+        YA_USADO: "Este código ya fue utilizado.",
     }
 
     def __init__(self, estado):
-        self.estado  = estado
+        self.estado = estado
         self.mensaje = self.MENSAJES[estado]
 
     @property
@@ -163,9 +170,12 @@ def verificar_recuperacion_por_codigo(usuario, codigo_ingresado):
     except RecuperacionPassword.DoesNotExist:
         return ResultadoRecuperacion(ResultadoRecuperacion.EXPIRADO)
 
-    if v.usado: return ResultadoRecuperacion(ResultadoRecuperacion.YA_USADO)
-    if not v.esta_vigente(): return ResultadoRecuperacion(ResultadoRecuperacion.EXPIRADO)
-    if v.codigo != codigo_ingresado.strip(): return ResultadoRecuperacion(ResultadoRecuperacion.INCORRECTO)
+    if v.usado:
+        return ResultadoRecuperacion(ResultadoRecuperacion.YA_USADO)
+    if not v.esta_vigente():
+        return ResultadoRecuperacion(ResultadoRecuperacion.EXPIRADO)
+    if v.codigo != codigo_ingresado.strip():
+        return ResultadoRecuperacion(ResultadoRecuperacion.INCORRECTO)
 
     return ResultadoRecuperacion(ResultadoRecuperacion.OK)
 
@@ -178,8 +188,10 @@ def verificar_recuperacion_por_token(token_str):
     except (ValueError, RecuperacionPassword.DoesNotExist):
         return ResultadoRecuperacion(ResultadoRecuperacion.INCORRECTO), None
 
-    if v.usado: return ResultadoRecuperacion(ResultadoRecuperacion.YA_USADO), v.usuario
-    if not v.esta_vigente(): return ResultadoRecuperacion(ResultadoRecuperacion.EXPIRADO), v.usuario
+    if v.usado:
+        return ResultadoRecuperacion(ResultadoRecuperacion.YA_USADO), v.usuario
+    if not v.esta_vigente():
+        return ResultadoRecuperacion(ResultadoRecuperacion.EXPIRADO), v.usuario
 
     return ResultadoRecuperacion(ResultadoRecuperacion.OK), v.usuario
 

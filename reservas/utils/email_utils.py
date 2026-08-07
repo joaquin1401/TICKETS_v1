@@ -1,4 +1,5 @@
 import re
+
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -34,14 +35,16 @@ def send_templated_email(subject, template_name, context, to_email, from_email=N
         html = render_to_string(f"{template_name}.html", context)
         if html:
             # Extrae las definiciones de variables en el HTML (--variable: valor;)
-            css_vars = dict(re.findall(r'(--[\w-]+)\s*:\s*([^;]+);', html))
-            
+            css_vars = dict(re.findall(r"(--[\w-]+)\s*:\s*([^;]+);", html))
+
             # Reemplaza todos los var(--variable) o var(--variable, fallback) con su valor real
             for var_name, var_value in css_vars.items():
-                pattern = rf'var\(\s*{var_name}(?:\s*,\s*[^)]+)?\s*\)'
+                pattern = rf"var\(\s*{var_name}(?:\s*,\s*[^)]+)?\s*\)"
                 html = re.sub(pattern, var_value.strip(), html)
 
-            html = transform(html)  # Convierte las clases CSS a estilos inline automáticamente
+            html = transform(
+                html
+            )  # Convierte las clases CSS a estilos inline automáticamente
     except Exception:
         html = None
 
@@ -54,16 +57,22 @@ def send_templated_email(subject, template_name, context, to_email, from_email=N
         except Exception:
             txt = ""
 
-    msg = EmailMultiAlternatives(subject=subject, body=txt or "", from_email=from_email, to=[to_email])
+    msg = EmailMultiAlternatives(
+        subject=subject, body=txt or "", from_email=from_email, to=[to_email]
+    )
     if html:
         msg.attach_alternative(html, "text/html")
     try:
         msg.send(fail_silently=False)
     except ValueError as e:
         import logging
+
         logger = logging.getLogger(__name__)
-        logger.error(f"Error de formato de correo (posibles caracteres no ASCII) al enviar a {to_email}: {e}")
+        logger.error(
+            f"Error de formato de correo (posibles caracteres no ASCII) al enviar a {to_email}: {e}"
+        )
     except Exception as e:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.error(f"Error inesperado enviando correo a {to_email}: {e}")

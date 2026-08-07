@@ -11,7 +11,6 @@ from django.urls import reverse
 
 from reservas.models import Cargo, Usuario
 
-
 PASSWORD_VALIDA = "Trayecto-Vehiculo-91"
 
 

@@ -22,8 +22,10 @@ class ReservasConfig(AppConfig):
         Esta clase debe registrarse en settings.INSTALLED_APPS del proyecto.
         El patrón moderno de Django prefiere BigAutoField sobre AutoField.
     """
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'reservas'
+
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "reservas"
+
     def ready(self):
         # Import signals to ensure they are registered when app is ready
         try:

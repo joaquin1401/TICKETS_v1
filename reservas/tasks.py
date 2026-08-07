@@ -1,8 +1,11 @@
+import logging
+
 from django.core.mail import send_mail
+
 from .utils.email_utils import send_templated_email
 
-import logging
 logger = logging.getLogger(__name__)
+
 
 def enviar_correo_async(subject, message, from_email, recipient_list, **kwargs):
     """
@@ -13,7 +16,10 @@ def enviar_correo_async(subject, message, from_email, recipient_list, **kwargs):
     except Exception as e:
         logger.error(f"Fallo al enviar_correo_async a {recipient_list}: {e}")
 
-def enviar_correo_templated_async(subject, template_name, context, to_email, from_email=None):
+
+def enviar_correo_templated_async(
+    subject, template_name, context, to_email, from_email=None
+):
     """
     Wrapper asíncrono para send_templated_email.
     """

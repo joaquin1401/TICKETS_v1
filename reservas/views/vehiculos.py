@@ -9,13 +9,17 @@ Vistas de gestión de vehículos (ABM).
     - levantar_baja_vehiculo() — levantamiento anticipado de baja.
 """
 
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
+from django.shortcuts import get_object_or_404, redirect, render
 
-from ..models import Vehiculo
 from ..forms import VehiculoForm
-from ._base import get_usuario_sesion, paginate_queryset, login_requerido, admin_requerido
-
+from ..models import Vehiculo
+from ._base import (
+    admin_requerido,
+    get_usuario_sesion,
+    login_requerido,
+    paginate_queryset,
+)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ÉPICA 6: ABM (ALTA, BAJA, MODIFICACIÓN) DE VEHÍCULOS
@@ -42,19 +46,27 @@ def listado_vehiculos(request):
             - vehiculos: QuerySet de todos los vehículos.
             - usuario: Instancia del usuario logueado (admin).
     """
-    vehiculos_decano = Vehiculo.objects.filter(exclusivo_decanato=True).order_by("marca", "modelo")
-    vehiculos_qs = Vehiculo.objects.filter(exclusivo_decanato=False).order_by("marca", "modelo")
+    vehiculos_decano = Vehiculo.objects.filter(exclusivo_decanato=True).order_by(
+        "marca", "modelo"
+    )
+    vehiculos_qs = Vehiculo.objects.filter(exclusivo_decanato=False).order_by(
+        "marca", "modelo"
+    )
     page_obj, pagination_query = paginate_queryset(request, vehiculos_qs)
 
-    return render(request, "reservas/vehiculos/listado_vehiculos.html", {
-        "vehiculos_decano": vehiculos_decano,
-        "vehiculos": page_obj.object_list,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "total_vehiculos": page_obj.paginator.count,
-        "total_vehiculos_activos": vehiculos_qs.filter(activo=True).count(),
-        "usuario": get_usuario_sesion(request),
-    })
+    return render(
+        request,
+        "reservas/vehiculos/listado_vehiculos.html",
+        {
+            "vehiculos_decano": vehiculos_decano,
+            "vehiculos": page_obj.object_list,
+            "page_obj": page_obj,
+            "pagination_query": pagination_query,
+            "total_vehiculos": page_obj.paginator.count,
+            "total_vehiculos_activos": vehiculos_qs.filter(activo=True).count(),
+            "usuario": get_usuario_sesion(request),
+        },
+    )
 
 
 @login_requerido
@@ -91,11 +103,15 @@ def alta_vehiculo(request):
             return redirect("listado_vehiculos")
     else:
         form = VehiculoForm()
-    return render(request, "reservas/vehiculos/form_vehiculo.html", {
-        "form": form,
-        "titulo": "Agregar vehículo",
-        "usuario": get_usuario_sesion(request),
-    })
+    return render(
+        request,
+        "reservas/vehiculos/form_vehiculo.html",
+        {
+            "form": form,
+            "titulo": "Agregar vehículo",
+            "usuario": get_usuario_sesion(request),
+        },
+    )
 
 
 @login_requerido
@@ -142,12 +158,16 @@ def edicion_vehiculo(request, vehiculo_id):
             return redirect("listado_vehiculos")
     else:
         form = VehiculoForm(instance=vehiculo)
-    return render(request, "reservas/vehiculos/form_vehiculo.html", {
-        "form": form,
-        "titulo": f"Editar vehículo: {vehiculo}",
-        "vehiculo": vehiculo,
-        "usuario": get_usuario_sesion(request),
-    })
+    return render(
+        request,
+        "reservas/vehiculos/form_vehiculo.html",
+        {
+            "form": form,
+            "titulo": f"Editar vehículo: {vehiculo}",
+            "vehiculo": vehiculo,
+            "usuario": get_usuario_sesion(request),
+        },
+    )
 
 
 @login_requerido
@@ -176,7 +196,7 @@ def baja_temporal_vehiculo(request, vehiculo_id):
 
     resultado = dar_baja_temporal_vehiculo(vehiculo, dias, usuario_admin)
 
-    inactivo_str = resultado["inactivo_hasta"].strftime('%d/%m/%Y')
+    inactivo_str = resultado["inactivo_hasta"].strftime("%d/%m/%Y")
     msg = f"Vehículo dado de baja temporalmente hasta el {inactivo_str}. "
     msg += f"Tickets afectados: {resultado['total_afectados']} "
     msg += f"({resultado['reasignados']} reasignados, {resultado['cancelados']} cancelados)."
@@ -197,11 +217,15 @@ def levantar_baja_vehiculo(request, vehiculo_id):
     vehiculo = get_object_or_404(Vehiculo, pk=vehiculo_id)
 
     if not vehiculo.esta_en_baja_temporal():
-        messages.info(request, "El vehículo no se encuentra actualmente en baja temporal.")
+        messages.info(
+            request, "El vehículo no se encuentra actualmente en baja temporal."
+        )
         return redirect("edicion_vehiculo", vehiculo_id=vehiculo_id)
 
     vehiculo.inactivo_hasta = None
     vehiculo.save(update_fields=["inactivo_hasta"])
 
-    messages.success(request, "Baja temporal levantada. El vehículo vuelve a estar disponible.")
+    messages.success(
+        request, "Baja temporal levantada. El vehículo vuelve a estar disponible."
+    )
     return redirect("listado_vehiculos")

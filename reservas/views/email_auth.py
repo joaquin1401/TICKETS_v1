@@ -10,11 +10,11 @@ Vistas de verificación de correo y recuperación de contraseña.
     - nueva_contrasena()
 """
 
-from django.shortcuts import render, redirect
 from django.contrib import messages
+from django.shortcuts import redirect, render
 
-from ..models import Usuario
 from ..forms import VerificacionCodigoForm
+from ..models import Usuario
 from ..utils.email_verification import (
     crear_verificacion,
     enviar_correo_verificacion,
@@ -54,7 +54,9 @@ def verificar_correo(request):
     uid = request.session.get("verificacion_uid")
     if not uid:
         # Sesión perdida o acceso directo a la URL sin registrarse antes
-        messages.error(request, "Sesión de verificación no encontrada. Registrate nuevamente.")
+        messages.error(
+            request, "Sesión de verificación no encontrada. Registrate nuevamente."
+        )
         return redirect("registro")
 
     try:
@@ -63,7 +65,7 @@ def verificar_correo(request):
         return redirect("registro")
 
     # Si ya verificó (ej: abrió el enlace mágico en otra pestaña), ir al login
-    if hasattr(usuario, 'correo_verificado') and usuario.correo_verificado:
+    if hasattr(usuario, "correo_verificado") and usuario.correo_verificado:
         messages.success(request, "Tu correo ya fue verificado. Podés iniciar sesión.")
         return redirect("login")
 
@@ -75,9 +77,14 @@ def verificar_correo(request):
             verificacion = crear_verificacion(usuario)
             enviado = enviar_correo_verificacion(usuario, verificacion, request)
             if enviado:
-                messages.success(request, "Código reenviado. Revisá tu bandeja de entrada.")
+                messages.success(
+                    request, "Código reenviado. Revisá tu bandeja de entrada."
+                )
             else:
-                messages.error(request, "No se pudo enviar el correo. Intentá de nuevo en unos minutos.")
+                messages.error(
+                    request,
+                    "No se pudo enviar el correo. Intentá de nuevo en unos minutos.",
+                )
             return redirect("verificar_correo")
 
         # ── Validación del código ingresado ────────────────────────────────
@@ -101,8 +108,10 @@ def verificar_correo(request):
     else:
         form = VerificacionCodigoForm()
 
-    from ..models import VerificacionCorreo
     from django.utils import timezone
+
+    from ..models import VerificacionCorreo
+
     try:
         verificacion = VerificacionCorreo.objects.get(usuario=usuario)
         tiempo_transcurrido = (timezone.now() - verificacion.creado_en).total_seconds()
@@ -110,11 +119,15 @@ def verificar_correo(request):
     except VerificacionCorreo.DoesNotExist:
         segundos_restantes = 0
 
-    return render(request, "reservas/auth/verificar_correo.html", {
-        "form": form,
-        "correo": usuario.correo,
-        "segundos_restantes": segundos_restantes,
-    })
+    return render(
+        request,
+        "reservas/auth/verificar_correo.html",
+        {
+            "form": form,
+            "correo": usuario.correo,
+            "segundos_restantes": segundos_restantes,
+        },
+    )
 
 
 def verificar_correo_enlace(request, token):
@@ -167,6 +180,7 @@ def verificar_correo_enlace(request, token):
 # Flujo de Recuperación de Contraseña
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def solicitar_recuperacion(request):
     from ..forms import SolicitarRecuperacionForm
     from ..utils.password_recovery import crear_recuperacion, enviar_correo_recuperacion
@@ -180,12 +194,18 @@ def solicitar_recuperacion(request):
                 recuperacion = crear_recuperacion(usuario)
                 enviar_correo_recuperacion(usuario, recuperacion, request)
                 request.session["recuperacion_uid"] = usuario.pk
-                messages.info(request, "Te hemos enviado un correo con instrucciones para restablecer tu contraseña.")
+                messages.info(
+                    request,
+                    "Te hemos enviado un correo con instrucciones para restablecer tu contraseña.",
+                )
                 return redirect("verificar_recuperacion")
             except Usuario.DoesNotExist:
                 # No revelar si el correo existe o no por seguridad,
                 # solo mostrar el mismo mensaje de éxito.
-                messages.info(request, "Si el correo está registrado, recibirás instrucciones en unos minutos.")
+                messages.info(
+                    request,
+                    "Si el correo está registrado, recibirás instrucciones en unos minutos.",
+                )
                 return redirect("login")
     else:
         form = SolicitarRecuperacionForm()
@@ -194,10 +214,15 @@ def solicitar_recuperacion(request):
 
 
 def verificar_recuperacion(request):
-    from ..forms import VerificarRecuperacionForm
-    from ..utils.password_recovery import verificar_recuperacion_por_codigo, crear_recuperacion, enviar_correo_recuperacion
-    from ..models import RecuperacionPassword
     from django.utils import timezone
+
+    from ..forms import VerificarRecuperacionForm
+    from ..models import RecuperacionPassword
+    from ..utils.password_recovery import (
+        crear_recuperacion,
+        enviar_correo_recuperacion,
+        verificar_recuperacion_por_codigo,
+    )
 
     uid = request.session.get("recuperacion_uid")
     if not uid:
@@ -224,7 +249,10 @@ def verificar_recuperacion(request):
 
             if resultado.exito:
                 request.session["can_reset_password"] = True
-                messages.success(request, "Código verificado. Ahora podés ingresar tu nueva contraseña.")
+                messages.success(
+                    request,
+                    "Código verificado. Ahora podés ingresar tu nueva contraseña.",
+                )
                 return redirect("nueva_contrasena")
             else:
                 messages.error(request, resultado.mensaje)
@@ -238,11 +266,15 @@ def verificar_recuperacion(request):
     except RecuperacionPassword.DoesNotExist:
         segundos_restantes = 0
 
-    return render(request, "reservas/auth/verificar_recuperacion.html", {
-        "form": form,
-        "correo": usuario.correo,
-        "segundos_restantes": segundos_restantes,
-    })
+    return render(
+        request,
+        "reservas/auth/verificar_recuperacion.html",
+        {
+            "form": form,
+            "correo": usuario.correo,
+            "segundos_restantes": segundos_restantes,
+        },
+    )
 
 
 def verificar_recuperacion_enlace(request, token):
@@ -268,7 +300,9 @@ def nueva_contrasena(request):
     can_reset = request.session.get("can_reset_password")
 
     if not uid or not can_reset:
-        messages.error(request, "No tenés permiso para cambiar la contraseña en este momento.")
+        messages.error(
+            request, "No tenés permiso para cambiar la contraseña en este momento."
+        )
         return redirect("solicitar_recuperacion")
 
     try:
@@ -287,7 +321,10 @@ def nueva_contrasena(request):
             request.session.pop("recuperacion_uid", None)
             request.session.pop("can_reset_password", None)
 
-            messages.success(request, "Tu contraseña ha sido restablecida exitosamente. Ya podés iniciar sesión.")
+            messages.success(
+                request,
+                "Tu contraseña ha sido restablecida exitosamente. Ya podés iniciar sesión.",
+            )
             return redirect("login")
     else:
         form = NuevaContrasenaForm()

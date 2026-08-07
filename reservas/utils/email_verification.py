@@ -29,14 +29,13 @@ Integración con views.py:
     )
 """
 
-import uuid
-import random
 import logging
+import random
+import uuid
 
-from django_q.tasks import async_task
 from django.conf import settings
-from django.utils import timezone
 from django.urls import reverse
+from django_q.tasks import async_task
 
 from ..models import VerificacionCorreo
 
@@ -46,6 +45,7 @@ logger = logging.getLogger(__name__)
 # ══════════════════════════════════════════════════════════════════════════════
 # Creación del registro de verificación
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def crear_verificacion(usuario):
     """
@@ -100,6 +100,7 @@ def _generar_codigo():
 # ══════════════════════════════════════════════════════════════════════════════
 # Envío del correo de verificación
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def enviar_correo_verificacion(usuario, verificacion, request):
     """
@@ -299,6 +300,7 @@ def _cuerpo_html(usuario, codigo, enlace):
 # Validación — Código de 6 dígitos
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ResultadoVerificacion:
     """
     Objeto de resultado para operaciones de verificación.
@@ -320,20 +322,20 @@ class ResultadoVerificacion:
             messages.error(request, resultado.mensaje)
     """
 
-    OK         = "ok"
-    EXPIRADO   = "expirado"
+    OK = "ok"
+    EXPIRADO = "expirado"
     INCORRECTO = "incorrecto"
-    YA_USADO   = "ya_usado"
+    YA_USADO = "ya_usado"
 
     MENSAJES = {
-        OK:         "¡Correo verificado correctamente!",
-        EXPIRADO:   "El código expiró (30 minutos). Hacé clic en 'Reenviar correo'.",
+        OK: "¡Correo verificado correctamente!",
+        EXPIRADO: "El código expiró (30 minutos). Hacé clic en 'Reenviar correo'.",
         INCORRECTO: "Código incorrecto. Verificá que lo hayas copiado bien.",
-        YA_USADO:   "Este código ya fue utilizado anteriormente.",
+        YA_USADO: "Este código ya fue utilizado anteriormente.",
     }
 
     def __init__(self, estado):
-        self.estado  = estado
+        self.estado = estado
         self.mensaje = self.MENSAJES[estado]
 
     @property
@@ -388,6 +390,7 @@ def verificar_por_codigo(usuario, codigo_ingresado):
 # Validación — Token UUID (enlace mágico)
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 def verificar_por_token(token_str):
     """
     Valida el token UUID del enlace mágico enviado por correo.
@@ -435,6 +438,7 @@ def verificar_por_token(token_str):
 # ══════════════════════════════════════════════════════════════════════════════
 # Helper interno
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def _marcar_verificado(usuario, verificacion):
     """

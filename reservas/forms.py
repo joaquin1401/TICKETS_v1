@@ -15,7 +15,15 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado, to_local_date
+from .models import (
+    Cargo,
+    ConfiguracionGlobal,
+    Feriado,
+    Ticket,
+    Usuario,
+    Vehiculo,
+    to_local_date,
+)
 from .utils.services import evaluar_ventana_anticipacion
 
 
@@ -57,6 +65,7 @@ def validar_fortaleza_password(form, password, campo, datos_usuario=None):
 # Épica 1 — Autenticación
 # ══════════════════════════════════════════════
 
+
 class RegistroForm(forms.ModelForm):
     """
     Formulario para registro de cuenta de usuario (HU 1.1).
@@ -92,7 +101,14 @@ class RegistroForm(forms.ModelForm):
 
     class Meta:
         model = Usuario
-        fields = ["nombre", "apellido", "correo", "id_cargo", "departamento", "contrasena"]
+        fields = [
+            "nombre",
+            "apellido",
+            "correo",
+            "id_cargo",
+            "departamento",
+            "contrasena",
+        ]
         labels = {
             "nombre": "Nombre",
             "apellido": "Apellido",
@@ -101,9 +117,9 @@ class RegistroForm(forms.ModelForm):
             "departamento": "Departamento",
         }
         widgets = {
-            "nombre":   forms.TextInput(attrs={"placeholder": "Nombre"}),
+            "nombre": forms.TextInput(attrs={"placeholder": "Nombre"}),
             "apellido": forms.TextInput(attrs={"placeholder": "Apellido"}),
-            "correo":   forms.EmailInput(attrs={"placeholder": "correo@empresa.com"}),
+            "correo": forms.EmailInput(attrs={"placeholder": "correo@empresa.com"}),
             "departamento": forms.Select(attrs={"class": "form-control"}),
         }
 
@@ -132,11 +148,14 @@ class RegistroForm(forms.ModelForm):
         departamento = cleaned.get("departamento")
         if cargo and cargo.nombre == Cargo.USUARIO:
             if not departamento:
-                self.add_error("departamento", "Debe seleccionar un departamento si su cargo es Usuario.")
+                self.add_error(
+                    "departamento",
+                    "Debe seleccionar un departamento si su cargo es Usuario.",
+                )
         else:
             if "departamento" in cleaned:
                 cleaned["departamento"] = None
-                
+
         return cleaned
 
     def save(self, commit=True):
@@ -168,6 +187,7 @@ class AdminCrearUsuarioForm(RegistroForm):
     Formulario para que el administrador cree usuarios directamente (validados).
     Permite asignar cualquier cargo, incluyendo Administrador.
     """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # El administrador puede asignar cualquier cargo
@@ -189,6 +209,7 @@ class AdminEditarUsuarioForm(forms.ModelForm):
     """
     Formulario para que el administrador edite datos de un usuario existente.
     """
+
     class Meta:
         model = Usuario
         fields = ["nombre", "apellido", "correo", "id_cargo", "departamento", "valido"]
@@ -201,9 +222,15 @@ class AdminEditarUsuarioForm(forms.ModelForm):
             "valido": "Usuario activo (válido)",
         }
         widgets = {
-            "nombre":   forms.TextInput(attrs={"placeholder": "Nombre", "class": "form-control"}),
-            "apellido": forms.TextInput(attrs={"placeholder": "Apellido", "class": "form-control"}),
-            "correo":   forms.EmailInput(attrs={"placeholder": "correo@empresa.com", "class": "form-control"}),
+            "nombre": forms.TextInput(
+                attrs={"placeholder": "Nombre", "class": "form-control"}
+            ),
+            "apellido": forms.TextInput(
+                attrs={"placeholder": "Apellido", "class": "form-control"}
+            ),
+            "correo": forms.EmailInput(
+                attrs={"placeholder": "correo@empresa.com", "class": "form-control"}
+            ),
             "id_cargo": forms.Select(attrs={"class": "form-control"}),
             "departamento": forms.Select(attrs={"class": "form-control"}),
             "valido": forms.CheckboxInput(attrs={"class": "form-check-input"}),
@@ -219,7 +246,10 @@ class AdminEditarUsuarioForm(forms.ModelForm):
         departamento = cleaned.get("departamento")
         if cargo and cargo.nombre == Cargo.USUARIO:
             if not departamento:
-                self.add_error("departamento", "Debe seleccionar un departamento si el cargo es Usuario.")
+                self.add_error(
+                    "departamento",
+                    "Debe seleccionar un departamento si el cargo es Usuario.",
+                )
         else:
             if "departamento" in cleaned:
                 cleaned["departamento"] = None
@@ -242,6 +272,7 @@ class AdminEditarUsuarioForm(forms.ModelForm):
         if commit:
             usuario.save()
         return usuario
+
 
 class LoginForm(forms.Form):
     """
@@ -268,6 +299,7 @@ class LoginForm(forms.Form):
 # ══════════════════════════════════════════════
 # Épica 2 — Creación de Tickets
 # ══════════════════════════════════════════════
+
 
 class TicketForm(forms.ModelForm):
     """
@@ -298,27 +330,44 @@ class TicketForm(forms.ModelForm):
     """
 
     tercero_nombre = forms.CharField(required=False, label="Nombre de la persona")
-    tercero_contacto = forms.CharField(required=False, label="Información de contacto (teléfono o correo)")
+    tercero_contacto = forms.CharField(
+        required=False, label="Información de contacto (teléfono o correo)"
+    )
 
     class Meta:
         model = Ticket
-        fields = ["id_vehiculo", "destino", "cant_pasajeros", "descripcion", "hora_inicio", "hora_fin", "requiere_chofer", "para_tercero"]
+        fields = [
+            "id_vehiculo",
+            "destino",
+            "cant_pasajeros",
+            "descripcion",
+            "hora_inicio",
+            "hora_fin",
+            "requiere_chofer",
+            "para_tercero",
+        ]
         labels = {
-            "id_vehiculo":    "Vehículo",
-            "destino":        "Destino",
+            "id_vehiculo": "Vehículo",
+            "destino": "Destino",
             "cant_pasajeros": "Cantidad de pasajeros",
-            "descripcion":    "Descripción / motivo",
-            "hora_inicio":    "Fecha y hora de salida",
-            "hora_fin":       "Fecha y hora de regreso (estimado)",
+            "descripcion": "Descripción / motivo",
+            "hora_inicio": "Fecha y hora de salida",
+            "hora_fin": "Fecha y hora de regreso (estimado)",
         }
         widgets = {
-            "destino":     forms.TextInput(attrs={"placeholder": "Ej: San Martín 1050, San Miguel de Tucumán"}),
-            "descripcion": forms.Textarea(attrs={"rows": 3, "placeholder": "Motivo del viaje"}),
+            "destino": forms.TextInput(
+                attrs={"placeholder": "Ej: San Martín 1050, San Miguel de Tucumán"}
+            ),
+            "descripcion": forms.Textarea(
+                attrs={"rows": 3, "placeholder": "Motivo del viaje"}
+            ),
             "hora_inicio": forms.DateTimeInput(
-                attrs={"type": "datetime-local", "class": "form-control"}, format="%Y-%m-%dT%H:%M"
+                attrs={"type": "datetime-local", "class": "form-control"},
+                format="%Y-%m-%dT%H:%M",
             ),
             "hora_fin": forms.DateTimeInput(
-                attrs={"type": "datetime-local", "class": "form-control"}, format="%Y-%m-%dT%H:%M"
+                attrs={"type": "datetime-local", "class": "form-control"},
+                format="%Y-%m-%dT%H:%M",
             ),
         }
 
@@ -330,9 +379,9 @@ class TicketForm(forms.ModelForm):
         - Establece formatos de entrada para datetime.
         - hora_fin es opcional (required=False).
         """
-        self.es_admin = kwargs.pop('es_admin', False)
-        self.es_usuario_general = kwargs.pop('es_usuario_general', False)
-        self.usuario = kwargs.pop('usuario', None)
+        self.es_admin = kwargs.pop("es_admin", False)
+        self.es_usuario_general = kwargs.pop("es_usuario_general", False)
+        self.usuario = kwargs.pop("usuario", None)
         super().__init__(*args, **kwargs)
         # Solo mostrar vehículos activos
         self.fields["id_vehiculo"].queryset = Vehiculo.objects.filter(activo=True)
@@ -360,10 +409,19 @@ class TicketForm(forms.ModelForm):
         if hora_inicio:
             # Validación de días feriados
             if Feriado.objects.filter(fecha=to_local_date(hora_inicio)).exists():
-                self.add_error("hora_inicio", "No se pueden realizar reservas que inicien en días feriados.")
+                self.add_error(
+                    "hora_inicio",
+                    "No se pueden realizar reservas que inicien en días feriados.",
+                )
 
-            if hora_fin and Feriado.objects.filter(fecha=to_local_date(hora_fin)).exists():
-                self.add_error("hora_fin", "No se pueden realizar reservas que finalicen en días feriados.")
+            if (
+                hora_fin
+                and Feriado.objects.filter(fecha=to_local_date(hora_fin)).exists()
+            ):
+                self.add_error(
+                    "hora_fin",
+                    "No se pueden realizar reservas que finalicen en días feriados.",
+                )
 
             if not self.es_admin:
                 if hora_inicio <= ahora:
@@ -374,20 +432,27 @@ class TicketForm(forms.ModelForm):
                 # crear_ticket_con_reglas, para callers que no pasan por este form).
                 # Antes estaba reimplementada acá con aritmética propia y había
                 # divergido silenciosamente del service - ver docstring de la función.
-                ventana = evaluar_ventana_anticipacion(self.usuario, hora_inicio, ahora=ahora)
+                ventana = evaluar_ventana_anticipacion(
+                    self.usuario, hora_inicio, ahora=ahora
+                )
                 if ventana["bloqueado"]:
                     self.add_error(ventana["campo"], ventana["mensaje"])
 
         if hora_inicio and hora_fin:
             if hora_fin <= hora_inicio:
-                self.add_error("hora_fin", "La hora de regreso debe ser posterior a la de salida.")
+                self.add_error(
+                    "hora_fin", "La hora de regreso debe ser posterior a la de salida."
+                )
 
         para_tercero = cleaned.get("para_tercero")
         if para_tercero:
             tercero_nombre = cleaned.get("tercero_nombre")
             tercero_contacto = cleaned.get("tercero_contacto")
             if not tercero_nombre or not tercero_contacto:
-                self.add_error("para_tercero", "Debe completar el nombre y contacto de la persona para la cual solicita el ticket.")
+                self.add_error(
+                    "para_tercero",
+                    "Debe completar el nombre y contacto de la persona para la cual solicita el ticket.",
+                )
             else:
                 desc = cleaned.get("descripcion", "")
                 nueva_desc = f"{desc}\n\n[Solicitado para tercero]\nNombre: {tercero_nombre}\nContacto: {tercero_contacto}"
@@ -402,6 +467,7 @@ class TicketForm(forms.ModelForm):
 # ══════════════════════════════════════════════
 # Épica 3 — Consulta de Calendario
 # ══════════════════════════════════════════════
+
 
 class VehiculoSelectorForm(forms.Form):
     """
@@ -422,6 +488,7 @@ class VehiculoSelectorForm(forms.Form):
 # ══════════════════════════════════════════════
 # Épica 5 — Administración
 # ══════════════════════════════════════════════
+
 
 class FiltroUsuariosForm(forms.Form):
     """
@@ -456,7 +523,9 @@ class FiltroTicketsForm(forms.Form):
 
     busqueda = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={"placeholder": "Buscar por solicitante o destino..."}),
+        widget=forms.TextInput(
+            attrs={"placeholder": "Buscar por solicitante o destino..."}
+        ),
         label="",
     )
     conductor = forms.CharField(
@@ -488,10 +557,10 @@ class FiltroTicketsForm(forms.Form):
     )
 
 
-
 # ══════════════════════════════════════════════
 # Épica 6 — ABM de Vehículos
 # ══════════════════════════════════════════════
+
 
 class VehiculoForm(forms.ModelForm):
     """
@@ -509,27 +578,35 @@ class VehiculoForm(forms.ModelForm):
 
     class Meta:
         model = Vehiculo
-        fields = ["marca", "modelo", "patente", "cant_pasajeros", "activo", "exclusivo_decanato", "requiere_chofer"]
+        fields = [
+            "marca",
+            "modelo",
+            "patente",
+            "cant_pasajeros",
+            "activo",
+            "exclusivo_decanato",
+            "requiere_chofer",
+        ]
         labels = {
-            "marca":          "Marca",
-            "modelo":         "Modelo",
-            "patente":        "Patente (Dominio)",
+            "marca": "Marca",
+            "modelo": "Modelo",
+            "patente": "Patente (Dominio)",
             "cant_pasajeros": "Capacidad de pasajeros",
-            "activo":         "Vehículo activo (Desmarcar para dar de baja permanente)",
+            "activo": "Vehículo activo (Desmarcar para dar de baja permanente)",
             "exclusivo_decanato": "Exclusivo del Decano",
             "requiere_chofer": "Requiere Chofer asignado",
         }
         widgets = {
-            "marca":  forms.TextInput(attrs={"placeholder": "Ej: Toyota"}),
+            "marca": forms.TextInput(attrs={"placeholder": "Ej: Toyota"}),
             "modelo": forms.TextInput(attrs={"placeholder": "Ej: Hilux 2023"}),
             "patente": forms.TextInput(attrs={"placeholder": "Ej: AB 123 CD"}),
         }
 
 
-
 # ══════════════════════════════════════════════
 # NUEVO: Verificación de correo electrónico
 # ══════════════════════════════════════════════
+
 
 class VerificacionCodigoForm(forms.Form):
     """
@@ -555,24 +632,26 @@ class VerificacionCodigoForm(forms.Form):
     codigo = forms.CharField(
         max_length=6,
         min_length=6,
-        widget=forms.TextInput(attrs={
-            "placeholder": "000000",
-            "inputmode": "numeric",
-            "autocomplete": "one-time-code",
-            # Estilo tipo OTP: centrado, grande y espaciado para fácil lectura
-            "style": (
-                "text-align:center;"
-                "font-size:28px;"
-                "letter-spacing:10px;"
-                "font-family:monospace;"
-            ),
-        }),
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "000000",
+                "inputmode": "numeric",
+                "autocomplete": "one-time-code",
+                # Estilo tipo OTP: centrado, grande y espaciado para fácil lectura
+                "style": (
+                    "text-align:center;"
+                    "font-size:28px;"
+                    "letter-spacing:10px;"
+                    "font-family:monospace;"
+                ),
+            }
+        ),
         label="Código de verificación",
         error_messages={
             "min_length": "El código debe tener exactamente 6 dígitos.",
             "max_length": "El código debe tener exactamente 6 dígitos.",
-            "required":   "Ingresá el código de 6 dígitos enviado a tu correo.",
-        }
+            "required": "Ingresá el código de 6 dígitos enviado a tu correo.",
+        },
     )
 
     def clean_codigo(self):
@@ -590,33 +669,40 @@ class VerificacionCodigoForm(forms.Form):
         """
         codigo = self.cleaned_data.get("codigo", "").strip()
         if not codigo.isdigit():
-            raise ValidationError("El código debe contener solo números (sin letras ni símbolos).")
+            raise ValidationError(
+                "El código debe contener solo números (sin letras ni símbolos)."
+            )
         return codigo
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Formularios de Recuperación de Contraseña
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class SolicitarRecuperacionForm(forms.Form):
     correo = forms.EmailField(
         label="Correo electrónico",
-        widget=forms.EmailInput(attrs={"placeholder": "tu.nombre@universidad.edu.ar"})
+        widget=forms.EmailInput(attrs={"placeholder": "tu.nombre@universidad.edu.ar"}),
     )
+
 
 class VerificarRecuperacionForm(forms.Form):
     codigo = forms.CharField(
         max_length=6,
         min_length=6,
-        widget=forms.TextInput(attrs={
-            "placeholder": "······",
-            "autocomplete": "one-time-code",
-            "style": "text-align:center; font-size:28px; letter-spacing:10px; font-family:monospace;"
-        }),
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "······",
+                "autocomplete": "one-time-code",
+                "style": "text-align:center; font-size:28px; letter-spacing:10px; font-family:monospace;",
+            }
+        ),
         error_messages={
             "min_length": "El código debe tener exactamente 6 dígitos.",
             "max_length": "El código debe tener exactamente 6 dígitos.",
-            "required":   "Ingresá el código de 6 dígitos enviado a tu correo.",
-        }
+            "required": "Ingresá el código de 6 dígitos enviado a tu correo.",
+        },
     )
 
     def clean_codigo(self):
@@ -625,16 +711,17 @@ class VerificarRecuperacionForm(forms.Form):
             raise forms.ValidationError("El código debe contener solo números.")
         return codigo
 
+
 class NuevaContrasenaForm(forms.Form):
     contrasena_nueva = forms.CharField(
         label="Nueva contraseña",
         widget=forms.PasswordInput(attrs={"placeholder": "Mínimo 8 caracteres"}),
-        min_length=8
+        min_length=8,
     )
     contrasena_confirmacion = forms.CharField(
         label="Confirmar contraseña",
         widget=forms.PasswordInput(attrs={"placeholder": "Repetí tu nueva contraseña"}),
-        min_length=8
+        min_length=8,
     )
 
     def clean(self):
@@ -646,6 +733,7 @@ class NuevaContrasenaForm(forms.Form):
 
         validar_fortaleza_password(self, c1, "contrasena_nueva")
         return cleaned_data
+
 
 class ConfiguracionGlobalForm(forms.ModelForm):
     class Meta:
@@ -665,9 +753,19 @@ class ConfiguracionGlobalForm(forms.ModelForm):
             "minutos_margen_entre_reservas": "Minutos de margen entre reservas (mismo vehículo)",
         }
         widgets = {
-            "dias_anticipacion_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
-            "dias_maximo_anticipacion_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
-            "dias_anticipacion_cancelacion": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
-            "horas_margen_entre_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
-            "minutos_margen_entre_reservas": forms.NumberInput(attrs={"class": "form-control", "min": 0}),
+            "dias_anticipacion_reservas": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0}
+            ),
+            "dias_maximo_anticipacion_reservas": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0}
+            ),
+            "dias_anticipacion_cancelacion": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0}
+            ),
+            "horas_margen_entre_reservas": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0}
+            ),
+            "minutos_margen_entre_reservas": forms.NumberInput(
+                attrs={"class": "form-control", "min": 0}
+            ),
         }

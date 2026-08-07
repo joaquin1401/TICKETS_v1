@@ -9,14 +9,18 @@ Vistas de gestión administrativa de usuarios.
     - HU 5.2: usuarios_rechazados() — listado de usuarios rechazados.
 """
 
-from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-
-from ..models import Usuario, Ticket
-from ..forms import FiltroUsuariosForm, AdminCrearUsuarioForm, AdminEditarUsuarioForm
 from django.db.models import Q
-from ._base import get_usuario_sesion, paginate_queryset, login_requerido, admin_requerido
+from django.shortcuts import get_object_or_404, redirect, render
 
+from ..forms import AdminCrearUsuarioForm, AdminEditarUsuarioForm, FiltroUsuariosForm
+from ..models import Ticket, Usuario
+from ._base import (
+    admin_requerido,
+    get_usuario_sesion,
+    login_requerido,
+    paginate_queryset,
+)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ÉPICA 5: GESTIÓN Y SUPERVISIÓN ADMINISTRATIVA — USUARIOS
@@ -58,7 +62,9 @@ def panel_validacion(request):
         - Utiliza update_fields=["valido", "rechazado"] para optimización.
         - Ambas acciones redirigen a la misma vista (GET).
     """
-    pendientes = Usuario.objects.filter(valido=False, rechazado=False).select_related("id_cargo")
+    pendientes = Usuario.objects.filter(valido=False, rechazado=False).select_related(
+        "id_cargo"
+    )
 
     if request.method == "POST":
         uid = request.POST.get("usuario_id")
@@ -69,16 +75,19 @@ def panel_validacion(request):
             usuario_objetivo.valido = True
             usuario_objetivo.rechazado = False
             usuario_objetivo.save(update_fields=["valido", "rechazado"])
-            messages.success(request, f"{usuario_objetivo.nombre_completo} fue aprobado.")
+            messages.success(
+                request, f"{usuario_objetivo.nombre_completo} fue aprobado."
+            )
         elif accion == "rechazar":
             usuario_objetivo.valido = False
             usuario_objetivo.rechazado = True
             usuario_objetivo.save(update_fields=["valido", "rechazado"])
 
-            from django_q.tasks import async_task
+            import logging
+
             from django.conf import settings
             from django.template.loader import render_to_string
-            import logging
+            from django_q.tasks import async_task
 
             try:
                 asunto = "Sistema de Reserva de Vehículos — Solicitud rechazada"
@@ -91,7 +100,7 @@ def panel_validacion(request):
                 )
                 html_message = render_to_string(
                     "reservas/emails/account_rejected.html",
-                    {"usuario": usuario_objetivo}
+                    {"usuario": usuario_objetivo},
                 )
                 async_task(
                     "reservas.tasks.enviar_correo_async",
@@ -104,16 +113,26 @@ def panel_validacion(request):
                 )
             except Exception as exc:
                 logger = logging.getLogger(__name__)
-                logger.error("Error al enviar correo de rechazo a %s: %s", usuario_objetivo.correo, exc)
+                logger.error(
+                    "Error al enviar correo de rechazo a %s: %s",
+                    usuario_objetivo.correo,
+                    exc,
+                )
 
-            messages.warning(request, f"{usuario_objetivo.nombre_completo} fue rechazado.")
+            messages.warning(
+                request, f"{usuario_objetivo.nombre_completo} fue rechazado."
+            )
 
         return redirect("panel_validacion")
 
-    return render(request, "reservas/usuarios/panel_validacion.html", {
-        "pendientes": pendientes,
-        "usuario": get_usuario_sesion(request),
-    })
+    return render(
+        request,
+        "reservas/usuarios/panel_validacion.html",
+        {
+            "pendientes": pendientes,
+            "usuario": get_usuario_sesion(request),
+        },
+    )
 
 
 @login_requerido
@@ -143,7 +162,9 @@ def usuarios(request):
         - Q() permite búsqueda OR en múltiples campos.
     """
     form = FiltroUsuariosForm(request.GET or None)
-    usuarios_qs = Usuario.objects.exclude(valido=False, rechazado=False).select_related("id_cargo")
+    usuarios_qs = Usuario.objects.exclude(valido=False, rechazado=False).select_related(
+        "id_cargo"
+    )
 
     if form.is_valid():
         busqueda = form.cleaned_data.get("busqueda")
@@ -155,7 +176,7 @@ def usuarios(request):
                     Q(nombre__icontains=palabra)
                     | Q(apellido__icontains=palabra)
                     | Q(correo__icontains=palabra),
-                    Q.AND
+                    Q.AND,
                 )
             usuarios_qs = usuarios_qs.filter(q_objects)
         if cargo:
@@ -163,14 +184,18 @@ def usuarios(request):
 
     page_obj, pagination_query = paginate_queryset(request, usuarios_qs)
 
-    return render(request, "reservas/usuarios/usuarios.html", {
-        "form": form,
-        "usuarios": page_obj.object_list,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "total_usuarios": page_obj.paginator.count,
-        "usuario": get_usuario_sesion(request),
-    })
+    return render(
+        request,
+        "reservas/usuarios/usuarios.html",
+        {
+            "form": form,
+            "usuarios": page_obj.object_list,
+            "page_obj": page_obj,
+            "pagination_query": pagination_query,
+            "total_usuarios": page_obj.paginator.count,
+            "usuario": get_usuario_sesion(request),
+        },
+    )
 
 
 @login_requerido
@@ -191,34 +216,49 @@ def detalle_usuario(request, usuario_id):
                 usuario_detalle.valido = False
                 usuario_detalle.rechazado = True
                 usuario_detalle.save(update_fields=["valido", "rechazado"])
-                messages.success(request, f"El usuario {usuario_detalle.nombre_completo} ha sido desactivado.")
+                messages.success(
+                    request,
+                    f"El usuario {usuario_detalle.nombre_completo} ha sido desactivado.",
+                )
             return redirect("usuarios")
         elif accion == "editar":
             form = AdminEditarUsuarioForm(request.POST, instance=usuario_detalle)
             if form.is_valid():
                 form.save()
-                messages.success(request, f"Los datos de {usuario_detalle.nombre_completo} han sido actualizados.")
+                messages.success(
+                    request,
+                    f"Los datos de {usuario_detalle.nombre_completo} han sido actualizados.",
+                )
                 return redirect("detalle_usuario", usuario_id=usuario_detalle.pk)
             else:
-                messages.error(request, "Hubo un error al actualizar los datos. Revisá el formulario.")
+                messages.error(
+                    request,
+                    "Hubo un error al actualizar los datos. Revisá el formulario.",
+                )
     else:
         form = AdminEditarUsuarioForm(instance=usuario_detalle)
 
-    tickets_qs = Ticket.objects.filter(
-        id_usuario=usuario_detalle
-    ).select_related("id_vehiculo").order_by("-fecha", "-id")
+    tickets_qs = (
+        Ticket.objects.filter(id_usuario=usuario_detalle)
+        .select_related("id_vehiculo")
+        .order_by("-fecha", "-id")
+    )
 
     page_obj, pagination_query = paginate_queryset(request, tickets_qs)
 
-    return render(request, "reservas/usuarios/detalle_usuario.html", {
-        "usuario_detalle": usuario_detalle,
-        "form": form,
-        "tickets": page_obj.object_list,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "total_tickets": page_obj.paginator.count,
-        "usuario": get_usuario_sesion(request),
-    })
+    return render(
+        request,
+        "reservas/usuarios/detalle_usuario.html",
+        {
+            "usuario_detalle": usuario_detalle,
+            "form": form,
+            "tickets": page_obj.object_list,
+            "page_obj": page_obj,
+            "pagination_query": pagination_query,
+            "total_tickets": page_obj.paginator.count,
+            "usuario": get_usuario_sesion(request),
+        },
+    )
 
 
 @login_requerido
@@ -232,15 +272,21 @@ def admin_crear_usuario(request):
         form = AdminCrearUsuarioForm(request.POST)
         if form.is_valid():
             usuario = form.save()
-            messages.success(request, f"Usuario {usuario.nombre_completo} creado exitosamente.")
+            messages.success(
+                request, f"Usuario {usuario.nombre_completo} creado exitosamente."
+            )
             return redirect("usuarios")
     else:
         form = AdminCrearUsuarioForm()
 
-    return render(request, "reservas/usuarios/admin_crear_usuario.html", {
-        "form": form,
-        "usuario": get_usuario_sesion(request),
-    })
+    return render(
+        request,
+        "reservas/usuarios/admin_crear_usuario.html",
+        {
+            "form": form,
+            "usuario": get_usuario_sesion(request),
+        },
+    )
 
 
 @login_requerido
@@ -263,10 +309,14 @@ def usuarios_rechazados(request):
     rechazados_qs = Usuario.objects.filter(rechazado=True).select_related("id_cargo")
     page_obj, pagination_query = paginate_queryset(request, rechazados_qs)
 
-    return render(request, "reservas/usuarios/usuarios_rechazados.html", {
-        "rechazados": page_obj.object_list,
-        "page_obj": page_obj,
-        "pagination_query": pagination_query,
-        "total_rechazados": page_obj.paginator.count,
-        "usuario": get_usuario_sesion(request),
-    })
+    return render(
+        request,
+        "reservas/usuarios/usuarios_rechazados.html",
+        {
+            "rechazados": page_obj.object_list,
+            "page_obj": page_obj,
+            "pagination_query": pagination_query,
+            "total_rechazados": page_obj.paginator.count,
+            "usuario": get_usuario_sesion(request),
+        },
+    )
