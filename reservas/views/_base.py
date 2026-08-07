@@ -97,7 +97,11 @@ def admin_requerido(view_func):
     """
     Decorador que redirige si el usuario no es administrador.
 
-    Valida que request.session["es_admin"] sea True. Si es False,
+    Valida el cargo del usuario DIRECTO CONTRA LA BD (usuario.id_cargo.prioridad
+    == 0) en cada request, no contra request.session["es_admin"]. Esa key se
+    fija una sola vez en login_view y queda obsoleta si a alguien le cambian
+    el cargo con la sesión ya abierta: un admin recién degradado seguía
+    entrando a vistas de admin hasta volver a loguearse. Si es False,
     registra un mensaje de error y redirige al inicio.
 
     Args:
@@ -112,7 +116,8 @@ def admin_requerido(view_func):
     """
 
     def wrapper(request, *args, **kwargs):
-        if not request.session.get("es_admin"):
+        usuario = get_usuario_sesion(request)
+        if not usuario or usuario.id_cargo.prioridad != 0:
             messages.error(request, "No tenés permisos para acceder a esa sección.")
             return redirect("inicio")
         return view_func(request, *args, **kwargs)
@@ -129,8 +134,7 @@ def chofer_requerido(view_func):
     def wrapper(request, *args, **kwargs):
         usuario = get_usuario_sesion(request)
         if not usuario or (
-            usuario.id_cargo.nombre != Cargo.CHOFER
-            and not request.session.get("es_admin")
+            usuario.id_cargo.nombre != Cargo.CHOFER and usuario.id_cargo.prioridad != 0
         ):
             messages.error(
                 request,

@@ -196,6 +196,13 @@ def login_view(request):
             # Django lo hace solo en django.contrib.auth.login(), que no usamos.
             request.session.cycle_key()
             request.session["usuario_id"] = usuario.pk
+            # NO USAR request.session["es_admin"] para autorización: es una
+            # foto tomada acá, en el login, y queda obsoleta si a este usuario
+            # le cambian el cargo mientras la sesión sigue activa. Se guarda
+            # solo por compatibilidad con tests/código viejo; cualquier
+            # chequeo de permisos debe recalcular usuario.id_cargo.prioridad
+            # == 0 en el momento (ver admin_requerido/chofer_requerido en
+            # views/_base.py).
             request.session["es_admin"] = usuario.id_cargo.prioridad == 0
             if usuario.id_cargo.nombre == Cargo.CHOFER:
                 return redirect("chofer_dashboard")

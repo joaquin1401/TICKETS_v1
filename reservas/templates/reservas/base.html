@@ -47,7 +47,7 @@
     </div>
     {% endif %}
 
-    {% if request.session.es_admin %}
+    {% if usuario.id_cargo.prioridad == 0 %}
     <div class="sidebar-section">
       <div class="sidebar-section-label">Administración</div>
       <a href="{% url 'panel_validacion' %}"

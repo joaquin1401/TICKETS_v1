@@ -7,7 +7,8 @@ y aplican validaciones tanto a nivel de campo como de formulario.
 
 Convención de sesión utilizada en vistas:
     request.session["usuario_id"]   → PK del usuario logueado
-    request.session["es_admin"]     → bool (True si prioridad == 0)
+    request.session["es_admin"]     → informativo, fijado en el login; no
+        usar para autorización (ver reservas/__init__.py)
 """
 
 from django import forms

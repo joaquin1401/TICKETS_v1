@@ -381,6 +381,7 @@ def inicio(request):
             "dias_cancelacion": dias_cancelacion,
             "mostrar_confirmacion_prioridad": mostrar_confirmacion_prioridad,
             "mensaje_confirmacion": mensaje_confirmacion,
+            "es_admin": es_admin,
         },
     )
 
@@ -490,7 +491,12 @@ def detalle_ticket(request, ticket_id):
         - es_admin=False: Acceso solo si id_usuario == usuario_sesion.
     """
     usuario = get_usuario_sesion(request)
-    if request.session.get("es_admin"):
+    # Chequeo en vivo, no request.session["es_admin"]: esa key es una foto
+    # tomada en el login y no se actualiza si degradan al usuario mientras
+    # su sesión sigue activa, lo que le dejaba ver el ticket de cualquier
+    # otra persona.
+    es_admin = usuario.id_cargo.prioridad == 0
+    if es_admin:
         ticket = get_object_or_404(Ticket, pk=ticket_id)
     else:
         ticket = get_object_or_404(Ticket, pk=ticket_id, id_usuario=usuario)
@@ -518,6 +524,7 @@ def detalle_ticket(request, ticket_id):
             "ticket": ticket,
             "usuario": usuario,
             "puede_cancelar": puede_cancelar,
+            "es_admin": es_admin,
         },
     )
 

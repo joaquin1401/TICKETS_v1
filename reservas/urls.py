@@ -14,11 +14,15 @@ snake_case y sirven como identificadores únicos en templates y redirects.
 Autenticación de sesión:
     Utiliza sistema de sesión Django estándar. La sesión se almacena en:
     - request.session["usuario_id"] (PK del usuario logueado)
-    - request.session["es_admin"] (bool, True si prioridad == 0)
+    - request.session["es_admin"] (bool, True si prioridad == 0 al momento
+      del login). Solo informativo — no se usa para autorización porque
+      queda obsoleto si cambian el cargo del usuario después.
 
 Decoradores de vista:
     - @login_requerido: Redirige a login si no hay sesión activa.
-    - @admin_requerido: Redirige a inicio si es_admin == False.
+    - @admin_requerido: Redirige a inicio si usuario.id_cargo.prioridad != 0,
+      recalculado contra la BD en cada request (no contra
+      request.session["es_admin"]).
 """
 
 from django.urls import path

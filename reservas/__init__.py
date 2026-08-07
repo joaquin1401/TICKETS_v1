@@ -28,6 +28,13 @@ Estructura del proyecto:
     6. ABM de vehículos (alta, baja, modificación de vehículos).
 
 Convención de sesión:
-    - request.session["usuario_id"]: PK del usuario logueado.
-    - request.session["es_admin"]: bool (True si cargo.prioridad == 0).
+    - request.session["usuario_id"]: PK del usuario logueado. Única fuente
+      de verdad; toda vista resuelve el Usuario actual con
+      get_usuario_sesion(request).
+    - request.session["es_admin"]: se guarda por compatibilidad pero NO es
+      de fiar para autorización — es una foto tomada en el login que queda
+      obsoleta si le cambian el cargo al usuario con la sesión ya abierta.
+      Cualquier chequeo de permisos debe recalcular
+      usuario.id_cargo.prioridad == 0 en cada request (ver
+      admin_requerido/chofer_requerido en views/_base.py).
 """

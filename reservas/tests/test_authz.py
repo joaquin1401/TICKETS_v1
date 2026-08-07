@@ -12,10 +12,13 @@ es efectivamente bloqueado de una vista de admin: @admin_requerido confía
 en session["es_admin"], y nada verificaba que esa confianza se sostuviera.
 """
 
+from datetime import timedelta
+
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
-from reservas.models import Cargo, Usuario
+from reservas.models import Cargo, Ticket, Usuario, Vehiculo
 
 
 def get_cargo(nombre, prioridad):
@@ -57,6 +60,18 @@ class TestAutorizacion(TestCase):
             id_cargo=self.cargo_chofer,
             valido=True,
             correo_verificado=True,
+        )
+        self.vehiculo = Vehiculo.objects.create(
+            marca="Toyota", modelo="Hilux", patente="AA111AA", cant_pasajeros=4
+        )
+        self.ticket_ajeno = Ticket.objects.create(
+            id_usuario=self.usuario,
+            id_vehiculo=self.vehiculo,
+            destino="Resistencia",
+            cant_pasajeros=2,
+            hora_inicio=timezone.now() + timedelta(days=5),
+            hora_fin=timezone.now() + timedelta(days=5, hours=2),
+            estado=Ticket.ESTADO_APROBADO,
         )
 
     def _loguear_como(self, usuario, es_admin=None):
@@ -162,19 +177,19 @@ class TestAutorizacion(TestCase):
         resp = self.client.get(reverse("inicio"))
         self.assertEqual(resp.status_code, 200)
 
-    # ── Límite conocido: session["es_admin"] no se revalida en cada request ───────
+    # ── admin_requerido revalida contra la BD en cada request ─────────────────────
 
-    def test_LIMITACION_conocida_sesion_admin_no_se_revalida_tras_degradar_cargo(self):
+    def test_admin_requerido_bloquea_tras_degradar_cargo_con_sesion_activa(self):
         """
-        Documenta un gap real, no una garantía deseable: session["es_admin"] se
-        fija UNA VEZ en login_view y nunca se vuelve a comparar contra el cargo
-        actual del usuario en la BD. Si a un admin le bajan el cargo (o pierde
-        prioridad 0) mientras su sesión sigue activa (hasta 8h, SESSION_COOKIE_AGE),
-        sigue pasando @admin_requerido hasta que vuelva a loguearse.
+        admin_requerido ya NO confía en session["es_admin"] (una foto fijada
+        una sola vez en login_view): recalcula usuario.id_cargo.prioridad == 0
+        contra la BD en cada request. Si a un admin le bajan el cargo mientras
+        su sesión sigue activa, pierde el acceso admin de inmediato, sin
+        esperar a que vuelva a loguearse.
 
-        Este test verifica el comportamiento ACTUAL para dejarlo detectable si
-        algún día se decide revalidar en cada request (en cuyo momento este test
-        debería empezar a fallar, y hay que actualizarlo a la espera del arreglo).
+        session["es_admin"] queda deliberadamente en True acá (como habría
+        quedado desde el login original) para probar que ya no se usa esa
+        key para autorizar.
         """
         self._loguear_como(self.admin, es_admin=True)
 
@@ -185,7 +200,45 @@ class TestAutorizacion(TestCase):
         resp = self.client.get(reverse("listado_vehiculos"))
         self.assertEqual(
             resp.status_code,
+            302,
+            "usuario.id_cargo.prioridad ya no es 0: admin_requerido debe "
+            "bloquear aunque session['es_admin'] siga en True.",
+        )
+        self.assertEqual(resp.url, reverse("inicio"))
+
+    def test_admin_requerido_permite_tras_ascender_cargo_con_sesion_activa(self):
+        """Contraparte: ascender a alguien a admin debe habilitarlo al instante."""
+        self._loguear_como(self.usuario, es_admin=False)
+
+        self.usuario.id_cargo = self.cargo_admin
+        self.usuario.save(update_fields=["id_cargo"])
+
+        resp = self.client.get(reverse("listado_vehiculos"))
+        self.assertEqual(
+            resp.status_code,
             200,
-            "Comportamiento actual: la sesión vieja sigue pasando @admin_requerido "
-            "aunque el usuario ya no sea admin en la BD.",
+            "usuario.id_cargo.prioridad ya es 0: admin_requerido debe dejarlo "
+            "pasar aunque session['es_admin'] siga en False.",
+        )
+
+    def test_detalle_ticket_no_expone_ticket_ajeno_tras_degradar_admin(self):
+        """
+        detalle_ticket() dejaba ver el ticket de CUALQUIER usuario si
+        session["es_admin"] era True, sin revalidar contra la BD. Un admin
+        degradado con la sesión todavía abierta podía seguir abriendo por
+        URL el detalle (destino, pasajero, observaciones) de tickets que no
+        eran suyos. Ahora debe recalcular el cargo y tratarlo como usuario
+        normal: 404 si el ticket no le pertenece.
+        """
+        self._loguear_como(self.admin, es_admin=True)
+
+        self.admin.id_cargo = self.cargo_usuario
+        self.admin.save(update_fields=["id_cargo"])
+
+        resp = self.client.get(reverse("detalle_ticket", args=[self.ticket_ajeno.pk]))
+        self.assertEqual(
+            resp.status_code,
+            404,
+            "El ticket es de otro usuario: no debe ser visible aunque "
+            "session['es_admin'] siga en True.",
         )

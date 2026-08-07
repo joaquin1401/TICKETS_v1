@@ -111,7 +111,7 @@ def aceptar_ticket(request, ticket_id):
             request,
             "No podés iniciar este viaje porque ya tenés otro viaje en curso. Debés finalizarlo primero.",
         )
-        if request.session.get("es_admin"):
+        if usuario.id_cargo.prioridad == 0:
             return redirect("monitor_tickets_activos")
         return redirect("chofer_dashboard")
 
@@ -165,7 +165,7 @@ def finalizar_ticket(request, ticket_id):
     usuario = get_usuario_sesion(request)
     ticket = get_object_or_404(Ticket, pk=ticket_id)
 
-    if ticket.conductor == usuario or request.session.get("es_admin"):
+    if ticket.conductor == usuario or usuario.id_cargo.prioridad == 0:
         if ticket.estado == Ticket.ESTADO_EN_CURSO:
             km_fin_str = request.POST.get("kilometraje_fin", "").replace(",", ".")
             hora_fin_real_str = request.POST.get("hora_fin_real")

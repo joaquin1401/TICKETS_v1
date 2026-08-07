@@ -407,7 +407,7 @@
           });
 
           // Aplicar fecha mínima (anticipación dinámica)
-          {% if not request.session.es_admin and fecha_minima_str %}
+          {% if not es_admin and fecha_minima_str %}
           const horaInicioInput = document.querySelector('input[name="hora_inicio"]');
           if (horaInicioInput) {
             horaInicioInput.min = '{{ fecha_minima_str }}';
@@ -620,7 +620,7 @@
           <div class="cal-day disabled-day"
             style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;"
             title="Feriado (No disponible)">{{ day }}</div>
-          {% elif not request.session.es_admin and day in dias_inhabilitados %}
+          {% elif not es_admin and day in dias_inhabilitados %}
           <div class="cal-day disabled-day"
             style="opacity: 0.5; pointer-events: none; background-color: var(--surface2); color: var(--text-muted); cursor: not-allowed;"
             title="No disponible (se requiere anticipación)">{{ day }}</div>
@@ -691,7 +691,7 @@
         <div class="reservation-block"
           style="top: {{ t.top_px }}px; height: {{ t.height_px }}px; left: 0; right: 10px; pointer-events: auto;">
           <div class="res-times">{{ t.hora_inicio|date:"H:i" }} → {% if t.hora_fin %}{{ t.hora_fin|date:"H:i" }}{% else %}?{% endif %}</div>
-          {% if request.session.es_admin or t.id_usuario.pk == usuario.pk %}
+          {% if es_admin or t.id_usuario.pk == usuario.pk %}
           <div class="res-dest">{{ t.destino }}</div>
           <div class="res-user">{{ t.id_usuario.nombre_completo }}</div>
           {% else %}
