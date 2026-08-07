@@ -6,10 +6,6 @@ directamente), estos tests usan self.client, con lo cual pasan por el stack
 real de middleware: sesiones, CSRF y mensajes.
 """
 
-import sys
-import unittest
-
-import django
 from django.test import TestCase
 from django.urls import reverse
 
@@ -17,13 +13,6 @@ from reservas.models import Cargo, Usuario
 
 
 PASSWORD_VALIDA = "Trayecto-Vehiculo-91"
-
-# Django 5.1 soporta Python 3.10-3.13. Bajo Python 3.14, el instrumentado de
-# templates de django.test.Client revienta en Context.__copy__ apenas una
-# respuesta renderiza un template (las que redirigen no lo tocan).
-# No es un problema de estos tests: falla igual un self.client.get() pelado.
-# Se levanta el skip al pasar a Django >= 5.2 o a Python <= 3.13.
-CLIENT_RENDER_ROTO = sys.version_info >= (3, 14) and django.VERSION < (5, 2)
 
 
 class TestLogin(TestCase):
@@ -72,10 +61,6 @@ class TestLogin(TestCase):
         self.assertNotEqual(key_previa, self.client.session.session_key)
         self.assertEqual(self.client.session["usuario_id"], self.usuario.pk)
 
-    @unittest.skipIf(
-        CLIENT_RENDER_ROTO,
-        "django.test.Client no puede renderizar templates con Django 5.1 sobre Python 3.14",
-    )
     def test_password_incorrecta_no_establece_sesion(self):
         resp = self.client.post(
             reverse("login"),
