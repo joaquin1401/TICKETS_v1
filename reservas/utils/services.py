@@ -858,7 +858,7 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
             distancia_est=ticket_original.distancia_est,
             observacion=(
                 f"Reasignado automáticamente desde ticket #{ticket_original.pk} "
-                f"({"vehículo original en baja temporal" if contexto == "baja_temporal" else "cancelado por prioridad de otro usuario"})."
+                f"({'vehículo original en baja temporal' if contexto == 'baja_temporal' else 'cancelado por prioridad de otro usuario'})."
             ),
         )
         nuevo_ticket._suppress_signals = True

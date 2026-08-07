@@ -112,8 +112,12 @@ class TestReglasNegocioTickets(TestCase):
 
         inicio = self.ahora + timedelta(days=10)
         fin = inicio + timedelta(hours=2)
-        # Feriado en un día distinto al de la reserva.
-        Feriado.objects.create(fecha=to_local_date(inicio) + timedelta(days=1), descripcion="Otro día")
+        # Feriado en un día claramente distinto al de la reserva. +5 días (no +1):
+        # crear_ticket_con_reglas chequea tanto la fecha de inicio como la de fin
+        # del viaje, y un viaje de 2hs que arranca cerca de medianoche cruza al día
+        # siguiente - +1 día podía coincidir con la fecha de FIN del viaje según la
+        # hora a la que corriera el test, dando un falso "bloqueado" correcto.
+        Feriado.objects.create(fecha=to_local_date(inicio) + timedelta(days=5), descripcion="Otro día")
 
         res = crear_ticket_con_reglas(
             self.usuario_comun, self.vehiculo_normal, inicio, fin,
