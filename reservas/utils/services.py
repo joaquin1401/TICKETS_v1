@@ -12,6 +12,8 @@ Conceptos clave:
     - Sobrescritura: Usuario de mayor jerarquía puede cancelar reservas de menor jerarquía.
 """
 
+from datetime import timedelta
+
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -21,6 +23,94 @@ import logging
 from ..models import Ticket, to_local_date
 
 logger = logging.getLogger(__name__)
+
+
+def evaluar_ventana_anticipacion(usuario, hora_inicio, ahora=None):
+    """
+    Evalúa si `hora_inicio` respeta la ventana de anticipación configurada
+    (ConfiguracionGlobal.dias_anticipacion_reservas / dias_maximo_anticipacion_reservas).
+
+    Única autoridad para esta regla: antes vivía por separado en TicketForm.clean()
+    y en crear_ticket_con_reglas(), escrita dos veces con arithmetic independiente.
+    Ya habían divergido sin que nadie lo notara: el service se saltaba también la
+    anticipación MÁXIMA cuando había un permiso de emergencia vigente (estaba bajo
+    el mismo `if` que la mínima), mientras que el form solo eximía la mínima. El
+    permiso es para poder reservar pronto tras una cancelación forzada — no tiene
+    relación con cuánto a futuro se puede reservar, así que ese salto de la máxima
+    era un bug, no una decisión de diseño.
+
+    No tiene efectos secundarios: NO marca ningún PermisoReservaExtraordinaria como
+    usado, aunque sí lo devuelve si aplica. Es responsabilidad de quien efectivamente
+    cree el ticket (crear_ticket_con_reglas) volver a buscarlo y marcarlo `usado=True`
+    después de un éxito real — evaluar la ventana no debe consumir el permiso.
+
+    Args:
+        usuario (Usuario | None): Solicitante. None se trata como "no-admin, sin
+            permiso de emergencia posible" — usado por TicketForm en el único call
+            site donde todavía no se conoce el usuario (precarga por GET).
+        hora_inicio (datetime): Inicio propuesto del viaje.
+        ahora (datetime, optional): Instante de referencia. Por defecto timezone.now().
+
+    Returns:
+        dict con:
+            bloqueado (bool): True si la reserva debe rechazarse por esta regla.
+            campo (str | None): "hora_inicio", para adjuntar el error a ese campo.
+            mensaje (str | None): Mensaje para mostrar al usuario.
+            permiso_emergencia (PermisoReservaExtraordinaria | None): el permiso
+                vigente que eximió la anticipación mínima, si aplica.
+
+    Notes:
+        No aplica a administradores (prioridad 0): no tienen límite de anticipación.
+    """
+    from ..models import ConfiguracionGlobal, PermisoReservaExtraordinaria
+
+    if ahora is None:
+        ahora = timezone.now()
+
+    resultado = {"bloqueado": False, "campo": None, "mensaje": None, "permiso_emergencia": None}
+
+    es_admin = usuario is not None and usuario.id_cargo.prioridad == 0
+    if es_admin:
+        return resultado
+
+    config = ConfiguracionGlobal.get_solo()
+    dias_anticipacion = config.dias_anticipacion_reservas
+    dias_maximo = config.dias_maximo_anticipacion_reservas
+
+    # Anticipación máxima: se aplica siempre a no-admins, tengan o no permiso
+    # de emergencia vigente (el permiso solo exime la mínima, ver docstring).
+    if hora_inicio > ahora + timedelta(days=dias_maximo):
+        resultado.update(
+            bloqueado=True,
+            campo="hora_inicio",
+            mensaje=f"No se pueden realizar reservas con más de {dias_maximo} días de antelación.",
+        )
+        return resultado
+
+    # Permiso de emergencia: exime la anticipación mínima si hora_inicio cae
+    # dentro de los próximos dias_anticipacion días desde hoy. Sin usuario no
+    # hay a quién buscarle el permiso.
+    permiso = None
+    if usuario is not None:
+        ahora_date = timezone.localdate()
+        permiso = PermisoReservaExtraordinaria.objects.filter(
+            usuario=usuario, usado=False, valido_hasta__gte=ahora_date,
+        ).first()
+    tiene_permiso_activo = False
+    if permiso:
+        limite_permitido = ahora_date + timedelta(days=dias_anticipacion)
+        if to_local_date(hora_inicio) <= limite_permitido:
+            tiene_permiso_activo = True
+            resultado["permiso_emergencia"] = permiso
+
+    if not tiene_permiso_activo and hora_inicio < ahora + timedelta(days=dias_anticipacion):
+        resultado.update(
+            bloqueado=True,
+            campo="hora_inicio",
+            mensaje=f"Debe reservar con al menos {dias_anticipacion} días de anticipación.",
+        )
+
+    return resultado
 
 
 def calcular_distancia_y_tiempo_osrm(destino):
@@ -124,7 +214,6 @@ def obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin, excluir_ticket
         - Los tickets PENDIENTE o CANCELADO no bloquean nuevas reservas.
         - El margen se aplica simétricamente: después del fin y antes del inicio.
     """
-    from datetime import timedelta
     if horas_margen is None:
         horas_margen = _get_horas_margen()
     margen = timedelta(hours=horas_margen)
@@ -147,8 +236,6 @@ def hay_conflicto_por_margen(vehiculo, hora_inicio, hora_fin, excluir_ticket_id=
     Esto se usa para mostrar un mensaje distinto al usuario: en vez de decir
     'ya está reservado por X', informa que debe respetar el margen mínimo.
     """
-    from datetime import timedelta
-
     conflictos = list(obtener_tickets_en_conflicto(vehiculo, hora_inicio, hora_fin, excluir_ticket_id, horas_margen))
     if not conflictos:
         return False
@@ -303,7 +390,6 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
     vehiculo = Vehiculo.objects.select_for_update().get(pk=vehiculo.pk)
 
     config_global = ConfiguracionGlobal.get_solo()
-    dias_anticipacion = config_global.dias_anticipacion_reservas
     dias_cancelacion = config_global.dias_anticipacion_cancelacion
 
     prioridad_solicitante = usuario.prioridad  # número: menor = más alto en jerarquía
@@ -370,7 +456,6 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
         total_choferes = Usuario.objects.filter(id_cargo__nombre=Cargo.CHOFER, valido=True).count()
         es_admin = usuario.id_cargo.prioridad == 0
         horas_margen = 0 if es_admin else _get_horas_margen()
-        from datetime import timedelta
         margen = timedelta(hours=horas_margen)
         
         tickets_chofer_conflicto = Ticket.objects.filter(
@@ -391,44 +476,20 @@ def crear_ticket_con_reglas(usuario, vehiculo, hora_inicio, hora_fin, confirmado
                     mensaje="No hay choferes disponibles para la fecha y el horario seleccionados. Intenta con otro rango de tiempo."
                 )
 
-    # ── Reglas Temporales: Max 2 meses, Min 3 días ──────────────────────────────────
-    from datetime import timedelta
+    # ── Reglas Temporales: anticipación mínima/máxima ────────────────────────────────
+    # evaluar_ventana_anticipacion() es la única autoridad para esta regla (antes
+    # estaba reimplementada acá y en TicketForm.clean(), y habían divergido -
+    # ver docstring de la función para el detalle del bug que eso causaba).
     ahora = timezone.now()
     es_admin = usuario.id_cargo.prioridad == 0
 
-    # ── Regla: Permiso de emergencia (baja temporal o prioridad) ────────────────────────────
-    # Si el usuario tiene un permiso de emergencia vigente y la hora_inicio cae dentro
-    # de los próximos días, se saltea la restricción de anticipación mínima (una sola vez).
-    from ..models import PermisoReservaExtraordinaria
-    permiso_emergencia = None
-    tiene_permiso_activo = False
-
-    if not es_admin:
-        ahora_date = timezone.localdate()
-        permiso_qs = PermisoReservaExtraordinaria.objects.filter(
-            usuario=usuario,
-            usado=False,
-            valido_hasta__gte=ahora_date,
-        )
-        if permiso_qs.exists():
-            # Verificar que hora_inicio esté dentro de los próximos dias_anticipacion días
-            limite_permitido = ahora_date + timedelta(days=dias_anticipacion)
-            if _fecha_inicio_date <= limite_permitido:
-                permiso_emergencia = permiso_qs.first()
-                tiene_permiso_activo = True
-
-    if not es_admin and not tiene_permiso_activo:
-        dias_maximo = config_global.dias_maximo_anticipacion_reservas
-        if hora_inicio > ahora + timedelta(days=dias_maximo):
-            return ResultadoCreacion(
-                estado=ResultadoCreacion.BLOQUEADO,
-                mensaje=f"No se pueden realizar reservas con más de {dias_maximo} días de antelación."
-            )
-        if hora_inicio < ahora + timedelta(days=dias_anticipacion):
-            return ResultadoCreacion(
-                estado=ResultadoCreacion.BLOQUEADO,
-                mensaje=f"Debe reservar con al menos {dias_anticipacion} días de anticipación."
-            )
+    ventana = evaluar_ventana_anticipacion(usuario, hora_inicio, ahora=ahora)
+    if ventana["bloqueado"]:
+        return ResultadoCreacion(estado=ResultadoCreacion.BLOQUEADO, mensaje=ventana["mensaje"])
+    # Permiso de emergencia vigente que eximió la anticipación mínima (o None). Si la
+    # creación del ticket termina en éxito, se marca usado=True más abajo - evaluar
+    # la ventana no lo consume por sí sola.
+    permiso_emergencia = ventana["permiso_emergencia"]
 
     tickets_conflicto = list(
         obtener_tickets_en_conflicto(
@@ -611,8 +672,6 @@ def cancelar_ticket_usuario(ticket, usuario):
     Returns:
         tuple (bool, str): (Éxito, Mensaje descriptivo o de error)
     """
-    from datetime import timedelta
-    
     if ticket.id_usuario != usuario:
         return False, "No tienes permiso para cancelar este ticket."
         
@@ -735,7 +794,6 @@ def _reasignar_ticket(ticket_original, contexto="baja_temporal"):
         Ticket | None: Nuevo ticket APROBADO si pudo reasignar, None si no.
     """
     from ..models import Vehiculo, Cargo, Usuario as UsuarioModel
-    from datetime import timedelta
 
     hora_inicio = ticket_original.hora_inicio
     hora_fin = ticket_original.hora_fin or (hora_inicio + timedelta(hours=2))
@@ -824,7 +882,6 @@ def dar_baja_temporal_vehiculo(vehiculo, dias, admin_usuario):
     Returns:
         dict: {cancelados, reasignados, total_afectados, inactivo_hasta}
     """
-    from datetime import timedelta
     from ..models import PermisoReservaExtraordinaria, ConfiguracionGlobal
     from ..utils.notifications import (
         notify_vehicle_inactive_cancelled,

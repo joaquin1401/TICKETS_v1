@@ -16,6 +16,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .models import Usuario, Cargo, Vehiculo, Ticket, ConfiguracionGlobal, Feriado, to_local_date
+from .utils.services import evaluar_ventana_anticipacion
 
 
 def validar_fortaleza_password(form, password, campo, datos_usuario=None):
@@ -350,9 +351,6 @@ class TicketForm(forms.ModelForm):
         Returns:
             dict: Datos limpios del formulario.
         """
-        from datetime import timedelta
-        import requests
-        
         cleaned = super().clean()
         hora_inicio = cleaned.get("hora_inicio")
         hora_fin = cleaned.get("hora_fin")
@@ -370,30 +368,15 @@ class TicketForm(forms.ModelForm):
             if not self.es_admin:
                 if hora_inicio <= ahora:
                     raise ValidationError("La fecha de inicio debe ser en el futuro.")
-                
-                dias_maximo = ConfiguracionGlobal.get_solo().dias_maximo_anticipacion_reservas
-                if hora_inicio > ahora + timedelta(days=dias_maximo):
-                    self.add_error("hora_inicio", f"No se pueden realizar reservas con más de {dias_maximo} días de antelación.")
-                    
-                dias_anticipacion = ConfiguracionGlobal.get_solo().dias_anticipacion_reservas
-                # Saltar anticipación mínima si el usuario tiene permiso de emergencia vigente
-                _tiene_permiso_emergencia = False
-                if self.usuario:
-                    from .models import PermisoReservaExtraordinaria
-                    _permiso_qs = PermisoReservaExtraordinaria.objects.filter(
-                        usuario=self.usuario,
-                        usado=False,
-                        valido_hasta__gte=timezone.localdate(),
-                    )
-                    if _permiso_qs.exists():
-                        _limite_permitido = timezone.localdate() + timedelta(days=dias_anticipacion)
-                        _fecha_inicio_date = to_local_date(hora_inicio)
-                        if _fecha_inicio_date <= _limite_permitido:
-                            _tiene_permiso_emergencia = True
 
-                if not _tiene_permiso_emergencia:
-                    if hora_inicio < ahora + timedelta(days=dias_anticipacion):
-                        self.add_error("hora_inicio", f"Debe reservar con al menos {dias_anticipacion} días de anticipación.")
+                # evaluar_ventana_anticipacion() es la única autoridad para la regla
+                # de anticipación mínima/máxima (también la aplica
+                # crear_ticket_con_reglas, para callers que no pasan por este form).
+                # Antes estaba reimplementada acá con aritmética propia y había
+                # divergido silenciosamente del service - ver docstring de la función.
+                ventana = evaluar_ventana_anticipacion(self.usuario, hora_inicio, ahora=ahora)
+                if ventana["bloqueado"]:
+                    self.add_error(ventana["campo"], ventana["mensaje"])
 
         if hora_inicio and hora_fin:
             if hora_fin <= hora_inicio:
