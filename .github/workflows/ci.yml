@@ -49,21 +49,22 @@ jobs:
 
     - name: Run Tests
       env:
-        # settings.py ahora default a DJANGO_DEBUG=False cuando la env var no
-        # está seteada (antes era True) - fail-closed si un deploy real se
-        # olvida de configurarla. Este runner no tiene el .env local (está en
-        # .gitignore), así que sin esto DEBUG=False + sin DJANGO_SECRET_KEY
-        # dispara el ImproperlyConfigured de settings.py antes de correr un
-        # solo test. Mismo dummy key que usan los steps de abajo.
-        DJANGO_SECRET_KEY: 'ci-dummy-key-not-real-8f3k2n9x7q1w5e6r4t8y0u2i3o5p7a9s1d3f-not-a-secret'
-        DJANGO_DEBUG: 'False'
-        # SECURE_SSL_REDIRECT default a str(not DEBUG): con DEBUG=False acá
-        # arriba, sin esto quedaba en True y SecurityMiddleware redirigía
-        # (301) cada request de self.client a https antes de llegar a la
-        # vista - el test client no marca sus requests como "secure", así
-        # que rompía prácticamente cualquier test que chequeara un
-        # status_code o siguiera un redirect (302 esperado, 301 real).
-        SECURE_SSL_REDIRECT: 'False'
+        # DJANGO_DEBUG explícito en 'True' a propósito - no en 'False'.
+        # settings.py ahora default a DEBUG=False cuando la env var no está
+        # seteada (ver el fix de "DEBUG debe fallar cerrado"), pero forzar
+        # DEBUG=False PARA CORRER TESTS está mal: STORAGES en settings.py ya
+        # documentaba (antes de que yo tocara este workflow) que el storage
+        # de manifest de WhiteNoise solo se activa con DEBUG=False y necesita
+        # que collectstatic haya corrido antes para generar staticfiles.json
+        # - cosa que "Run Tests" no hace (collectstatic es un step aparte,
+        # más abajo). Con DEBUG=False acá, cualquier template con {% static %}
+        # revienta con "Missing staticfiles manifest entry". Ya lo intenté
+        # con DEBUG=False + parches puntuales (SECRET_KEY, SECURE_SSL_REDIRECT)
+        # y seguían saliendo roturas nuevas una por una - la explicación real
+        # es que este step nunca debió tener DEBUG=False. True es explícito
+        # acá (en vez de dejarlo al default de settings.py) para que no
+        # dependa en silencio de cuál sea ese default el día de mañana.
+        DJANGO_DEBUG: 'True'
         DB_NAME: test_db
         DB_USER: test_user
         DB_PASSWORD: test_password
