@@ -27,6 +27,56 @@ from ._base import admin_requerido, get_usuario_sesion, login_requerido
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+def calcular_rango_fechas(rango):
+    """
+    Traduce el parámetro `rango` (?rango=30d|90d|anio|todo) de la querystring
+    en (desde, rango_normalizado, rango_label), usando la hora local de
+    Argentina como "hoy" - no timezone.now() crudo (UTC), que corría el
+    corte de "año" unas horas antes/después de medianoche real.
+
+    Compartida por reporte_analiticas(), analiticas_vehiculo() y
+    reporte_analiticas_pdf(): antes cada una tenía su propia copia
+    calcada de este bloque, con el riesgo de que un cambio se aplicara
+    en una y se olvidaran de las otras dos.
+
+    Args:
+        rango (str): Valor crudo de request.GET.get("rango", "").
+
+    Returns:
+        tuple[datetime | None, str, str]:
+            - desde: inicio del período (None si rango no matchea ninguna
+              opción conocida, equivalente a "todo el tiempo").
+            - rango: normalizado a "todo" si no matcheó ninguna opción
+              conocida (para usar en labels/nombres de archivo).
+            - rango_label: texto legible para mostrar en el reporte.
+    """
+    hoy = timezone.localtime(timezone.now())
+    if rango == "30d":
+        desde = hoy - timedelta(days=30)
+        rango_label = (
+            f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - "
+            f"{hoy.strftime('%d/%m/%Y')})"
+        )
+    elif rango == "90d":
+        desde = hoy - timedelta(days=90)
+        rango_label = (
+            f"Últimos 90 días ({desde.strftime('%d/%m/%Y')} - "
+            f"{hoy.strftime('%d/%m/%Y')})"
+        )
+    elif rango == "anio":
+        desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        rango_label = (
+            f"Año {hoy.year} ({desde.strftime('%d/%m/%Y')} - "
+            f"{hoy.strftime('%d/%m/%Y')})"
+        )
+    else:
+        desde = None
+        rango = "todo"
+        rango_label = "Todo el tiempo"
+
+    return desde, rango, rango_label
+
+
 @login_requerido
 @admin_requerido
 def reporte_analiticas(request):
@@ -67,20 +117,7 @@ def reporte_analiticas(request):
     filtro_departamento = request.GET.get("departamento", "")
 
     # ── Calcular fecha de corte ──────────────────────────────────────────────
-    hoy = timezone.localtime(timezone.now())
-    if rango == "30d":
-        desde = hoy - timedelta(days=30)
-        rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    elif rango == "90d":
-        desde = hoy - timedelta(days=90)
-        rango_label = f"Últimos 90 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    elif rango == "anio":
-        desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        rango_label = f"Año {hoy.year} ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    else:
-        desde = None
-        rango = "todo"
-        rango_label = "Todo el tiempo"
+    desde, rango, rango_label = calcular_rango_fechas(rango)
 
     def filtro_base(qs):
         q = qs.filter(hora_inicio__gte=desde) if desde else qs
@@ -357,20 +394,7 @@ def analiticas_vehiculo(request, vehiculo_id):
         12: "Diciembre",
     }
 
-    hoy = timezone.localtime(timezone.now())
-    if rango == "30d":
-        desde = hoy - timedelta(days=30)
-        rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    elif rango == "90d":
-        desde = hoy - timedelta(days=90)
-        rango_label = f"Últimos 90 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    elif rango == "anio":
-        desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        rango_label = f"Año {hoy.year} ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    else:
-        desde = None
-        rango = "todo"
-        rango_label = "Todo el tiempo"
+    desde, rango, rango_label = calcular_rango_fechas(rango)
 
     base_qs = Ticket.objects.filter(id_vehiculo=vehiculo)
     if desde:
@@ -488,20 +512,11 @@ def reporte_analiticas_pdf(request):
 
     filtro_departamento = request.GET.get("departamento", "")
 
+    desde, rango, rango_label = calcular_rango_fechas(rango)
+    # hoy también se usa más abajo para "fecha_generacion" y el nombre del
+    # archivo del PDF, no solo para calcular el rango - se recalcula acá
+    # (misma hora de Argentina que calcular_rango_fechas usa por dentro).
     hoy = timezone.localtime(timezone.now())
-    if rango == "30d":
-        desde = hoy - timedelta(days=30)
-        rango_label = f"Últimos 30 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    elif rango == "90d":
-        desde = hoy - timedelta(days=90)
-        rango_label = f"Últimos 90 días ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    elif rango == "anio":
-        desde = hoy.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        rango_label = f"Año {hoy.year} ({desde.strftime('%d/%m/%Y')} - {hoy.strftime('%d/%m/%Y')})"
-    else:
-        desde = None
-        rango = "todo"
-        rango_label = "Todo el tiempo"
 
     def filtro_base(qs):
         q = qs.filter(hora_inicio__gte=desde) if desde else qs

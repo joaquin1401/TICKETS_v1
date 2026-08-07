@@ -16,25 +16,18 @@
 
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&family=JetBrains+Mono:wght@400;500&display=swap');
 
-    :root {
-      --bg: #0f1014;
-      --surface: #181b22;
-      --surface2: #1f232d;
-      --border: #2a2f3d;
-      --accent: #558bba;
-      --accent2: #77a5cd;
-      --text: #dde1ea;
-      --text-muted: #6b7280;
-      --text-dim: #9aa0ad;
-      --danger: #e05252;
-      --success: #3dba7a;
-      --warning: #e8a020;
-    }
+    /* Paleta (xhtml2pdf/reportlab no resuelve var(), así que los valores
+       de acá abajo van escritos literales en cada regla - esto queda solo
+       como referencia de qué es cada color). */
+    /* --bg: #0f1014; --surface: #181b22; --surface2: #1f232d;
+       --border: #2a2f3d; --accent: #558bba; --accent2: #77a5cd;
+       --text: #dde1ea; --text-muted: #6b7280; --text-dim: #9aa0ad;
+       --danger: #e05252; --success: #3dba7a; --warning: #e8a020; */
 
     html,
     body {
-      background: var(--bg);
-      color: var(--text);
+      background: #0f1014;
+      color: #dde1ea;
       font-family: 'DM Sans', 'Segoe UI', sans-serif;
       font-size: 11pt;
       line-height: 1.5;
@@ -51,7 +44,7 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
-      border-bottom: 2px solid var(--accent);
+      border-bottom: 2px solid #558bba;
       padding-bottom: 12pt;
       margin-bottom: 20pt;
     }
@@ -61,7 +54,7 @@
       font-size: 7pt;
       text-transform: uppercase;
       letter-spacing: 0.14em;
-      color: var(--accent);
+      color: #558bba;
       margin-bottom: 4pt;
     }
 
@@ -69,7 +62,7 @@
       font-family: 'DM Serif Display', Georgia, serif;
       font-size: 22pt;
       font-weight: 400;
-      color: var(--text);
+      color: #dde1ea;
       line-height: 1.1;
     }
 
@@ -77,12 +70,12 @@
       text-align: right;
       font-family: 'JetBrains Mono', monospace;
       font-size: 7.5pt;
-      color: var(--text-muted);
+      color: #6b7280;
       line-height: 1.7;
     }
 
     .report-meta strong {
-      color: var(--accent2);
+      color: #77a5cd;
     }
 
     /* ── Section labels ──────────────────────────────────── */
@@ -91,10 +84,10 @@
       font-size: 7pt;
       text-transform: uppercase;
       letter-spacing: 0.14em;
-      color: var(--text-muted);
+      color: #6b7280;
       margin-bottom: 10pt;
       padding-left: 8pt;
-      border-left: 2pt solid var(--accent);
+      border-left: 2pt solid #558bba;
     }
 
     /* ── KPI Grid (primary) ──────────────────────────────── */
@@ -106,8 +99,8 @@
     }
 
     .kpi-card {
-      background: var(--surface);
-      border: 1pt solid var(--border);
+      background: #181b22;
+      border: 1pt solid #2a2f3d;
       border-radius: 4pt;
       padding: 12pt 14pt 10pt;
       page-break-inside: avoid;
@@ -115,7 +108,7 @@
 
     .kpi-card.kpi-accent {
       border-color: rgba(85, 139, 186, 0.5);
-      background: linear-gradient(135deg, rgba(85, 139, 186, 0.1) 0%, var(--surface) 100%);
+      background: linear-gradient(135deg, rgba(85, 139, 186, 0.1) 0%, #181b22 100%);
     }
 
     .kpi-card.kpi-warn {
@@ -125,48 +118,36 @@
     .kpi-value {
       font-family: 'DM Serif Display', Georgia, serif;
       font-size: 28pt;
-      color: var(--accent);
+      color: #558bba;
       line-height: 1;
       margin-bottom: 4pt;
     }
 
     .kpi-card.kpi-accent .kpi-value {
-      color: var(--accent2);
+      color: #77a5cd;
     }
 
     .kpi-card.kpi-warn .kpi-value {
-      color: var(--warning);
+      color: #e8a020;
     }
 
     .kpi-label {
       font-size: 8.5pt;
       font-weight: 500;
-      color: var(--text);
+      color: #dde1ea;
       margin-bottom: 2pt;
     }
 
     .kpi-sub {
       font-family: 'JetBrains Mono', monospace;
       font-size: 7pt;
-      color: var(--text-muted);
+      color: #6b7280;
     }
 
     /* ── KPI Grid (secondary) ────────────────────────────── */
     .kpi-grid-secondary {
-      grid-template-columns: repeat({
-        % if rango !='30d' %
-      }
-
-      6 {
-        % else %
-      }
-
-      5 {
-        % endif %
-      }
-
-      , 1fr);
-    margin-bottom: 18pt;
+      grid-template-columns: repeat({% if rango != '30d' %}6{% else %}5{% endif %}, 1fr);
+      margin-bottom: 18pt;
     }
 
     .kpi-card.kpi-small {
@@ -176,19 +157,19 @@
     .kpi-value-sm {
       font-family: 'DM Serif Display', Georgia, serif;
       font-size: 18pt;
-      color: var(--text);
+      color: #dde1ea;
       line-height: 1;
       margin-bottom: 3pt;
     }
 
     .kpi-card.kpi-warn .kpi-value-sm {
-      color: var(--warning);
+      color: #e8a020;
     }
 
     .kpi-month-label {
       font-family: 'DM Serif Display', Georgia, serif;
       font-size: 12pt;
-      color: var(--text);
+      color: #dde1ea;
       line-height: 1.2;
       margin-bottom: 3pt;
     }
@@ -217,10 +198,10 @@
       font-size: 6.5pt;
       text-transform: uppercase;
       letter-spacing: 0.1em;
-      color: var(--text-muted);
-      border-bottom: 1pt solid var(--border);
+      color: #6b7280;
+      border-bottom: 1pt solid #2a2f3d;
       font-weight: 400;
-      background: var(--surface);
+      background: #181b22;
     }
 
     thead th.align-right {
@@ -242,7 +223,7 @@
 
     tbody td {
       padding: 8pt 10pt;
-      color: var(--text-dim);
+      color: #9aa0ad;
       vertical-align: middle;
     }
 
@@ -252,19 +233,19 @@
 
     .vehicle-name {
       font-weight: 500;
-      color: var(--text);
+      color: #dde1ea;
       font-size: 9.5pt;
     }
 
     .vehicle-sub {
       font-family: 'JetBrains Mono', monospace;
       font-size: 7pt;
-      color: var(--text-muted);
+      color: #6b7280;
       margin-top: 1pt;
     }
 
     .leader-crown {
-      color: var(--warning);
+      color: #e8a020;
       margin-right: 4pt;
     }
 
@@ -288,9 +269,9 @@
     }
 
     .badge-neutral {
-      background: var(--surface2);
-      color: var(--text-dim);
-      border-color: var(--border);
+      background: #1f232d;
+      color: #9aa0ad;
+      border-color: #2a2f3d;
     }
 
     /* Pct badge */
@@ -309,12 +290,12 @@
 
     .pct-mid {
       background: rgba(232, 160, 32, 0.12);
-      color: var(--warning);
+      color: #e8a020;
     }
 
     .pct-high {
       background: rgba(224, 82, 82, 0.12);
-      color: var(--danger);
+      color: #e05252;
     }
 
     /* Progress bar */
@@ -327,7 +308,7 @@
     .bar-track {
       flex: 1;
       height: 5pt;
-      background: var(--surface2);
+      background: #1f232d;
       border-radius: 3pt;
       overflow: hidden;
       min-width: 60pt;
@@ -335,14 +316,14 @@
 
     .bar-fill {
       height: 100%;
-      background: var(--accent);
+      background: #558bba;
       border-radius: 3pt;
     }
 
     .bar-label {
       font-family: 'JetBrains Mono', monospace;
       font-size: 7.5pt;
-      color: var(--text-dim);
+      color: #9aa0ad;
       white-space: nowrap;
       min-width: 28pt;
       text-align: right;
@@ -354,8 +335,8 @@
       justify-content: space-between;
       font-family: 'JetBrains Mono', monospace;
       font-size: 7pt;
-      color: var(--text-muted);
-      border-top: 1pt solid var(--border);
+      color: #6b7280;
+      border-top: 1pt solid #2a2f3d;
       padding-top: 10pt;
       margin-top: 20pt;
       letter-spacing: 0.05em;
@@ -408,13 +389,13 @@
 
     <!-- KPIs de distancia -->
     <div class="kpi-grid" style="grid-template-columns: 1fr 1fr; gap: 8pt; margin-bottom: 8pt;">
-      <div class="kpi-card" style="border-color: rgba(61,186,122,0.35); background: linear-gradient(135deg, rgba(61,186,122,0.07) 0%, var(--surface) 100%);">
+      <div class="kpi-card" style="border-color: rgba(61,186,122,0.35); background: linear-gradient(135deg, rgba(61,186,122,0.07) 0%, #181b22 100%);">
         <div class="kpi-value" style="color:#3dba7a; font-size:22pt;">{{ distancia_est_total }} km</div>
         <div class="kpi-label">Distancia estimada total</div>
         <div class="kpi-sub">calculada por el sistema</div>
       </div>
-      <div class="kpi-card" style="border-color: rgba(119,165,205,0.4); background: linear-gradient(135deg, rgba(119,165,205,0.07) 0%, var(--surface) 100%);">
-        <div class="kpi-value" style="color:var(--accent2); font-size:22pt;">{% if distancia_real_total %}{{ distancia_real_total }} km{% else %}—{% endif %}</div>
+      <div class="kpi-card" style="border-color: rgba(119,165,205,0.4); background: linear-gradient(135deg, rgba(119,165,205,0.07) 0%, #181b22 100%);">
+        <div class="kpi-value" style="color:#77a5cd; font-size:22pt;">{% if distancia_real_total %}{{ distancia_real_total }} km{% else %}—{% endif %}</div>
         <div class="kpi-label">Distancia real recorrida total</div>
         <div class="kpi-sub">basada en odómetro (tickets finalizados)</div>
       </div>
@@ -453,7 +434,7 @@
     
       <div style="flex: 1;">
         <div style="margin-bottom: 8pt;">
-          <span style="font-weight: 500; font-size: 10pt; color: var(--text);">◧ Solicitudes por Departamento</span>
+          <span style="font-weight: 500; font-size: 10pt; color: #dde1ea;">◧ Solicitudes por Departamento</span>
         </div>
         {% if chart_departamentos %}
         <div style="padding: 10pt; text-align: center;">
@@ -464,7 +445,7 @@
     
       <div style="flex: 1;">
         <div style="margin-bottom: 8pt;">
-          <span style="font-weight: 500; font-size: 10pt; color: var(--text);">◧ Solicitudes por Cargo</span>
+          <span style="font-weight: 500; font-size: 10pt; color: #dde1ea;">◧ Solicitudes por Cargo</span>
         </div>
         {% if chart_cargos %}
         <div style="padding: 10pt; text-align: center;">
