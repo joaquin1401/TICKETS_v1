@@ -68,8 +68,31 @@ jobs:
         # en vez del storage simple. Con DEBUG=True este paso no estaría
         # probando nada — collectstatic pasaría igual aunque el manifest
         # estuviera roto.
-        DJANGO_SECRET_KEY: 'dummy-secret-key-for-build'
+        # No es una clave real: solo tiene que ser suficientemente larga/random
+        # para no disparar security.W009 (menos de 50 caracteres o poca
+        # variedad) al correr check --deploy.
+        DJANGO_SECRET_KEY: 'ci-dummy-key-not-real-8f3k2n9x7q1w5e6r4t8y0u2i3o5p7a9s1d3f-not-a-secret'
         DJANGO_DEBUG: 'False'
+        DB_NAME: test_db
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        DB_HOST: localhost
+        DB_PORT: 5432
+
+    # Simula un entorno de producción "correctamente configurado" y falla si
+    # check --deploy encuentra un WARNING o algo peor (por defecto solo falla
+    # en ERROR). Las variables de abajo son justamente las que check --deploy
+    # pide: sin ellas, este paso fallaría por config incompleta, no por un
+    # bug real - reflejan lo mínimo que hay que setear en el deploy real.
+    - name: Check Deploy Readiness
+      run: |
+        python manage.py check --deploy --fail-level WARNING
+      env:
+        DJANGO_SECRET_KEY: 'ci-dummy-key-not-real-8f3k2n9x7q1w5e6r4t8y0u2i3o5p7a9s1d3f-not-a-secret'
+        DJANGO_DEBUG: 'False'
+        ALLOWED_HOSTS: 'ci-check.example.com'
+        CSRF_COOKIE_SECURE: 'True'
+        SESSION_COOKIE_SECURE: 'True'
         DB_NAME: test_db
         DB_USER: test_user
         DB_PASSWORD: test_password
