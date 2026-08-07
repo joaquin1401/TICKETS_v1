@@ -17,7 +17,10 @@ from reservas.models import Cargo, IntentoLoginFallido, Ticket, Usuario, Vehicul
 
 
 class Command(BaseCommand):
-    help = "Elimina toda la base de datos (tickets, usuarios, vehículos y cargos) y crea un usuario administrador SEU."
+    help = (
+        "Elimina toda la base de datos (tickets, usuarios, vehículos y cargos), "
+        "recrea los 7 cargos del sistema y crea un usuario administrador SEU."
+    )
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.WARNING("Eliminando datos existentes..."))
@@ -36,16 +39,35 @@ class Command(BaseCommand):
         self.stdout.write(f"  - {count_cargos} cargos eliminados")
         self.stdout.write(self.style.SUCCESS("Base de datos limpia."))
 
-        self.stdout.write(self.style.WARNING("\nCreando usuario administrador SEU..."))
+        self.stdout.write(self.style.WARNING("\nCreando cargos..."))
 
-        # Crear cargo Administrador SEU
-        cargo_admin, created = Cargo.objects.get_or_create(
-            nombre="Administrador SEU", defaults={"prioridad": 0}
-        )
-        if created:
-            self.stdout.write("  - Cargo 'Administrador SEU' creado con prioridad 0.")
-        else:
-            self.stdout.write("  - Cargo 'Administrador SEU' ya existía.")
+        # Los 7 cargos del sistema, con la misma jerarquía que usa
+        # poblar_bd.py en el resto del proyecto (menor número = más
+        # prioridad). Sin esto, RegistroForm arma su dropdown de "Cargo"
+        # con Cargo.objects.exclude(prioridad=0): con un solo cargo
+        # (Administrador SEU, prioridad 0) ese desplegable queda vacío y
+        # nadie puede autoregistrarse.
+        cargos_config = [
+            (Cargo.ADMIN_SEU, 0),
+            (Cargo.DECANO, 1),
+            (Cargo.VICEDECANO, 1),
+            (Cargo.SECRETARIO, 2),
+            (Cargo.SUBSECRETARIO, 2),
+            (Cargo.USUARIO, 3),
+            (Cargo.CHOFER, 4),
+        ]
+        cargos = {}
+        for nombre, prioridad in cargos_config:
+            cargo, created = Cargo.objects.get_or_create(
+                nombre=nombre, defaults={"prioridad": prioridad}
+            )
+            cargos[nombre] = cargo
+            estado = "creado" if created else "ya existía"
+            self.stdout.write(f"  - {nombre} (prioridad {prioridad}) {estado}.")
+
+        cargo_admin = cargos[Cargo.ADMIN_SEU]
+
+        self.stdout.write(self.style.WARNING("\nCreando usuario administrador SEU..."))
 
         # Crear el usuario
         correo = "Bissonsebastian@gmail.com"
